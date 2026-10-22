@@ -1,0 +1,3 @@
+[default]
+description = "Access the paired household native queue from the bundled main interface."
+permissions = ["allow-dispatch"]

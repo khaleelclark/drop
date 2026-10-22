@@ -1,0 +1,22 @@
+[package]
+name = "household-android"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+name = "household_android"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+tauri = { version = "2", features = [] }
+tauri-plugin-household = { path = "../tauri-plugin" }
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]
+
+[profile.dev]
+debug = 0
+strip = "debuginfo"

@@ -1,0 +1,12 @@
+[package]
+name = "tauri-plugin-household"
+version = "0.1.0"
+edition = "2021"
+links = "tauri-plugin-household"
+
+[build-dependencies]
+tauri-plugin = { version = "2", features = ["build"] }
+
+[dependencies]
+tauri = { version = "2", default-features = false }
+serde_json = "1"
