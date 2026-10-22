@@ -1,0 +1,17 @@
+services:
+  household:
+    build: .
+    restart: unless-stopped
+    network_mode: host
+    environment:
+      HOUSEHOLD_TOKEN: ${HOUSEHOLD_TOKEN:?Set HOUSEHOLD_TOKEN in .env}
+      HOUSEHOLD_PUBLIC_URL: ${HOUSEHOLD_PUBLIC_URL:?Set the exact HTTPS Tailscale Serve origin}
+    volumes:
+      - household-data:/data
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+
+volumes:
+  household-data:

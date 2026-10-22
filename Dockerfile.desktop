@@ -1,0 +1,27 @@
+FROM node:24-bookworm AS node
+RUN npm install --global pnpm@11.10.0
+
+FROM rust:1.99.1-bookworm AS build
+RUN apt-get update && apt-get install --yes --no-install-recommends \
+    libwebkit2gtk-4.1-dev build-essential curl wget file libxdo-dev \
+    libssl-dev libayatana-appindicator3-dev librsvg2-dev patchelf pkg-config \
+    && rm -rf /var/lib/apt/lists/*
+COPY --from=node /usr/local/ /usr/local/
+WORKDIR /build
+COPY web/package.json web/pnpm-lock.yaml web/pnpm-workspace.yaml /build/web/
+RUN pnpm --dir web install --frozen-lockfile
+COPY clients/desktop/package.json clients/desktop/pnpm-lock.yaml /build/clients/desktop/
+RUN pnpm --dir clients/desktop install --frozen-lockfile
+COPY web/ /build/web/
+COPY clients/desktop/ /build/clients/desktop/
+RUN --mount=type=cache,id=household-cargo-registry,target=/usr/local/cargo/registry \
+    --mount=type=cache,id=household-native-target,target=/build/clients/desktop/native/target \
+    --mount=type=cache,id=household-tauri-target,target=/build/clients/desktop/src-tauri/target \
+    cargo build --release --manifest-path clients/desktop/native/Cargo.toml \
+    && pnpm --dir clients/desktop build --bundles deb \
+    && mkdir /output \
+    && cp clients/desktop/native/target/release/household-share-cli /output/ \
+    && cp clients/desktop/src-tauri/target/release/bundle/deb/*.deb /output/
+
+FROM scratch AS output
+COPY --from=build /output/ /

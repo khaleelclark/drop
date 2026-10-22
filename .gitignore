@@ -1,0 +1,39 @@
+# Build tools and dependencies
+.tools/
+node_modules/
+web/node_modules/
+web/dist/
+web/.vite/
+web/test-results/
+web/playwright-report/
+*.tsbuildinfo
+clients/**/node_modules/
+clients/**/target/
+clients/**/build/
+clients/**/.gradle/
+clients/**/local.properties
+clients/android/.gradle-home/
+clients/**/.kotlin/
+clients/**/.idea/
+clients/**/.tauri/
+quality/.client-probe-*
+
+# Local runtime data and credentials
+data/
+.env
+.env.*
+!.env.example
+*.keystore
+*.jks
+*.p12
+*.pem
+*.key
+
+# Outputs
+bin/
+dist/
+artifacts/
+*.log
+.DS_Store
+__pycache__/
+*.pyc
