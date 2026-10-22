@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "platform": "Android API36 x86_64 disposable emulator",
+  "coldLaunch": true,
+  "checks": [
+    "automatic native bootstrap",
+    "explicit loopback development pairing",
+    "redacted config",
+    "UI text submit through real Kotlin API bridge",
+    "exact native text and headers",
+    "native clipboard write and Android paste",
+    "no browser API requests"
+  ],
+  "binaryTransfers": "separate smoke; not implied by this text check",
+  "limitations": [
+    "not a physical phone",
+    "not a 20 GB Android transfer",
+    "not screen-lock/OS-job lifecycle proof"
+  ]
+}
