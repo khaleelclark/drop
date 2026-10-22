@@ -30,6 +30,34 @@ codesign --force --sign - "$HOME/.local/bin/household-share-cli"
 
 See `integrations/macos/README.md` for Quick Action/Shortcut capture. The helper is separate from the Tauri app bundle in this source build; there is no automatic system install. Linux users may run the helper from its build location or copy it to their own user bin directory.
 
+## macOS DMG build
+
+The account-free installer path is `.github/workflows/macos-dmg.yml`. It builds the existing desktop app on separate native GitHub runners: `macos-15` for Apple Silicon and `macos-15-intel` for Intel. These are [standard GitHub-hosted runner labels](https://docs.github.com/en/actions/reference/runners/github-hosted-runners). A matching-source push to `main` starts both jobs; **Actions → macOS DMG → Run workflow** starts them manually. Repository Actions must be enabled. The workflow uploads candidate build artifacts and does not create a release or deploy a server. The shared UI redesign is in progress: the integration owner must select its final source/assets before a Mac package is treated as the final deliverable. Earlier candidate builds do not freeze that design.
+
+Build tools are pinned in `integrations/macos/versions.env`: Node **24.16.0**, pnpm **11.10.0**, Rust **1.99.1**. Both pnpm installs use frozen locks; the helper tests/build and Tauri Cargo build use `--locked`. GitHub actions are pinned to full commit SHAs with read-only repository permissions and no persisted checkout credential. Hosted jobs install the pinned project tools in their disposable environment and use the runner's existing Xcode/Apple SDK. No SDK or system-package installer runs. Standalone Command Line Tools with a usable macOS SDK are sufficient locally; full Xcode is optional. The exact OS/SDK/tool versions, available Xcode or CLT package metadata, source commit and tracked working-tree changes are saved with the output; a runner label does not pin an immutable OS image.
+
+On a Mac that already has those tools and Xcode prerequisites, run from the repository root:
+
+```sh
+# Use the target matching this Mac; no cross-executed test claims:
+bash integrations/macos/build-dmg.sh aarch64-apple-darwin
+# Intel Mac instead:
+# bash integrations/macos/build-dmg.sh x86_64-apple-darwin
+```
+
+The script runs the native engine tests, builds the helper and Tauri `.app`, embeds the helper at `Household Share.app/Contents/Helpers/household-share-cli`, and includes the three capture scripts under `Contents/Resources/capture`. It signs the helper first and re-signs the modified app with ad-hoc identity `-`, retaining Tauri's entitlements and flags. It checks Mach-O architecture, Apple-system-only dynamic dependencies, app metadata and strict/deep code signatures, then creates a compressed HFS+ DMG with an **Applications** drag-install link and `INSTALL.txt`. It signs and verifies the DMG, mounts it read-only, and rechecks the bundled app/helper before export. The helper's no-argument usage path is executed to check native loading without opening a queue; the GUI is not launched by this script. No account or notarization credentials are required or accepted.
+
+Successful jobs export these files in **Artifacts → household-share-macos-arm64** or **household-share-macos-x86_64**:
+
+- `Household-Share_0.1.0_arm64.dmg` or `Household-Share_0.1.0_x86_64.dmg`;
+- `SHA256SUMS`, `INSTALL.txt`, `web-assets-sha256.txt` recording the exact generated frontend files, and dependency/build/test/signature/DMG verification logs, including `build-environment.log` with source/toolchain provenance.
+
+The same outputs are under `artifacts/macos/<Rust-target>/` for a local build. A pre-existing DMG makes the script stop rather than replace it. `bash integrations/macos/verify-dmg.sh /path/to/installer.dmg arm64` (or `x86_64`) repeats the native package checks without building or launching the GUI. Verify the downloaded DMG with `shasum -a 256 -c SHA256SUMS` from its download directory.
+
+Install by opening the matching DMG, dragging the app into Applications, ejecting the image, and opening the installed app. [Ad-hoc signing](https://v2.tauri.app/distribute/sign/macos/#ad-hoc-signing) does not supply Apple's notarization or developer identity. If macOS blocks it, use the per-app **Privacy & Security → Open Anyway** path described in [Apple's instructions](https://support.apple.com/en-us/102445). Package signature checks do not prove Gatekeeper approval on a downloaded, quarantined app. Pair using your own Tailscale HTTPS origin and app token; neither is baked into the package. See the Mac integration README for the optional helper symlink/Quick Actions.
+
+As of this Linux-host handoff, script syntax, workflow structure/pins, Linux platform refusal and optional environment-report control flow have been checked, with a separate source review. No macOS build job result or actual DMG has been produced or inspected here. The workflow's package checks and native-engine tests become evidence only when a matching Mac job passes. Installed Mac launch, close-to-hide, menu-bar Quit/reopen, native clipboard/dialogs, Quick Actions, Gatekeeper approval and actual household transfers remain unperformed. The deployment target is macOS 11; acceptance on that or other physical Mac versions is not inferred from the target setting.
+
 ## Headless queue and capture
 
 Configure via the app, or configure the standalone worker before starting the GUI. Token input is stdin, never a CLI argument. This command waits for token input until EOF:

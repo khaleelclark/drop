@@ -1,0 +1,89 @@
+name: macOS DMG
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/macos-dmg.yml'
+      - 'integrations/macos/**'
+      - 'clients/desktop/**'
+      - 'web/**'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: macos-dmg-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dmg:
+    name: DMG (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: aarch64-apple-darwin
+            arch: arm64
+          - runner: macos-15-intel
+            target: x86_64-apple-darwin
+            arch: x86_64
+    env:
+      CARGO_BUILD_JOBS: '2'
+      MACOSX_DEPLOYMENT_TARGET: '11.0'
+      # No Apple account, certificate, token, or notarization credentials are used.
+      APPLE_SIGNING_IDENTITY: '-'
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          persist-credentials: false
+
+      - name: Load exact build tool versions
+        run: |
+          source integrations/macos/versions.env
+          printf 'HOUSEHOLD_NODE_VERSION=%s\nHOUSEHOLD_PNPM_VERSION=%s\nHOUSEHOLD_RUST_VERSION=%s\n' \
+            "$HOUSEHOLD_NODE_VERSION" "$HOUSEHOLD_PNPM_VERSION" "$HOUSEHOLD_RUST_VERSION" >> "$GITHUB_ENV"
+
+      - name: Set up Node
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: ${{ env.HOUSEHOLD_NODE_VERSION }}
+
+      - name: Set up pinned project tools
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: |
+          npm install --prefix "$RUNNER_TEMP/household-build-tools" --no-audit --no-fund "pnpm@$HOUSEHOLD_PNPM_VERSION"
+          echo "$RUNNER_TEMP/household-build-tools/node_modules/.bin" >> "$GITHUB_PATH"
+          rustup toolchain install "$HOUSEHOLD_RUST_VERSION" --profile minimal --no-self-update --target "$BUILD_TARGET"
+
+      - name: Test, build, sign, create and verify DMG
+        env:
+          BUILD_TARGET: ${{ matrix.target }}
+        run: bash integrations/macos/build-dmg.sh "$BUILD_TARGET"
+
+      - name: Upload verified installer, checksums and build evidence
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: household-share-macos-${{ matrix.arch }}
+          path: artifacts/macos/${{ matrix.target }}/
+          if-no-files-found: error
+          retention-days: 14
+          compression-level: 0
+
+      - name: Upload diagnostic logs after a failed build
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: household-share-macos-${{ matrix.arch }}-failure-logs
+          path: artifacts/macos/${{ matrix.target }}/*.log
+          if-no-files-found: ignore
+          retention-days: 7

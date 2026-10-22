@@ -1,0 +1,33 @@
+Household Share for macOS
+
+1. Choose arm64 for an Apple Silicon Mac, or x86_64 for an Intel Mac.
+2. Open the DMG. Drag Household Share.app onto Applications.
+3. Eject the DMG, then open the installed app from Applications.
+4. This app uses an ad-hoc signature and is not notarized. macOS may block
+   the first launch. After attempting to open it, use System Settings >
+   Privacy & Security > Open Anyway if offered, then confirm the app.
+   See https://support.apple.com/en-us/102445 for Apple's current instructions.
+5. Pair with your household server's Tailscale HTTPS address and app token.
+   Each device must already have household Tailscale access. There is no
+   account/token in this installer and it does not deploy a server.
+
+Close hides the window while the transfer worker remains running. The
+menu-bar icon offers Open and Pause transfers and Quit. Command+Shift+H
+opens the window. Explicit Quit pauses transfers; reopen and Resume later.
+Sleep, logout, shutdown and force-quit can interrupt work.
+
+Optional Finder/Shortcuts capture:
+The signed helper is inside the installed app:
+  /Applications/Household Share.app/Contents/Helpers/household-share-cli
+The three capture scripts are in Contents/Resources/capture.
+See the repository's integrations/macos/README.md for setup. You can set
+HOUSEHOLD_CLI to the helper's full path in each capture script, or create
+a user-owned ~/.local/bin/household-share-cli symlink pointing to it.
+If installing in ~/Applications instead, use that path for the helper.
+Do not move original files before their queued uploads finish.
+
+The build verifies the DMG, native architecture, executable linkage and
+ad-hoc signatures, and runs native transfer-engine tests. It does not
+establish physical Mac installation, Gatekeeper approval, Finder or
+Shortcuts behavior, or transfers continuing after window close or sleep.
+The package targets macOS 11 or newer; older-system acceptance is untested.

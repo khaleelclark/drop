@@ -33,6 +33,28 @@ The harness uses an isolated temporary data directory, explicit loopback develop
 
 ## Host build limitations
 
+### Mac installer automation (2026-10-22)
+
+Implemented `.github/workflows/macos-dmg.yml` and `integrations/macos/{versions.env,build-dmg.sh,verify-dmg.sh,INSTALL.txt}` against the existing locked desktop/Tauri project. The workflow runs native ARM64 (`macos-15`) and Intel (`macos-15-intel`) jobs, pins Node 24.16.0/pnpm 11.10.0/Rust 1.99.1 and GitHub action SHAs, and reuses the runners' installed Xcode SDKs. It uses frozen pnpm dependencies and locked Cargo resolutions. Only read access to the repository is granted; checkout credentials are not persisted. No Apple identity, notarization or household token is included.
+
+The intended Mac checks are explicit: native core tests; app/helper release build; ad-hoc helper signing followed by app resource re-sealing with Tauri entitlements/flags preserved; architecture/app-identifier/deployment-target/system-dylib checks; strict executable and deep app signature verification; helper usage execution (before any user-state access); compressed DMG creation/signing; UDIF verification; read-only image mounting; bundled app/helper verification and Applications-link/instruction checks; SHA-256 output. Build source commit and actual OS/Xcode/SDK/tool versions are retained. These checks export artifacts; they do not publish a release or install an app on the host.
+
+The shared UI redesign remains an integration dependency. Each Mac build regenerates `web/dist` from its checkout and records exact generated assets in `web-assets-sha256.txt`. A passing earlier candidate is not the final redesigned Mac package. The integration owner selects the final shared source/UI before shipping; this Linux handoff does not freeze or package the older UI as final.
+
+Actually performed on Linux in this follow-up:
+
+- `bash -n` for `build-dmg.sh`, `verify-dmg.sh`, and `versions.env`: passed.
+- Parsed workflow YAML; checked both native target/runner pairs, manual and `main` push triggers, full action commit pins and read-only repository permission: passed.
+- Running `build-dmg.sh aarch64-apple-darwin` on this host: expected exit 1 with **DMG packaging requires macOS and an Apple SDK. No installer was built.** The guard runs before dependency installation, output creation or build/signing calls.
+- Independent source review found one local-build blocker: unconditional `xcodebuild -version` required full Xcode solely for provenance reporting. Removed it from required commands and made that report conditional, falling back to `pkgutil` CLT package metadata (or an explicit unavailable note). The required `xcrun` SDK checks remain. No other concrete blocker was reported in the five reviewed automation/install files; this review is not Mac execution.
+- The reviewer's focused source recheck closed that finding and reported no remaining concrete blocker in the bounded packaging review, including the updated documentation. It did not run a Mac build or repeat the Linux control-flow checks.
+- The corrected optional-report branches (full Xcode, CLT fallback and unavailable metadata) all continued under `set -euo pipefail` in an isolated Linux shell check with explicit `xcodebuild`/`pkgutil` stubs. No Mac command was executed by this control-flow check.
+- The frontend provenance script ran separately against the 9 current `web/dist` files; its streaming Node SHA-256 output matched independently computed Python hashes for every file. This reads the existing build only; no frontend rebuild, Mac packaging or final-design approval is inferred.
+
+No macOS runner result is available in this handoff. No DMG bytes, Apple code signature, native Mac helper loading, image mount, Gatekeeper approval or Mac GUI behavior has been validated here. A future successful build must be associated with its source commit and generated logs/checksum before reporting those checks passed. Any hosted build result remains separate from actual household Mac acceptance. See `README.md` and `integrations/macos/README.md` for exact run/install instructions.
+
+### Linux workspace and cross-target attempts
+
 - `cargo check --manifest-path clients/desktop/src-tauri/Cargo.toml` stops in GLib/GObject system dependencies because `pkg-config` and GTK/WebKit development packages are absent. No system-package installation was authorized or performed.
 - Approved Rust macOS target component was added locally. `cargo check --manifest-path clients/desktop/src-tauri/Cargo.toml --target aarch64-apple-darwin` stops in `objc2-exception-helper`: the Linux C compiler cannot build Apple's Objective-C target (`-arch` / macOS SDK). No Apple SDK is present.
 - The separate isolated Linux container build and unpaired shell lifecycle run passed as recorded above without changing host GUI packages. Direct host execution of an extracted package stopped in the dynamic loader with exit 127 because WebKit4.1/JavaScriptCore/Soup runtime libraries are absent; no app/display initialization occurred on that host path. Host installation, native clipboard/dialog commands, pairing and in-progress transfer residency remain unperformed. The shared frontend adapter has its own web-owner checks.
