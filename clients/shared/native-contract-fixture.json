@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "config": { "baseUrl": "https://household.example", "sourceDevice": "Kitchen Mac", "connected": true },
+  "unpairedConfig": { "baseUrl": "https://household.example", "sourceDevice": "My Android", "connected": false },
+  "apiRequest": { "method": "GET", "path": "/api/items/note/text", "requestId": "example-request" },
+  "apiResponse": { "status": 200, "body": "﻿  exact\r\n家 🏠\t\n  ", "headers": { "content-type": "text/plain; charset=utf-8" } },
+  "noContentResponse": { "status": 204, "body": "", "headers": {} },
+  "queue": [
+    { "id": "large-upload", "direction": "upload", "name": "20GiB.bin", "size": 21474836480, "offset": 9000000000, "status": "running", "itemId": "item-upload" },
+    { "id": "needs-source", "direction": "upload", "name": "original.txt", "size": 500, "offset": 120, "status": "needs_source", "error": "Reselect the original source" },
+    { "id": "validating", "direction": "upload", "name": "text.txt", "size": 128, "offset": 128, "status": "validating", "itemId": "pending-item" },
+    { "id": "download", "direction": "download", "name": "saved.bin", "size": 21474836480, "offset": 21474836480, "status": "completed" }
+  ],
+  "states": { "queued": "queued", "checking": "checking", "hashing": "checking", "staging": "checking", "validating": "checking", "running": "uploading", "exporting": "uploading", "paused": "paused", "retry_wait": "paused", "needs_source": "needs-file", "error": "failed", "cancelling": "cancelling", "complete": "complete", "completed": "complete", "cancelled": null }
+}

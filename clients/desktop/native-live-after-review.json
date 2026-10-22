@@ -1,0 +1,18 @@
+{
+  "bytes": 33555133,
+  "exitCode": 0,
+  "serverRestarts": [
+    "upload",
+    "download"
+  ],
+  "nativePeakRSSKiB": 26212,
+  "elapsedSeconds": 0.5,
+  "source": "sparse zero-filled local file; all payload bytes transferred via HTTP",
+  "output": [
+    "REQUEST_SERVER_RESTART upload",
+    "Upload pause/restart/resume at 8388608 bytes",
+    "REQUEST_SERVER_RESTART download",
+    "Download pause/restart/resume at 8388608 bytes",
+    "PASS: 33555133 bytes, source/download SHA-256 c7a31f7b2cbbd482f545710ecb9edbd56ceb8552b204343ab8db905e12ab3b9a, elapsed 0.49s; both queues paused/reopened/resumed"
+  ]
+}

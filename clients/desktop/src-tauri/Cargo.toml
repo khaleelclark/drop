@@ -1,0 +1,20 @@
+[package]
+name = "household-share"
+version = "0.1.0"
+edition = "2021"
+default-run = "household-share"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+household-native = { path = "../native" }
+tauri = { version = "2", features = ["tray-icon", "image-png"] }
+tauri-plugin-clipboard-manager = "2"
+tauri-plugin-dialog = "2"
+tauri-plugin-global-shortcut = "2"
+tauri-plugin-single-instance = "2"
+serde_json = "1"
+
+[features]
+custom-protocol = ["tauri/custom-protocol"]

@@ -1,0 +1,7 @@
+{
+  "$schema": "../gen/schemas/desktop-schema.json",
+  "identifier": "main",
+  "description": "Only bundled local household UI. No remote origins receive native IPC.",
+  "windows": ["main"],
+  "permissions": ["core:default"]
+}
