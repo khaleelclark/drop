@@ -24,6 +24,8 @@ The user approved building the proposal in `household-share-architecture.md`.
 
 ## Implementation
 
+- The user requested Ponytail for coding and review. Read the repository-local `.agents/skills/ponytail/SKILL.md`; its pinned source and MIT notice are beside it. Reuse existing components, platform features and dependencies before adding code. Make the smallest complete change while preserving every requested behavior, validation, recovery path and accessibility requirement. Existing ownership and runtime instructions continue to apply.
+
 - Read `docs/api-contract.md` before implementing clients or server.
 - Use explicit upload states. Never expose incomplete file bytes as ready content.
 - Plain text content must remain inert; copy full stored text and show success only after the write succeeds.
