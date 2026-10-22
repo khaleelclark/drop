@@ -374,6 +374,7 @@ pub struct Queue {
 impl Queue {
     pub fn open(root: PathBuf) -> Result<Arc<Self>> {
         private_dir(&root)?;
+        let root = root.canonicalize().map_err(err)?;
         private_dir(&root.join("inbox"))?;
         let lock = OpenOptions::new()
             .create(true)

@@ -21,6 +21,8 @@ struct Request {
     body: Vec<u8>,
 }
 fn read_request(stream: &mut TcpStream) -> Request {
+    // macOS inherits the listener's nonblocking mode on accepted sockets.
+    stream.set_nonblocking(false).unwrap();
     stream
         .set_read_timeout(Some(Duration::from_secs(5)))
         .unwrap();
@@ -260,8 +262,55 @@ impl Drop for Server {
     fn drop(&mut self) {
         self.stop.store(true, Ordering::SeqCst);
         if let Some(h) = self.worker.take() {
-            h.join().unwrap();
+            if let Err(panic) = h.join() {
+                if !thread::panicking() {
+                    std::panic::resume_unwind(panic);
+                }
+            }
         }
+    }
+}
+#[test]
+fn request_reader_handles_nonblocking_stream_and_fragmented_body() {
+    let listener = TcpListener::bind("127.0.0.1:0").unwrap();
+    let mut client = TcpStream::connect(listener.local_addr().unwrap()).unwrap();
+    let (mut stream, _) = listener.accept().unwrap();
+    stream.set_nonblocking(true).unwrap();
+    client
+        .write_all(b"PATCH /api/uploads/test HTTP/1.1\r\nContent-Length: 4\r\n\r\nte")
+        .unwrap();
+    let worker = thread::spawn(move || read_request(&mut stream));
+    thread::sleep(Duration::from_millis(20));
+    client.write_all(b"xt").unwrap();
+    let req = worker.join().unwrap();
+    assert_eq!(req.method, "PATCH");
+    assert_eq!(req.path, "/api/uploads/test");
+    assert_eq!(req.body, b"text");
+}
+#[test]
+fn server_worker_panic_fails_without_double_panic_during_cleanup() {
+    for unwinding in [false, true] {
+        let server = Server {
+            url: String::new(),
+            state: Default::default(),
+            stop: Default::default(),
+            worker: Some(thread::spawn(|| panic!("worker failure"))),
+        };
+        let failure = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+            let _server = server;
+            if unwinding {
+                panic!("test failure");
+            }
+        }))
+        .unwrap_err();
+        assert_eq!(
+            failure.downcast_ref::<&str>(),
+            Some(&if unwinding {
+                "test failure"
+            } else {
+                "worker failure"
+            })
+        );
     }
 }
 fn data() -> Vec<u8> {
@@ -534,6 +583,12 @@ fn pending_validation_retains_stage_and_can_resume_after_restart() {
     server.state.lock().unwrap().validation = Some("uploading".into());
     let temp = tempfile::tempdir().unwrap();
     let root = temp.path().join("queue");
+    #[cfg(unix)]
+    {
+        let physical_root = temp.path().join("physical-queue");
+        fs::create_dir(&physical_root).unwrap();
+        std::os::unix::fs::symlink(physical_root, &root).unwrap();
+    }
     let q = Queue::open(root.clone()).unwrap();
     q.configure(server.config()).unwrap();
     spool_text(&root, &mut &b"text"[..]).unwrap();
