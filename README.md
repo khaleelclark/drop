@@ -2,6 +2,8 @@
 
 A private shared inbox for household text and files, designed for Linux hosting behind Tailscale and Mac, Linux, Android, and browser clients.
 
+Source repository: [khaleelclark/household-share](https://github.com/khaleelclark/household-share). The source is public; access to a running household instance requires its configured private network and app token.
+
 The app has one shared feed, explicit Copy and Download actions, resumable native transfer queues, and a browser fallback. See [validation evidence](docs/validation.md) for the exact builds and checks performed. Mac packaging and physical-phone background behavior require checks on those devices.
 
 ## Start on the Linux host

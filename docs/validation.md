@@ -43,7 +43,9 @@ Reproduction scripts: `scripts/android-emulator-smoke.cjs` and `scripts/android-
 
 ## Packaging and remaining limits
 
-`python3 scripts/package.py` checks the named deliverable manifest, excludes toolchains, dependencies, runtime data, generated caches and signing material, creates source/server archives, records SHA256, then reopens and reads every archive member. Root extracted an initial server archive, ran its included executable using the documented relative paths, verified static UI/CSP, anonymous denial and authenticated feed, then stopped it and removed the temporary directory. Final packages are refreshed after the owner handoffs.
+`python3 scripts/package.py` checks the named deliverable manifest, excludes toolchains, dependencies, runtime data, generated caches and signing material, creates source/server archives, records SHA256, then reopens and reads every archive member. Root extracted an initial server archive, ran its included executable using the documented relative paths, verified static UI/CSP, anonymous denial and authenticated feed, then stopped it and removed the temporary directory. Final packages were refreshed after the owner handoffs. The independent final audit verified all 162 required files, all seven package sizes/checksums, archive inputs, clean Git state and the corrected GUI-tested Debian package; no concrete secret inclusion was found in its bounded inspection.
+
+With explicit user approval for public source, the connected GitHub account published six implementation and validation commits to [khaleelclark/household-share](https://github.com/khaleelclark/household-share). GitHub attributes both author and committer to `khaleelclark`. All 219 reviewed source files, their blob hashes and executable modes matched the local tree exactly before this documentation update. Runtime data, tokens, signing keys, local toolchains and built packages are excluded from Git. The local checkout tracks the published `main`; the original local preparation history is retained in `local-prepublication`.
 
 The code and observed builds are not full target-device release validation. Still unperformed:
 

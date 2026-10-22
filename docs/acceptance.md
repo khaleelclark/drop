@@ -42,6 +42,7 @@ This is the integration checklist. A source implementation does not establish de
 - [x] Linux run/deployment guide matches actual environment variables and extracted-server-bundle relative paths.
 - [x] Linux/Android paths match actual build outputs; Mac instructions describe a source build, which remains unperformed.
 - [x] Source archive, Linux server/desktop packages and primary Android APKs imported into Project files; checksum manifest supplied.
+- [x] Reviewed source published to the user-approved public `khaleelclark/household-share` repository, with commits attributed to khaleelclark and remote file contents verified.
 - [x] Known limitations and unperformed checks recorded with the exact release evidence.
 - [x] No deployment or public exposure performed without separate authorization.
 
@@ -49,4 +50,4 @@ This is the integration checklist. A source implementation does not establish de
 
 - Project-local Go1.27.3 and Rust1.99.1 installed from official distributions, with downloaded installer/archive SHA256 verification.
 - Python smoke/tooling scripts compile; shell build/test/environment scripts pass syntax checking.
-- Real built browser/server round trips, 20 GiB server/native checks, updated Rust regressions, Linux shell lifecycle and Android emulator checks passed. Source and runnable Linux/Android packages are published in Project files. GitHub repository creation/push and unavailable target-device checks remain; see `docs/validation.md`.
+- Real built browser/server round trips, 20 GiB server/native checks, updated Rust regressions, Linux shell lifecycle and Android emulator checks passed. Source and runnable Linux/Android packages are published in Project files; reviewed source is also published on GitHub. Unavailable target-device checks remain; see `docs/validation.md`.
