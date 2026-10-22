@@ -56,6 +56,18 @@ async function main() {
     expect(config.connected).toBe(true);
     expect(config.token).toBeUndefined();
     await expect(page.getByRole('dialog')).toHaveCount(0);
+    const viewport = await page.evaluate(() => ({
+      width: innerWidth,
+      height: innerHeight,
+      contentWidth: document.documentElement.scrollWidth,
+      scale: visualViewport.scale,
+      inputs: [...document.querySelectorAll('input:not([type=file]), textarea')]
+        .filter(element => element.getClientRects().length)
+        .map(element => ({ name: element.getAttribute('aria-label'), fontSize: parseFloat(getComputedStyle(element).fontSize) })),
+    }));
+    expect(viewport.scale).toBeCloseTo(1, 2);
+    expect(viewport.contentWidth).toBeLessThanOrEqual(viewport.width + 1);
+    for (const input of viewport.inputs) expect(input.fontSize).toBeGreaterThanOrEqual(16);
     const text = `Android native integration ${Date.now()}\n\n  Keep Unicode: café 🏠 日本語.\n\t  `;
     await page.getByRole('textbox', { name: 'Text to share', exact: true }).fill(text);
     await page.getByRole('button', { name: 'Share text', exact: true }).click();
@@ -80,10 +92,23 @@ async function main() {
     shell('shell', 'input', 'keyevent', '279'); // Android KEYCODE_PASTE uses the real native clipboard.
     await expect(composer).toHaveValue(text);
     await composer.fill('');
+    await composer.tap();
+    await expect.poll(() => page.evaluate(() => innerHeight)).toBeLessThan(viewport.height);
+    const keyboard = await page.getByRole('button', { name: 'Share text', exact: true }).evaluate(button => {
+      const rect = button.getBoundingClientRect();
+      return { height: innerHeight, scale: visualViewport.scale, contentWidth: document.documentElement.scrollWidth,
+        submit: { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right } };
+    });
+    expect(keyboard.scale).toBeCloseTo(1, 2);
+    expect(keyboard.contentWidth).toBeLessThanOrEqual(viewport.width + 1);
+    expect(keyboard.submit.top).toBeGreaterThanOrEqual(0);
+    expect(keyboard.submit.bottom).toBeLessThanOrEqual(keyboard.height + 1);
+    expect(keyboard.submit.left).toBeGreaterThanOrEqual(0);
+    expect(keyboard.submit.right).toBeLessThanOrEqual(viewport.width + 1);
     expect(browserApi).toEqual([]);
     expect(runtimeErrors).toEqual([]);
     await page.screenshot({ path: path.join(output, 'android-emulator.png'), fullPage: false });
-    const report = { passed: true, platform: 'Android API36 x86_64 disposable emulator', coldLaunch, checks: ['automatic native bootstrap', 'explicit loopback development pairing', 'redacted config', 'UI text submit through real Kotlin API bridge', 'exact native text and headers', 'native clipboard write and Android paste', 'no browser API requests'], binaryTransfers: 'separate smoke; not implied by this text check', limitations: ['not a physical phone', 'not a 20 GB Android transfer', 'not screen-lock/OS-job lifecycle proof'] };
+    const report = { passed: true, platform: 'Android API36 x86_64 disposable emulator', coldLaunch, viewport, keyboard, checks: ['automatic native bootstrap', 'explicit loopback development pairing', 'redacted config', 'UI text submit through real Kotlin API bridge', 'exact native text and headers', 'native clipboard write and Android paste', 'no browser API requests', 'initial scale 1 and no horizontal overflow', 'visible inputs at least 16 CSS px', 'OS keyboard resizes viewport and keeps Share action visible'], binaryTransfers: 'separate smoke; not implied by this text check', limitations: ['not a physical phone', 'not a 20 GB Android transfer', 'not screen-lock/OS-job lifecycle proof', 'not a physical pinch-gesture test'] };
     await fs.writeFile(path.join(output, 'android-emulator.json'), JSON.stringify(report, null, 2) + '\n');
     console.log('PASS: installed Tauri Android bootstrap, real-server native text API, UI send, exact native clipboard/paste, response headers, zero browser API fetches');
   } catch (error) {

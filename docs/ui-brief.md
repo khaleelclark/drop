@@ -25,6 +25,10 @@ Root reviews rendered desktop/phone screens, then checks the updated installed A
 
 User direction: “smooth modern ui, think clean ios type. intentional actions, thoughtfully placed. and clean and functional”.
 
+## Blip reference
+
+The user also requested inspiration from [Blip](https://blip.net/). Its app demo uses a compact device list, plain search, short rows and a single-purpose panel. Apply that directness to the household feed: keep sending close at hand, make file identity and progress easy to scan, and give each item one obvious Copy or Download action. Preserve the approved shared inbox and its offline receiving behavior. Use the reference for interaction clarity and density; keep Household’s own assets and visual system.
+
 ## Experience
 
 Household is a quick shared inbox for plain text and files. The most common jobs take very few actions: paste/send; drop/send; copy; download. Make the shared feed the primary screen with an easy-to-reach composer and visible transfer status. On a phone, essential actions remain within thumb reach and do not depend on hover.

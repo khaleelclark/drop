@@ -46,6 +46,13 @@ describe('full text copy', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Download' }))
     expect(download).toHaveBeenCalledWith({ url: 'https://household.example/api/items/note/download', name: 'huge.zip', itemId: 'note' })
   })
+  it.each(['uploading','failed'] as const)('keeps file bytes unavailable while the item is %s', status => {
+    const { download } = setup(vi.fn(), '', {kind:'file',name:'pending.zip',size:20_000_000_000,status})
+    const button = screen.getByRole('button',{name:'Download'})
+    expect(button).toBeDisabled()
+    fireEvent.click(button)
+    expect(download).not.toHaveBeenCalled()
+  })
   it('offers cancellation during preparation and does not announce a cancelled copy', async () => {
     let requestedSignal:AbortSignal|undefined
     const request=vi.fn((_url:unknown,init?:RequestInit)=>new Promise<Response>((_resolve,reject)=>{
@@ -83,7 +90,7 @@ describe('full text copy', () => {
   })
   it('uses download instead of full Copy or Expand for text above the preparation budget', () => {
     setup(vi.fn(),'must not be requested',{size:8*1024**2+1})
-    expect(screen.getByRole('button',{name:'Prepare copy'})).toBeDisabled()
+    expect(screen.queryByRole('button',{name:'Prepare copy'})).not.toBeInTheDocument()
     expect(screen.queryByRole('button',{name:'Expand text'})).not.toBeInTheDocument()
     expect(screen.getByRole('button',{name:/^Download \.txt$/})).toBeEnabled()
   })
@@ -94,11 +101,33 @@ describe('full text copy', () => {
     const expand=await screen.findByRole('menuitem',{name:'Expand text'})
     expect(expand).toHaveFocus()
     fireEvent.keyDown(expand,{key:'ArrowDown'})
-    expect(screen.getByRole('menuitem',{name:'Pin item'})).toHaveFocus()
+    expect(screen.getByRole('menuitem',{name:'Download .txt'})).toHaveFocus()
     fireEvent.keyDown(screen.getByRole('menuitem',{name:'Pin item'}),{key:'End'})
     expect(screen.getByRole('menuitem',{name:'Delete item'})).toHaveFocus()
     fireEvent.keyDown(screen.getByRole('menuitem',{name:'Delete item'}),{key:'Escape'})
     expect(screen.queryByRole('menu')).not.toBeInTheDocument();expect(trigger).toHaveFocus()
+  })
+  it('keeps the exact .txt download available in the secondary menu', async () => {
+    const { download } = setup(vi.fn())
+    await screen.findByRole('button', {name:'Copy text'})
+    expect(screen.queryByRole('button', {name:'Download .txt'})).not.toBeInTheDocument()
+    fireEvent.click(screen.getByRole('button', {name:'More actions for Text'}))
+    fireEvent.click(screen.getByRole('menuitem', {name:'Download .txt'}))
+    expect(download).toHaveBeenCalledWith({url:'https://household.example/api/items/note/download',name:'Text.txt',itemId:'note'})
+    expect(screen.queryByRole('menu')).not.toBeInTheDocument()
+  })
+  it('starts keyboard navigation at the first enabled action for an unfinished text upload', () => {
+    setup(vi.fn(), '', {status:'uploading'})
+    const trigger=screen.getByRole('button',{name:'More actions for Text'})
+    fireEvent.keyDown(trigger,{key:'ArrowDown'})
+    expect(screen.getByRole('menuitem',{name:'Download .txt'})).toBeDisabled()
+    expect(screen.getByRole('menuitem',{name:'Pin item'})).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('menuitem',{name:'Pin item'}),{key:'ArrowUp'})
+    expect(screen.getByRole('menuitem',{name:'Delete item'})).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('menuitem',{name:'Delete item'}),{key:'Home'})
+    expect(screen.getByRole('menuitem',{name:'Pin item'})).toHaveFocus()
+    fireEvent.keyDown(screen.getByRole('menuitem',{name:'Pin item'}),{key:'Escape'})
+    expect(trigger).toHaveFocus()
   })
   it('renders shared markup as inert text', async () => {
     setup(vi.fn(), '<img src=x onerror="alert(1)">', { preview: '<script>bad()</script>' })

@@ -1,5 +1,5 @@
 // Only the application shell is cached. Private API responses and transfers never enter this cache.
-const CACHE = 'household-shell-v3';
+const CACHE = 'household-shell-v4';
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(['/', '/icon.svg', '/icon-192.png', '/icon-512.png', '/manifest.webmanifest'])));
 });

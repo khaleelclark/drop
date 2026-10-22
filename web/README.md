@@ -1,6 +1,6 @@
 # Household browser client
 
-Light, neutral iOS-inspired React + TypeScript + Vite client with system typography, restrained blue, 44 px primary controls, secondary item action menus, and reduced-motion support. The mobile composer stays within thumb reach above the bottom navigation.
+React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to top filters on phones. Each item has one primary Copy or Download action; secondary text downloads, expansion and management live in a keyboard-accessible menu. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
 
 Client for `docs/api-contract.md`. All items come from
 the connected API; the product interface has no demo feed or synthetic storage
@@ -125,17 +125,110 @@ The browser adapter is the default and does not require Tauri dependencies.
 Unexpected native bootstrap failures show a recoverable startup screen; they
 never fall back to browser API or transfer behavior.
 
+## Design and responsive behavior
+
+The redesign follows the supplied *Hands-On UX Design for Developers* by Elvis
+Canziba: proximity/common regions (printed pp. 70–81), typography and readable
+measure (153–156), alignment/hierarchy/contrast/repetition/balance/space
+(160–168), task clarity (217–220), and coherent palette/type/grid/components
+(241–249). The source PDF and extracted textbook text are not part of this
+client or its deliverables.
+
+Item content has stronger type and contrast than source/time metadata. Shared
+spacing, aligned edges, restrained surfaces and repeated action styles group
+each item with its action. File name, readiness and Download sit together;
+text previews keep whitespace intact and put Copy below the content. Text too
+large for safe copy offers Download .txt directly. Setup, empty/filter/search,
+server error and transfer recovery states each expose a next action.
+
+The live [Blip website](https://blip.net/) was read as a design reference on
+2026-10-22. Its focused send flow, clear transfer identity and visible recovery
+informed the final small refinement: transfer filenames and progress use readable
+14/12 px type, and every row says “To household” or “To this device”, including
+paused and source-reselection states. The approved composer and feed retain
+their spacing and single primary actions. This app still uses its private
+persistent server feed and configured limits. Completed uploads say “Upload sent”;
+the feed's server-controlled readiness determines when Download is enabled.
+
+The viewport uses device-width, initial scale 1, viewport-fit=cover, and
+interactive-widget=resizes-content. All mobile text inputs use at least 16 CSS
+px. Safe-area padding and a normal-flow composer let the document reflow when
+available height changes. Browser accessibility zoom is unrestricted. Installed
+Android WebView page zoom is configured by the native owner; web CSS never
+scales the page or disables browser touch zoom. Actual keyboard, safe-area and
+physical-phone behavior require device validation.
+
 ## Validation scope
 
-See the canonical implementation handoff for the final executed check counts.
-Executed frontend validation: **38 unit/component tests in 8 files**, all passing, and the TypeScript/Vite production build. Native adapter tests load `../clients/shared/native-contract-fixture.json` at test runtime, including pairing/disconnect, queue controls/reselection, exact text, headers, and empty HTTP responses. Run tests from `web/` in the complete checkout; production web-only builds do not need the fixture. Native bridge tests use JavaScript command doubles; no native binary has run in frontend validation.
+Current redesign validation: **42 unit/component tests in 8 files passed**.
+**7 Chromium fixture tests passed** (33.2 seconds) using Chromium 1243.
+The final compact pairing follow-up passed the two native interface tests and
+four affected Chromium fixtures (two runs of two tests: 10.1 s and 6.2 s).
+The 360×740 token-error state keeps the entire Connect button in view without
+scrolling; 360×420 checks usable internal scroll and a fully reachable action.
+The reviewer's disabled-first-menu-action issue is fixed in the shared menu;
+the regression checks enabled initial focus, wrap, Home and Escape. Two affected
+Chromium menu/responsive fixtures passed again (4.5 seconds). An initial
+`pnpm exec playwright` invocation selected a mismatched runner and failed before
+collecting tests; the configured local `@playwright/test` CLI passed.
+The Blip-reference follow-up passed all 42 unit/component tests again (the pnpm
+test invocation ran the complete suite), plus four affected Chromium fixtures
+in 19.2 seconds: bounded upload, native bridge/transfer presentation, narrow
+recovery layout, and pairing/error states. Their assertions distinguish upload,
+server validation and download progress; native data remains a JS bridge fixture.
+The native bridge fixture passed once more in 3.0 seconds after dismissing its
+copy notification for the transfer screenshot and asserting the paused-download
+Resume target is fully visible, at least 44 px and uncovered at 360×740.
+The final QA wording follow-up passed the two native interface tests (3.53 s)
+and the bounded 9 MiB Chromium upload fixture (8.0 s), including scoped
+direction-labelled completion and enabled Download assertions. Native validation
+phases and indeterminate progress remain intact; completed uploads no longer
+claim that the server is still finalizing indefinitely.
+The TypeScript/Vite production build passed. Current stable candidate assets
+are `index-BRmFLqLf.js` and `index-BJCLriK5.css`. Root accepted compact pairing;
+packaging waits for final reference review and a coordinated freeze;
+these names are not a packaging authorization. Native adapter tests load
+`../clients/shared/native-contract-fixture.json` at test runtime, including
+pairing/disconnect, queue controls/reselection, exact text, headers, and empty
+HTTP responses. Run tests from `web/` in the complete checkout; production
+web-only builds do not need the fixture. Native bridge tests use JavaScript
+command doubles; no native binary has run in frontend validation.
 
-Latest Chromium fixture run: **4 tests passed** with the existing Chromium 1243 executable via `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH` (8.6 seconds). It exercised exact Unicode/whitespace clipboard copy and paste, pin/search/delete, authenticated HTTP attachment download with exact bytes, 9 MiB tus upload as 8 MiB + 1 MiB chunks with matching SHA256, phone width and 44 px primary/menu targets, dialog keyboard focus, and automatic installed-bridge detection with zero browser API fetches. Desktop/phone screenshots are `test-results/household-desktop.png` and `test-results/household-mobile.png` (contract fixture content). An earlier download test timed out because Chromium bypasses Playwright download route mocks; the final harness serves its bounded attachment from a dedicated loopback HTTP fixture. No application download workaround was needed. No browser or system package was installed.
+The Chromium fixture suite uses the existing Chromium 1243 executable through
+`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. It verifies exact Unicode/whitespace
+clipboard copy and paste, pin/search/delete, authenticated HTTP attachment
+download with exact bytes, and a 9 MiB tus upload in 8 MiB + 1 MiB chunks with
+matching SHA256. It also checks phone 44 px primary/menu targets, dialog and
+item-menu keyboard focus, native bridge detection with zero browser API
+requests, persisted-source recovery, no horizontal overflow at 320/360/390/412
+CSS px, 16 px mobile inputs, uncovered item actions, filtering, a focused
+normal-flow composer, and reflow at a 320×420 viewport. The short viewport
+approximates available layout height; it does not simulate an OS keyboard.
+Setup rejection, empty inbox, no pins/search results and recoverable server
+errors are exercised separately. These tests use isolated contract fixture
+content; the product never inserts demo shares.
 
-Storage CSP follow-up: the storage indicator uses a native `<meter>` with stylesheet-only appearance. After this change, all **38 unit/component tests** and the TypeScript/Vite production build passed again. A separate Chromium 1243 probe against the built interface and real Go server verified a visible 4 px meter at 131,072 / 1,048,576 bytes, no inline style attribute, the unchanged `style-src 'self'` response policy, and zero CSP violations. The probe used disposable loopback server data and removed it afterward; it did not deploy a service.
+Screenshots are `test-results/household-desktop.png`,
+`household-mobile.png`, `household-pairing.png`, `household-empty.png`, and
+`household-narrow-keyboard-layout.png`. The reference follow-up also provides
+`household-transfers.png` with upload, validation and paused-download rows. They
+are review evidence using test
+content, not screenshots of a household's real private data.
 
-Final regressions also cover cancellation on manual text-preparation unmount/item replacement, late-response suppression, active tus termination 404/410 cleanup, retained 409/500 cancellation failures, and a native bootstrap failure screen without browser transport fallback. Native validation/retry/completion/reselection controls are tested through the shared fixture at the rendered interface boundary.
+CSP remains stylesheet-only: storage uses a native `<meter>`, transfer bars
+use `<progress>`, and dialog scroll locking uses a body class. No inline style
+attribute is required. The earlier release's real Go-server probe passed with
+`style-src 'self'` and zero policy violations; that prior probe is not claimed
+as a new redesign test.
+
+Regressions retain cancellation on manual text-preparation unmount/item
+replacement, late-response suppression, active tus termination 404/410
+cleanup, retained 409/500 cancellation failures, and a native bootstrap failure
+screen without browser transport fallback. Native validation/retry/completion/
+reselection controls are tested at the rendered boundary.
 
 No 20 GB/GiB transfer, Tailscale deployment, actual PWA installation, native
 background transfer, Mac/Android clipboard, or physical-device validation has
-been claimed. Frontend browser tests use contract fixtures; root integration checks cover the actual server separately. This frontend handoff does not claim native/device execution.
+been performed by this frontend owner. Root integration checks cover the
+actual server and installed emulator separately. Native packaging and live
+host publication belong to their assigned owners.

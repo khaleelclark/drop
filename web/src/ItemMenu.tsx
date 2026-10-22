@@ -7,7 +7,7 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
   const close=()=>{setOpen(false);trigger.current?.focus()}
   useEffect(()=>{
     if(!open)return
-    root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]')?.focus()
+    root.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus()
     const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setOpen(false)}
     document.addEventListener('pointerdown',outside)
     return()=>document.removeEventListener('pointerdown',outside)
