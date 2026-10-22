@@ -35,9 +35,10 @@ async function main() {
     await expect(card.getByRole('button', { name: 'Copied', exact: true })).toBeVisible();
     const copied = await page.evaluate(() => navigator.clipboard.readText());
     if (copied !== text) throw new Error('Browser clipboard did not preserve the full text');
+    await card.getByRole('button', { name: /^More actions for / }).click();
     const [textDownload] = await Promise.all([
       page.waitForEvent('download'),
-      card.getByRole('button', { name: 'Download .txt', exact: true }).click(),
+      card.getByRole('menuitem', { name: 'Download .txt', exact: true }).click(),
     ]);
     const textPath = path.join(output, 'browser-text.txt');
     await textDownload.saveAs(textPath);
