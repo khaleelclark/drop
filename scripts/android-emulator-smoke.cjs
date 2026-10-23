@@ -10,7 +10,7 @@ const serial = process.env.HOUSEHOLD_ANDROID_SERIAL || 'emulator-5580';
 function shell(...args) { return execFileSync(adb, ['-s', serial, ...args], { encoding: 'utf8' }); }
 
 async function main() {
-  const output = path.resolve(__dirname, '../.tools/validation');
+  const output = process.env.HOUSEHOLD_ANDROID_OUTPUT ? path.resolve(process.env.HOUSEHOLD_ANDROID_OUTPUT) : path.resolve(__dirname, '../.tools/validation');
   await fs.mkdir(output, { recursive: true });
   const token = (await fs.readFile(path.resolve(__dirname, '../.tools/ui-preview/token'), 'utf8')).trim();
   const coldLaunch = process.argv.includes('--cold-launch');
@@ -98,7 +98,12 @@ async function main() {
     await expect.poll(() => Boolean(imeFrame())).toBe(true);
     const ime = imeFrame();
     if (!ime) throw new Error('Visible Android keyboard frame unavailable');
-    shell('shell', 'uiautomator', 'dump', '/sdcard/household-smoke-bounds.xml');
+    shell('shell', 'rm', '-f', '/sdcard/household-smoke-bounds.xml');
+    try { shell('shell', 'uiautomator', 'dump', '/sdcard/household-smoke-bounds.xml'); }
+    catch (error) {
+      // Some emulator runs kill the dump process after it has written the complete XML.
+      if (error.status !== 137 || !String(error.stdout).includes('UI hierchary dumped to: /sdcard/household-smoke-bounds.xml')) throw error;
+    }
     const nativeBounds = shell('exec-out', 'cat', '/sdcard/household-smoke-bounds.xml').match(/class="android\.webkit\.WebView"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
     if (!nativeBounds) throw new Error('Inspected native WebView bounds unavailable');
     const webViewTop = Number(nativeBounds[2]);

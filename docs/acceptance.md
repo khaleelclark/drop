@@ -27,6 +27,7 @@ This is the integration checklist. A source implementation does not establish de
 
 ## Native and platform evidence
 
+- [x] Android 0.1.3 removes duplicate CSS system-safe spacing inside the natively bounded WebView. Nonzero-inset Chromium regressions and installed API36 text/clipboard/IME/Back/Done/search/safe-area checks pass; physical-phone full-height confirmation remains open. See `docs/evidence/android-full-height.json`.
 - [x] Actual Tauri Android adapter invokes native API, clipboard/paste, SAF upload and download/export paths on the API36 emulator.
 - [x] Native engine queue persistence/restarts pass; actual Linux shell stays resident after normal window close in an unpaired isolated GUI test. In-progress transfer plus GUI-close remains unperformed.
 - [x] Queue Quit/checkpoint behavior passes Rust tests; the actual Linux tray Quit action exits cleanly and relaunch works in the isolated GUI test. These are separate checks.

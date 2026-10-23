@@ -17,7 +17,13 @@
   --surface: #fff;
   --canvas: #f8f9f6;
   --radius: 18px;
+  --safe-area-top: env(safe-area-inset-top, 0px);
+  --safe-area-right: env(safe-area-inset-right, 0px);
+  --safe-area-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-area-left: env(safe-area-inset-left, 0px);
 }
+/* The Android shell already bounds its WebView inside the system bars. */
+:root[data-native-android] { --safe-area-top: 0px; --safe-area-right: 0px; --safe-area-bottom: 0px; --safe-area-left: 0px; }
 * { box-sizing: border-box; }
 body { margin: 0; }
 body.modal-open { overflow: hidden; }
@@ -190,11 +196,11 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
 .transfer-actions { display: flex; align-items: center; gap: 0; }
 .transfer-row.complete .transfer-icon { color: #578660; }
 .transfer-row.failed .transfer-main>strong { color: #a44537; }
-.toast { position: fixed; bottom: calc(24px + env(safe-area-inset-bottom)); left: calc(50% + 112px); transform: translateX(-50%); display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 32px); width: max-content; min-height: 52px; padding: 6px 7px 6px 16px; background: #30392e; color: white; border-radius: 14px; box-shadow: 0 6px 28px #2833211a; z-index: 100; font-size: 13px; animation: menu-in .15s ease; }
+.toast { position: fixed; bottom: calc(24px + var(--safe-area-bottom)); left: calc(50% + 112px); transform: translateX(-50%); display: flex; align-items: center; gap: 9px; max-width: calc(100vw - 32px); width: max-content; min-height: 52px; padding: 6px 7px 6px 16px; background: #30392e; color: white; border-radius: 14px; box-shadow: 0 6px 28px #2833211a; z-index: 100; font-size: 13px; animation: menu-in .15s ease; }
 .toast>svg { color: #bdd6a6; flex-shrink: 0; }
 .toast>.icon-button { color: #d9e1d2; }
 .toast>.icon-button:hover { background: #46523f; }
-.modal-backdrop { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: max(24px, env(safe-area-inset-top)) max(24px, env(safe-area-inset-right)) max(24px, env(safe-area-inset-bottom)) max(24px, env(safe-area-inset-left)); background: #26312145; backdrop-filter: blur(6px); overflow: auto; z-index: 150; animation: fade-in .15s ease; }
+.modal-backdrop { position: fixed; inset: 0; display: grid; grid-template-columns: minmax(0, 1fr); place-items: center; padding: max(24px, var(--safe-area-top)) max(24px, var(--safe-area-right)) max(24px, var(--safe-area-bottom)) max(24px, var(--safe-area-left)); background: #26312145; backdrop-filter: blur(6px); overflow: auto; z-index: 150; animation: fade-in .15s ease; }
 .modal { position: relative; width: 460px; max-width: 100%; min-width: 0; max-height: calc(100dvh - 48px); overflow: auto; padding: 32px; background: #fff; border: 1px solid var(--line); border-radius: 22px; box-shadow: 0 12px 50px #26312118; }
 .connection-heading { display: flex; align-items: center; gap: 10px; padding-right: 22px; }
 .connection-heading .modal-icon { width: 32px; height: 32px; margin: 0; border-radius: 10px; flex-shrink: 0; }
@@ -238,37 +244,37 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
 .composer-tools .item-menu-popover { left: -100px; right: auto; }
 .drop-hint { display: none; } }
 @media (max-width: 800px) {
-  :root { --mobile-tabs-height: 72px; scroll-padding-bottom: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom) + 16px); }
+  :root { --mobile-tabs-height: 72px; scroll-padding-bottom: calc(var(--mobile-tabs-height) + var(--safe-area-bottom) + 16px); }
   .sidebar { display: none; }
   .workspace { margin-left: 0; }
-  .topbar { height: 72px; padding: env(safe-area-inset-top) max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); }
+  .topbar { height: 72px; padding: var(--safe-area-top) max(24px, var(--safe-area-right)) 0 max(24px, var(--safe-area-left)); }
   .topbar-caption { display: none; }
   .mobile-brand { display: flex; font-size: 19px; }
-  main { max-width: 720px; padding: 24px 24px calc(24px + var(--mobile-tabs-height) + env(safe-area-inset-bottom)); }
+  main { max-width: 720px; padding: 24px 24px calc(24px + var(--mobile-tabs-height) + var(--safe-area-bottom)); }
   .page-heading { margin-bottom: 24px; }
   .page-heading h1 { font-size: 32px; }
-  .mobile-tabs { display: block; position: fixed; inset: auto 0 0; height: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom)); padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px #28332106; z-index: 30; }
+  .mobile-tabs { display: block; position: fixed; inset: auto 0 0; height: calc(var(--mobile-tabs-height) + var(--safe-area-bottom)); padding: 8px max(12px, var(--safe-area-right)) calc(8px + var(--safe-area-bottom)) max(12px, var(--safe-area-left)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px #28332106; z-index: 30; }
   .mobile-tab-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 100%; gap: 4px; }
   .mobile-tab-list>button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; padding: 4px; border-radius: 12px; font-size: 12px; line-height: 18px; color: var(--secondary); }
   .mobile-tab-list>button[aria-current] { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
   .mobile-tab-list>button:focus-visible { outline-offset: -3px; }
   /* Android can overlay the IME without resizing either viewport. Keep one scrollable, sticky nav while editing. */
-  .mobile-tabs.is-editing { position: sticky; top: max(8px, env(safe-area-inset-top)); bottom: auto; height: auto; padding: 8px; margin: 12px 0 16px; border: 1px solid var(--line); border-radius: 14px; box-shadow: none; }
+  .mobile-tabs.is-editing { position: sticky; top: max(8px, var(--safe-area-top)); bottom: auto; height: auto; padding: 8px; margin: 12px 0 16px; border: 1px solid var(--line); border-radius: 14px; box-shadow: none; }
   .mobile-tabs.is-editing .mobile-tab-list>button { min-height: 52px; }
   .finish-editing { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 12px; margin: 4px 0 0 auto; border-radius: 10px; color: var(--blue); font-size: 12px; font-weight: 600; }
   .finish-editing:hover { background: var(--blue-soft); }
-  .toast { left: 50%; bottom: calc(var(--mobile-tabs-height) + 16px + env(safe-area-inset-bottom)); }
-  .feed-card, .load-more, .transfer-row { scroll-margin-bottom: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom) + 16px); }
+  .toast { left: 50%; bottom: calc(var(--mobile-tabs-height) + 16px + var(--safe-area-bottom)); }
+  .feed-card, .load-more, .transfer-row { scroll-margin-bottom: calc(var(--mobile-tabs-height) + var(--safe-area-bottom) + 16px); }
   .card-origin { flex-direction: column; align-items: flex-start; gap: 1px; }
   .search-field input { font-size: 16px; }
 }
 @media (max-width: 480px) {
-  .topbar { height: calc(64px + env(safe-area-inset-top)); padding-inline: max(18px, env(safe-area-inset-left)) max(18px, env(safe-area-inset-right)); }
+  .topbar { height: calc(64px + var(--safe-area-top)); padding-inline: max(18px, var(--safe-area-left)) max(18px, var(--safe-area-right)); }
   .mobile-brand { font-size: 18px; gap: 8px; }
   .mobile-brand .brand-mark { width: 30px; height: 30px; border-radius: 9px; }
   .connection-badge { padding-inline: 4px; gap: 6px; font-size: 11px; }
   .connection-badge>svg { margin-left: 4px; }
-  main { padding: 14px max(16px, env(safe-area-inset-right)) calc(20px + var(--mobile-tabs-height) + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  main { padding: 14px max(16px, var(--safe-area-right)) calc(20px + var(--mobile-tabs-height) + var(--safe-area-bottom)) max(16px, var(--safe-area-left)); }
   .page-heading { gap: 10px; margin-bottom: 16px; }
   .page-heading h1 { font-size: 30px; letter-spacing: -1.2px; }
   .page-heading p { font-size: 13px; margin-top: 7px; }
@@ -331,7 +337,7 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
   .banner { font-size: 12px; padding: 10px 12px; flex-wrap: wrap; }
   .banner>.text-button { margin-left: 0; }
   .toast { font-size: 12px; max-width: calc(100vw - 24px); padding-left: 12px; }
-  .modal-backdrop { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
+  .modal-backdrop { padding: max(12px, var(--safe-area-top)) max(12px, var(--safe-area-right)) max(12px, var(--safe-area-bottom)) max(12px, var(--safe-area-left)); }
   .modal { padding: 28px 24px; max-height: calc(100dvh - 24px); border-radius: 18px; }
   .modal h2 { font-size: 24px; }
   .modal .connection-heading h2 { font-size: 20px; }

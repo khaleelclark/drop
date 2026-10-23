@@ -1,5 +1,49 @@
 # Build and validation evidence
 
+## Android full-height correction, 2026-10-23
+
+Android 0.1.3/code1003 removes duplicate system-safe spacing inside the native
+WebView. The shell still reserves measured system-bar/cutout margins. Bootstrap
+marks only the packaged Android document before rendering; four CSS safe-area
+properties become zero there. Browser and desktop retain their environment
+insets. Native runtime code, inset listeners, IME dispatch, focus and transfer
+behavior are unchanged. The new frontend is B4AqCHJa/BEt_jZmw; existing Mac/Linux
+0.1.1 installers retain their accepted prior frontend and need no rebuild for
+this Android-only branch.
+
+The frontend owner passed 47 unit/component tests, eight Chromium fixtures and
+the TypeScript/production build. Nonzero CDP insets of 36/28/48/24 px reproduce
+the duplicated space in the previous CSS. With the fix, the Android fixture's
+header/bar remain 64/72 px while the browser retains 100/120 px. These are
+browser-engine fixtures, not physical-phone telemetry.
+
+Root installed the exact x86_64 APK and passed cold launch, real native text
+submission, exact native Copy/Android Paste, scale 1, no horizontal overflow and
+zero browser API requests. The document marker and all four zero CSS properties
+are present; actual header/bar measure 64/72 px. Actual OS keyboard, Back, Done,
+same navigation DOM, draft/search preservation and last-action/menu clearance
+pass. Native WebView bounds remain [0,136][1080,2337]; tab targets end at CSS
+831.24 above the origin-adjusted system boundary 838.48, and editing targets end
+at 363.29 above the actual IME boundary 526.10. Root viewed docked/keyboard ADB
+screenshots. One initial harness run stopped after uiautomator wrote valid XML
+but exited 137; narrow completion handling was corrected before the full pass.
+
+Both Tauri ABIs and standalone built; all nine frozen assets, retained signing
+identity, manifests and 16 KiB ZIP/ELF alignment passed packaging checks. Native
+Kotlin tests/lint were not rerun because runtime source is unchanged. Exact
+package hashes, full reports and limits are in `docs/evidence/android-full-height.json`.
+
+The private Android download now serves the exact ARM64 0.1.3 APK. Root streamed
+all 29,771,439 bytes through Tailscale HTTPS and matched SHA256
+`fbc4681f00a1903ce48b819f080f7142c4aeb0f25905c4d0580116fc1bd7f1fc`.
+The browser index and authenticated feed hashes stayed unchanged, anonymous
+feed access remained 401 and health stayed OK. Only the APK download changed;
+no service process, backend, persistent data or Serve configuration changed.
+
+Physical-phone confirmation remains unperformed. This release adds no rotation,
+binary-transfer, background/lock/recovery or Android 20 GB evidence; prior
+0.1.2 rotation/Home and 0.1.1 SAF results remain separately labeled.
+
 ## Mobile bottom-tab release, 2026-10-23
 
 The approved CS6EIQOV/DVPjc1UT frontend from source `57e26b4` is now served

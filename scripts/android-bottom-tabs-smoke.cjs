@@ -8,7 +8,9 @@ const { createRequire } = require('node:module');
 const { chromium, expect } = createRequire(path.resolve(__dirname, '../web/package.json'))('@playwright/test');
 const adb = process.env.HOUSEHOLD_ADB || '/home/phoenix/Android/Sdk/platform-tools/adb';
 const serial = process.env.HOUSEHOLD_ANDROID_SERIAL || 'emulator-5580';
-const output = path.resolve(__dirname, '../.tools/ui-bottom-tabs');
+const output = path.resolve(__dirname, '../.tools/ui-full-height');
+const version = '0.1.3';
+const versionCode = 1003;
 const shell = (...args) => execFileSync(adb, ['-s', serial, ...args], { encoding: 'utf8' });
 const inset = type => shell('shell', 'dumpsys', 'window').match(new RegExp(`type=${type} frame=\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\].*visible=true`));
 const screenshot = async name => fs.writeFile(path.join(output, name), execFileSync(adb, ['-s', serial, 'exec-out', 'screencap', '-p']));
@@ -17,7 +19,7 @@ async function main() {
   if (!serial.startsWith('emulator-')) throw new Error('This check requires a disposable emulator.');
   await fs.mkdir(output, { recursive: true });
   const installed = shell('shell', 'dumpsys', 'package', 'net.household.share.mobile');
-  if (!installed.includes('versionName=0.1.2') || !installed.includes('versionCode=1002 ')) throw new Error('Install the final 0.1.2/code1002 APK first.');
+  if (!installed.includes(`versionName=${version}`) || !installed.includes(`versionCode=${versionCode} `)) throw new Error(`Install the final ${version}/code${versionCode} APK first.`);
   const browser = await chromium.connectOverCDP('http://127.0.0.1:19224', { noDefaults: true });
   const page = browser.contexts()[0].pages().find(row => row.url().startsWith('http://tauri.localhost'));
   if (!page) { await browser.close(); throw new Error('Installed Tauri page not found'); }
@@ -57,7 +59,23 @@ async function main() {
     const viewport = await page.evaluate(() => ({ width: innerWidth, height: innerHeight, scale: visualViewport.scale, dpr: devicePixelRatio, contentWidth: document.documentElement.scrollWidth }));
     expect(viewport.scale).toBeCloseTo(1, 2);
     expect(viewport.contentWidth).toBeLessThanOrEqual(viewport.width + 1);
-    shell('shell', 'uiautomator', 'dump', '/sdcard/household-tabs-bounds.xml');
+    const safeArea = await page.evaluate(() => {
+      const styles = getComputedStyle(document.documentElement);
+      return { android: document.documentElement.hasAttribute('data-native-android'),
+        values: ['top', 'right', 'bottom', 'left'].map(side => styles.getPropertyValue(`--safe-area-${side}`).trim()),
+        headerHeight: document.querySelector('.topbar').getBoundingClientRect().height,
+        tabBarHeight: document.querySelector('.mobile-tabs').getBoundingClientRect().height };
+    });
+    expect(safeArea.android).toBe(true);
+    expect(safeArea.values).toEqual(['0px', '0px', '0px', '0px']);
+    expect(safeArea.headerHeight).toBeCloseTo(64, 0);
+    expect(safeArea.tabBarHeight).toBeCloseTo(72, 0);
+    shell('shell', 'rm', '-f', '/sdcard/household-tabs-bounds.xml');
+    try { shell('shell', 'uiautomator', 'dump', '/sdcard/household-tabs-bounds.xml'); }
+    catch (error) {
+      // Some emulator runs kill the dump process after it has written the complete XML.
+      if (error.status !== 137 || !String(error.stdout).includes('UI hierchary dumped to: /sdcard/household-tabs-bounds.xml')) throw error;
+    }
     const nativeBounds = shell('exec-out', 'cat', '/sdcard/household-tabs-bounds.xml').match(/class="android\.webkit\.WebView"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/);
     if (!nativeBounds) throw new Error('Inspected native WebView bounds unavailable');
     const webViewBounds = { left: Number(nativeBounds[1]), top: Number(nativeBounds[2]), right: Number(nativeBounds[3]), bottom: Number(nativeBounds[4]) };
@@ -124,7 +142,7 @@ async function main() {
     await expect(lastItem.getByRole('menu')).toHaveCount(0);
     expect(browserApi).toEqual([]);
     const apk = await fs.readFile(path.resolve(__dirname, '../clients/android/build/outputs/household-share-tauri-x86_64-debug.apk'));
-    const report = { passed: true, version: '0.1.2/code1002', apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, webViewBounds, keyboardTop, safeBottom, measurements,
+    const report = { passed: true, version: `${version}/code${versionCode}`, apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, safeArea, webViewBounds, keyboardTop, safeBottom, measurements,
       checks: ['native bootstrap and no browser API traffic', 'one accessible bottom tab bar above actual Android navigation area', 'all four tab targets at least 44px and uncovered', 'actual OS keyboard leaves Share/tabs/Done visible', 'Android Back dismisses keyboard without losing navigation/draft', 'Done redocks same nav DOM', 'Files selection preserves draft', 'search/Done preserves search and draft', 'final feed action and item menu remain above bottom tabs'],
       limits: ['API36 x86_64 emulator only', 'not a physical phone or physical gesture check', 'not a background or20GB transfer check'] };
     await fs.writeFile(path.join(output, 'android-tabs.json'), JSON.stringify(report, null, 2) + '\n');

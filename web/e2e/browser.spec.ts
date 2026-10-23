@@ -134,7 +134,7 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await expect(page.getByRole('button',{name:'Close connection settings'})).toBeFocused()
   await page.keyboard.press('Escape'); await expect(dialog).not.toBeVisible()
 })
-test('packaged native bridge is detected before the app renders', async ({page}) => {
+async function nativeFixture(page: Page) {
   await page.addInitScript(({body}) => {
     const calls: {command:string;args?:Record<string,unknown>}[] = []
     ;(window as unknown as {nativeCalls:unknown}).nativeCalls=calls
@@ -155,6 +155,9 @@ test('packaged native bridge is detected before the app renders', async ({page})
       }
     }}
   },{body:fullText})
+}
+test('packaged native bridge is detected before the app renders', async ({page}) => {
+  await nativeFixture(page)
   const browserApiRequests:string[]=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))browserApiRequests.push(request.url())})
   await page.goto('/')
   await page.getByRole('button',{name:'Copy text',exact:true}).click()
@@ -187,6 +190,56 @@ test('packaged native bridge is detected before the app renders', async ({page})
     return node===hit||node.contains(hit)
   })).toBe(true)
   await page.screenshot({path:'test-results/household-transfers.png',fullPage:false})
+})
+
+for (const runtime of ['browser', 'android'] as const) test(`${runtime} applies safe areas once with nonzero Chromium insets`, async ({page,context}) => {
+  await page.setViewportSize({width:412,height:806})
+  const cdp = await context.newCDPSession(page)
+  await cdp.send('Emulation.setSafeAreaInsetsOverride', {insets:{top:36,right:28,bottom:48,left:24}})
+  if (runtime === 'android') { await nativeFixture(page); await page.goto('/') }
+  else { await fixture(page); await connect(page) }
+  await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeVisible()
+  expect(await page.locator('html').evaluate(node=>node.hasAttribute('data-native-android'))).toBe(runtime === 'android')
+  const android = runtime === 'android'
+  const header = page.locator('.topbar'); const tabs = page.locator('.mobile-tabs')
+  expect((await header.boundingBox())!.height).toBe(android ? 64 : 100)
+  const bar = (await tabs.boundingBox())!
+  expect(bar.height).toBe(android ? 72 : 120); expect(bar.y+bar.height).toBe(806)
+  const styles = await page.evaluate(() => {
+    const style = (selector:string) => getComputedStyle(document.querySelector(selector)!)
+    return {
+      header:[style('.topbar').paddingTop,style('.topbar').paddingLeft,style('.topbar').paddingRight],
+      main:[style('main').paddingBottom,style('main').paddingLeft,style('main').paddingRight],
+      tabs:[style('.mobile-tabs').paddingBottom,style('.mobile-tabs').paddingLeft,style('.mobile-tabs').paddingRight],
+      scroll:style('html').scrollPaddingBottom, card:style('.feed-card').scrollMarginBottom,
+    }
+  })
+  expect(styles).toEqual(android ? {
+    header:['0px','18px','18px'],main:['92px','16px','16px'],tabs:['8px','12px','12px'],scroll:'88px',card:'88px',
+  } : {
+    header:['36px','24px','28px'],main:['140px','24px','28px'],tabs:['56px','24px','28px'],scroll:'136px',card:'136px',
+  })
+  for (const tab of await tabs.locator('.mobile-tab-list button').all()) {
+    expect((await tab.boundingBox())!.height).toBeGreaterThanOrEqual(44);await uncovered(tab)
+  }
+  await page.getByRole('button',{name:'Copy text',exact:true}).click()
+  await expect(page.locator('.toast')).toBeVisible()
+  expect(await page.locator('.toast').evaluate(node=>getComputedStyle(node).bottom)).toBe(android ? '88px' : '136px')
+  for (const tab of await tabs.locator('.mobile-tab-list button').all()) await uncovered(tab)
+  await page.getByRole('button',{name:'Dismiss notification'}).click()
+  await page.getByRole('button',{name:'New share',exact:true}).click()
+  const composer = page.getByRole('textbox',{name:'Text to share'})
+  await composer.fill('Keep this draft')
+  expect(await tabs.evaluate(node=>getComputedStyle(node).top)).toBe(android ? '8px' : '36px')
+  await tabs.getByRole('button',{name:'Done editing',exact:true}).click()
+  expect(await tabs.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
+  await expect(tabs.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
+  await expect(composer).toHaveValue('Keep this draft')
+  await page.getByRole('button',{name:/Connected|Reconnecting/}).click()
+  expect(await page.locator('.modal-backdrop').evaluate(node=>{
+    const s=getComputedStyle(node);return [s.paddingTop,s.paddingRight,s.paddingBottom,s.paddingLeft]
+  })).toEqual(android ? ['12px','12px','12px','12px'] : ['36px','28px','48px','24px'])
+  await cdp.detach()
 })
 
 test('narrow layouts keep long shares, recovery controls, and the composer usable', async ({page}) => {

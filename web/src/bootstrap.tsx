@@ -5,6 +5,7 @@ import { detectNativeInvoke, nativePlatform } from './native-platform'
 import { errorMessage } from './types'
 
 export async function startApplication(element: HTMLElement) {
+  document.documentElement.toggleAttribute('data-native-android', window.__HOUSEHOLD_NATIVE__?.platform === 'android')
   const root = createRoot(element)
   try {
     const invoke = detectNativeInvoke()

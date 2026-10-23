@@ -158,6 +158,13 @@ Android WebView page zoom is configured by the native owner; web CSS never
 scales the page or disables browser touch zoom. Actual keyboard, safe-area and
 physical-phone behavior require device validation.
 
+Packaged Android marks the document with `data-native-android` before app or
+startup-error rendering, only when `window.__HOUSEHOLD_NATIVE__?.platform` is
+`'android'`. Its native shell already bounds the WebView inside the system bars,
+so all four CSS safe-area variables become zero there. Browsers and desktop
+clients retain `env(safe-area-inset-*, 0px)` values. Regular spacing, zoom and
+editing/Done/Back behavior are unchanged; this adds no keyboard detector.
+
 The 2026-10-23 mobile follow-up moves the existing All shares / Text / Files /
 Pinned filters into a single bottom navigation bar at widths up to 800 CSS px.
 Icons, labels, selected state, visible keyboard focus and 44 px targets remain
@@ -180,6 +187,23 @@ native bridge change. Actual installed IME behavior still needs root's check.
 
 ## Validation scope
 
+Android duplicate-inset fix (2026-10-23): **47 unit/component tests in 8 files
+passed** (1.71 s), including Android startup failure and browser/desktop/native
+adapter marker boundaries. **Six focused Chromium 1243 checks passed** (15.9 s).
+The two new CDP `Emulation.setSafeAreaInsetsOverride` checks inject top/right/
+bottom/left insets of 36/28/48/24 px at 412×806. The packaged Android JS fixture
+retains a 64 px header and 72 px bar, while the browser retains 100/120 px; both
+keep four uncovered targets of at least 44 px. They check side padding, main and
+scroll clearance, toast/modal spacing, editing navigation and preserved draft.
+Existing narrow, phone/dialog, native-bridge and unchanged-viewport occlusion
+checks also passed. Two desktop/pairing fixtures passed (7.0 s), retaining exact
+copy/paste, authenticated HTTP download and the seven review screenshots.
+`pnpm build` passed TypeScript checking and the Vite production build.
+These are browser-engine tests with JS native doubles,
+not an installed WebView, OS keyboard or physical-phone check. Root owns the
+Android rebuild and installed acceptance; no other platform rebuild is needed
+for this Android-only marker behavior.
+
 Mobile-bottom-navigation candidate (2026-10-23): all **42 unit/component tests
 in 8 files passed** (1.77 s); five affected Chromium1243 fixtures passed
 (13.7 s), followed by four desktop/mobile/overlay/pairing checks (11.9 s) after
@@ -201,7 +225,7 @@ composer/error content can require scrolling; the fixture verifies that the
 actions can be reached, without claiming unconditional IME clearance. This fixture is **not an actual IME/device check**. The desktop test
 also retains exact text/paste, pin/search/delete and a direct HTTP download.
 TypeScript checking, production build and `git diff --check -- web` passed.
-Current candidate assets are `index-CS6EIQOV.js` and `index-DVPjc1UT.css`.
+That candidate's assets were `index-CS6EIQOV.js` and `index-DVPjc1UT.css`.
 The final QA correction also passed all 42 unit/component tests (1.84 s), then
 three phone/native-fixture/pairing browser checks (9.2 s), and the production
 build. This is a review candidate; root owns coordinated freeze and installed packages.
