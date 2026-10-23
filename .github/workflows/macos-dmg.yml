@@ -34,16 +34,13 @@ jobs:
           - runner: macos-15
             target: aarch64-apple-darwin
             arch: arm64
-          - runner: macos-15-intel
-            target: x86_64-apple-darwin
-            arch: x86_64
     env:
       CARGO_BUILD_JOBS: '2'
       MACOSX_DEPLOYMENT_TARGET: '11.0'
       # No Apple account, certificate, token, or notarization credentials are used.
       APPLE_SIGNING_IDENTITY: '-'
-      # Push builds are generic; a manual run can supply the household HTTPS origin.
-      HOUSEHOLD_DEFAULT_ORIGIN: ${{ inputs.household_origin || '' }}
+      # Household installer destination only; Tailscale still authenticates access.
+      HOUSEHOLD_DEFAULT_ORIGIN: ${{ inputs.household_origin || 'https://pine.tail8187ff.ts.net:47443' }}
     defaults:
       run:
         shell: bash
@@ -75,7 +72,9 @@ jobs:
       - name: Test, build, sign, create and verify DMG
         env:
           BUILD_TARGET: ${{ matrix.target }}
-        run: bash integrations/macos/build-dmg.sh "$BUILD_TARGET"
+        run: |
+          test -n "$HOUSEHOLD_DEFAULT_ORIGIN"
+          bash integrations/macos/build-dmg.sh "$BUILD_TARGET"
 
       - name: Upload verified installer, checksums and build evidence
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2

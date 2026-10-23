@@ -41,6 +41,9 @@ trap 'rm -rf -- "$work"' EXIT
 version="$(node -p "require('./clients/desktop/src-tauri/tauri.conf.json').version")"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die 'Expected a numeric app version.'
 name="Zing_${version}_${arch}"
+if [[ -n "${HOUSEHOLD_DEFAULT_ORIGIN:-}" ]]; then
+  name="${name}_household"
+fi
 [[ ! -e "$out/$name.dmg" ]] || die "Output already exists: $out/$name.dmg; choose a clean output directory before rebuilding."
 
 {

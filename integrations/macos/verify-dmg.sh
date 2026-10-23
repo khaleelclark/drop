@@ -17,6 +17,17 @@ verify_app() {
     [[ -x "$binary" ]] || die "Missing executable: $binary"
     [[ "$(lipo -archs "$binary")" == "$arch" ]] || die "Unexpected architecture in $binary"
     codesign --verify --strict --verbose=2 "$binary"
+    if [[ -n "${HOUSEHOLD_DEFAULT_ORIGIN:-}" ]]; then
+      node - "$binary" <<'NODE'
+const fs = require('node:fs');
+const crypto = require('node:crypto');
+const origin = process.env.HOUSEHOLD_DEFAULT_ORIGIN;
+if (!fs.readFileSync(process.argv[2]).includes(Buffer.from(origin))) {
+  throw new Error('Household HTTPS destination is missing from the native executable');
+}
+console.log(`Embedded household destination verified; SHA256 ${crypto.createHash('sha256').update(origin).digest('hex')}`);
+NODE
+    fi
     signature="$(codesign --display --verbose=4 "$binary" 2>&1)"
     printf '%s\n' "$signature"
     [[ "$signature" == *Signature=adhoc* ]] || die "Expected ad-hoc signature: $binary"
