@@ -4,7 +4,7 @@ pub fn run() {
         .plugin(tauri_plugin_household::init())
         .setup(|app| {
             tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::App("index.html".into()))
-                .title("Household Share")
+                .title("Zing")
                 .on_navigation(|url| url.scheme() == "tauri" ||
                     (matches!(url.scheme(), "http" | "https") && url.host_str() == Some("tauri.localhost")))
                 .build()?;

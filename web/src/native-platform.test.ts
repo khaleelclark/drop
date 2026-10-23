@@ -76,3 +76,39 @@ describe('native adapter contract', () => {
     expect(JSON.stringify(localStorage)).not.toContain('native-token')
   })
 })
+
+describe('native Zing device extension',()=>{
+  it('refreshes redacted identity after configure and routes pickers with flat copied targets',async()=>{
+    const invoke=vi.fn<NativeInvoke>().mockResolvedValueOnce(fixture.config).mockResolvedValueOnce(null).mockResolvedValueOnce({...fixture.config,baseUrl:'https://second.example',deviceId:'4'.repeat(32),platform:'linux'})
+    const adapter=await nativePlatform(invoke)
+    expect(adapter.deviceIdentity).toEqual({id:fixture.config.deviceId,platform:fixture.config.platform})
+    await adapter.configureConnection!('https://second.example','secret','Desk')
+    expect(adapter.deviceIdentity).toEqual({id:'4'.repeat(32),platform:'linux'});expect(adapter.baseURL).toBe('https://second.example')
+    const targets=[...fixture.sendRouting.targetDeviceIds];await adapter.chooseFiles!('file','Desk',targets);targets.length=0
+    expect(invoke).toHaveBeenCalledWith('native_pick_uploads',{kind:'file',sourceDevice:'Desk',targetDeviceIds:fixture.sendRouting.targetDeviceIds})
+    invoke.mockResolvedValueOnce(fixture.arrivalSettings);expect(await adapter.getArrivalSettings!()).toEqual(fixture.arrivalSettings)
+    invoke.mockResolvedValueOnce({...fixture.arrivalSettings,enabled:false});await adapter.setArrivalEnabled!(false)
+    expect(invoke).toHaveBeenCalledWith('native_set_arrival_enabled',{enabled:false})
+    invoke.mockResolvedValueOnce(fixture.arrivalTarget);expect(await adapter.takeArrivalTarget!()).toEqual(fixture.arrivalTarget)
+    expect(JSON.stringify(localStorage)).not.toContain('secret')
+  })
+})
+
+describe('native shared editing compatibility',()=>{
+  it('routes versioned exact-text PATCH and TXT/MD saves through existing commands, retaining conflict status',async()=>{
+    const invoke=vi.fn<NativeInvoke>(async(command,args)=>{
+      if(command==='native_get_config')return fixture.config
+      if(command==='native_api'&&args?.method==='PATCH')return {status:409,body:'{"error":{"code":"edit_conflict","message":"Changed elsewhere"}}'}
+      if(command==='native_download')return null
+      return fixture.apiResponse
+    })
+    const adapter=await nativePlatform(invoke);const api=new ApiClient(adapter.baseURL,adapter.request)
+    const edit={name:'家.md',text:fixture.apiResponse.body,expectedUpdatedAt:'2026-10-23T12:00:00.000000001Z'}
+    await expect(api.edit('note',edit)).rejects.toMatchObject({status:409,code:'edit_conflict'})
+    expect(invoke).toHaveBeenCalledWith('native_api',expect.objectContaining({method:'PATCH',path:'/api/items/note',body:JSON.stringify(edit)}))
+    for(const format of ['txt','md'] as const)await adapter.download({url:api.downloadURL('note',format),name:`家.${format}`,itemId:'note'})
+    expect(invoke).toHaveBeenCalledWith('native_download',{itemId:'note',name:'家.txt'})
+    expect(invoke).toHaveBeenCalledWith('native_download',{itemId:'note',name:'家.md'})
+    expect(invoke.mock.calls.filter(([command])=>command==='native_api')).toHaveLength(1)
+  })
+})

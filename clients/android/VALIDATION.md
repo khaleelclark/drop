@@ -2,7 +2,203 @@
 
 Checked 2026-10-22–23 in the shared Linux build workspace. This record distinguishes standalone Gradle packaging, Tauri Android packaging and actual device evidence.
 
-## Current 0.1.3 full-height frontend correction
+## Replacement 0.1.4 text-menu packaging — installed acceptance pending root
+
+Checked 2026-10-23 under root/native lead's narrow replacement authorization. `web/FINAL-REVIEW.md` was read in full and matched SHA-256 `65a1689f644d1ba0b1ecf02f8feab1c94d5d3bdc651ea5a7fe2e4a788d051600` before and after packaging. Its exact nine hashes matched `web/dist`; shell cache is v9. The final raw index SHA-256 is `f220506595fc3b3eb1fb209e4f0121505856c90b2c735cf2e7ce7ff34aa31e4c`, JS `index-Bn7PZLMa.js` is `4b4c5a4b1f78ce5f887cce213fc10f40121f7dad403cedb69901cd247732895d`, and CSS `index-CeynTtsM.css` is `866083b32f69558eb09ce93f3f4ae31217b0ccb85a98f10a2e8ba556510b01cc`. No web build or frozen-source change occurred.
+
+Before either replacement build, all 189 paths/hashes in `validation/package-0.1.4.json` matched its recorded values. That prior report remains unchanged, SHA-256 `406845e338f2d4607badd064efff96d748191a3f4af27e281c707269a83776eb`. The three superseded pre-menu 0.1.4 APKs and eight total files (APKs, README, VALIDATION, report, verifier and audit log) were copied byte-for-byte into `build/zing-menu-rejected-prior/`. Other prior `zing-final-*` reports/logs/manifests/disassemblies remain unchanged in place. `build/zing-menu-history.json` records original and archived hashes, prior freeze/asset values, and historical scope; `build/zing-menu-prior-packages.json` records fresh pre-replacement signer verification. No earlier report was relabeled or overwritten. Historical sections below describe their original bytes, even where standard output paths have since changed.
+
+The 202-file `build/zing-menu-pre-package.json` baseline was captured before either replacement build, including prior reports and archive. Only current README/VALIDATION, the existing package audit's replacement naming/freeze/provenance, and three standard APK outputs changed. Android native/build source, signing identity, versions, IDs, queue/grants, permission/routing/completion/strict-UTF-8 behavior and inset policy remain unchanged. `AppWebViewPolicy.kt` remains SHA-256 `b1da6a9c53b96a5d7c07116bbdbb8e0b4378a9c262ee71f8aa34f3c814dbc6ee`.
+
+Actual sequential commands from `clients/android/`, using the existing JDK17/SDK36/build-tools36.0.0/NDK27.1/Rust and dependency caches:
+
+```sh
+CARGO_NET_OFFLINE=true GRADLE_OPTS=-Dorg.gradle.offline=true HOUSEHOLD_ANDROID_TARGET=x86_64 ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./build-tauri.sh > build/zing-menu-tauri-x86_64.log 2>&1
+CARGO_NET_OFFLINE=true GRADLE_OPTS=-Dorg.gradle.offline=true HOUSEHOLD_ANDROID_TARGET=aarch64 ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./build-tauri.sh > build/zing-menu-tauri-aarch64.log 2>&1
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --offline --no-daemon :app:assembleDebug > build/zing-menu-standalone.log 2>&1
+```
+
+Both Tauri commands compiled `household-android v0.1.4` and completed their real mobile APK paths. Incremental cached Kotlin tasks were reused, not replaced by a mock/native-task exclusion. Standalone completed successfully in 7 seconds (4 executed/30 up-to-date tasks). Both Tauri builds emitted the existing inability-to-strip `libhousehold_android.so` warning; actual signature/ZIP/ELF inspection below passes independently. No dependency, toolchain, target, SDK or OS package was installed.
+
+| Replacement APK, relative to clients/android | Version code | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| build/outputs/household-share-tauri-aarch64-debug.apk | 1004 | 29,870,791 | `52343d163f8e02791352183d36f998cbebd3ab839adaa5cad00f49bbdbd1d7e8` |
+| build/outputs/household-share-tauri-x86_64-debug.apk | 1004 | 29,546,764 | `0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0` |
+| app/build/outputs/apk/debug/app-debug.apk | 5 | 2,682,116 | `a1ffb3a88c1e9927ae85f999d8645b8d249bc1299fcf49cc5bc2d3f788767c0e` |
+
+Ran the existing verifier from repository root:
+
+```sh
+python3 clients/android/build/verify-zing-final-packages.py > clients/android/build/zing-menu-package-check.log 2>&1
+```
+
+It passed all three actual packages and 212 named required source/config/history/report/package paths, writing the new `validation/package-0.1.4-menu.json`. Only the authorized minimum audit adaptations were made: replacement freeze/asset names, `zing-menu-*` logs/manifests/disassembly/pre-build inputs, new report path, historical provenance, and an explicit allowed verifier-file change. `validation/package-0.1.4.json` and all earlier build evidence remain byte-identical. The final docs/report inventory hashes were refreshed after writing this section; package inspection itself ran once.
+
+Actual checks:
+
+- `apksigner verify --verbose --print-certs`: all three verify, v2 true, one signer and retained certificate `d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a`, freshly matched before assembly against all three superseded candidates. No signing-key contents were read or logged.
+- `zipalign -c -P 16 4`: all three pass. Actual ELF64 headers identify ARM64 machine183/x86_64 machine62, one expected native library per Tauri APK, four LOAD segments per ELF with alignment >=16384 and congruent file/virtual offsets. Standalone has no ELF.
+- `aapt dump badging`/`xmltree`: Zing0.1.4/codes1004+5, unchanged `net.household.share.mobile`/`household.share.android` IDs, min26/target36, backup/full-backup/cleartext disabled and expected security resources. Arrival click/arrival job/transfer job/legacy service/control receiver are private; jobs retain BIND_JOB_SERVICE. No boot permission. Dumps: `build/zing-menu-{arm64-v8a,x86_64,standalone}-manifest.txt`.
+- Python ZIP inspection: exactly nine raw `assets/web` entries in every APK with all frozen hashes exact, no duplicate/stale entries or native-adapter.js. Each Tauri native ELF contains all nine cached Brotli asset blobs at recorded offsets. Eight decompress to exact replacement bytes; Tauri's serialized index HTML matches tags, attributes and non-whitespace text. Raw ZIP index remains byte-exact. Compressed and decoded hashes/ELF offsets are in the new report.
+- Actual packaged DEX inspection confirms shared identity/routing/queue/arrival/policy classes and Tauri lifecycle gate; strict UTF-8 REPORT decoder settings, boolean preserveExisting registration, permission gate/throwing notification adapter without catch, and ready-status handling before incomplete-size validation. Evidence: `build/zing-menu-{arm64-v8a,x86_64,standalone}-native-dex.txt`. This verifies compiled packaging, not device execution.
+- `bash -n clients/android/build-tauri.sh`, `node --check clients/android/tauri-plugin/src/init.js`, and Python in-memory compilation of the adapted verifier pass.
+
+The verifier read and hashed the unchanged prior source-check XML: 56 standalone + six lifecycle JVM tests, zero failures/errors/skips, and zero lint errors with unchanged 6/23/37 warnings plus one host hint. No JVM test or lint rerun occurred for this replacement. Retained XML hashes match the prior 0.1.4 report. An initial preparatory verifier path read used the wrong working directory and failed before edits; the corrected repository-root edit succeeded. No build, final package audit or runtime/build-source fix was needed.
+
+No publication/import, install, ADB/device/emulator, Git/CI, host service/deployment, dependency/toolchain/SDK/system-package install or new Agent operation occurred. Root owns the installed original-menu clipping regression recheck and final Mac build. This work does not establish installed menu/IME/Back/safe-area behavior, real-server registration/rename/routing/arrival/edit/Copy integration, permission/channel/OS notification/click/background/reboot/force-stop behavior, physical-phone/legacy/ARM64/standalone runtime, source access/storage/recovery, memory or Android 20 GB transfers. Prior runtime evidence retains its original APK/version scope.
+
+## Historical pre-menu 0.1.4 packaging — superseded candidate
+
+The following original packaging narrative describes the candidate superseded by the menu replacement above. Its `validation/package-0.1.4.json`, logs and exact archived APKs retain their original hashes and scope.
+
+Checked 2026-10-23 under root's final packaging authorization. Only Android build outputs, this directory's two Markdown reports, and new Android audit/evidence files changed. No runtime/build source fix was needed. Web sources and `web/dist` were only read; no web rebuild occurred. The complete `web/FINAL-REVIEW.md` matched authorized SHA-256 `4876db36389c71d3cd85c0fe9a6af73d745a6e6b6ec7046fe18d084b32a8f64b`, and its exact nine frozen hashes matched before and after packaging. `build/zing-final-frozen-web-manifest.json` records those nine values.
+
+The existing local signing certificate was checked against all three previous 0.1.3 APKs before assembly; `build/zing-final-prior-packages.json` retains their sizes, hashes and actual signature verification. The standard output paths now hold the new 0.1.4 packages below. Earlier package audits, all eight prior validation JSON records and all source handoff reports remain unchanged and version-specific. Historical sections later in this document retain their original statements and commands; their references to current/retained packages describe that earlier check, not the new bytes at the same output paths. `build/final-package-verification.json` remains the unchanged 0.1.3 audit (SHA-256 `9785a9a38c3e519d0e9a3813d50dbce3d7dcc46568b11449143f1d1fdff5edfd`); the final 0.1.4 report is the new `validation/package-0.1.4.json`.
+
+Existing tools used: JDK 17.0.20.1, SDK/target36, build-tools36.0.0, NDK27.1.12297006, project-local Rust1.99.1 and already installed x86_64/aarch64 Android targets. No toolchain, target, SDK, system package or project dependency was installed. Existing frontend, Cargo and Gradle caches were reused. The following commands ran sequentially from `clients/android/` and all returned zero:
+
+```sh
+CARGO_NET_OFFLINE=true GRADLE_OPTS=-Dorg.gradle.offline=true \
+  HOUSEHOLD_ANDROID_TARGET=x86_64 ANDROID_HOME=/home/phoenix/Android/Sdk \
+  JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  ./build-tauri.sh > build/zing-final-tauri-x86_64.log 2>&1
+CARGO_NET_OFFLINE=true GRADLE_OPTS=-Dorg.gradle.offline=true \
+  HOUSEHOLD_ANDROID_TARGET=aarch64 ANDROID_HOME=/home/phoenix/Android/Sdk \
+  JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  ./build-tauri.sh > build/zing-final-tauri-aarch64.log 2>&1
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  ./gradlew --offline --no-daemon :app:assembleDebug > build/zing-final-standalone.log 2>&1
+```
+
+Both Tauri commands compiled `household-android v0.1.4` and the real mobile plugin/native library; neither skipped Rust. The standalone command completed in 9 seconds (7 executed/27 up-to-date tasks). Both Tauri builds retain the existing warning that `libhousehold_android.so` could not be stripped; generated/Tauri deprecation/type-mismatch warnings also remain. Signature, ZIP and ELF checks below are independent actual checks and pass despite that strip warning.
+
+| Final package, relative to clients/android | Version code | Bytes | SHA-256 |
+| --- | ---: | ---: | --- |
+| Tauri ARM64 `build/outputs/household-share-tauri-aarch64-debug.apk` | 1004 | 29,868,259 | `80411065c0357ed659ae236f6a4f6999223b84cfda2dbe8d288f0f3c0213f1b7` |
+| Tauri x86_64 `build/outputs/household-share-tauri-x86_64-debug.apk` | 1004 | 29,544,232 | `2a684c7018daeed07ed6ffd06fc054f588823910fcf01dc20e7031333432506f` |
+| Standalone `app/build/outputs/apk/debug/app-debug.apk` | 5 | 2,674,204 | `5d9108a09c6b481acf783bd728e5c24cd9ef131865e3e799ea271f8f27a87960` |
+
+The new read-only audit is `build/verify-zing-final-packages.py`, adapted from the existing package verifier. It runs from repository root with `python3 clients/android/build/verify-zing-final-packages.py`, writing `validation/package-0.1.4.json`; its output is retained at `build/zing-final-package-check.log`. The source/config/history baseline is `build/zing-final-pre-package.json` (178 files, excluding generated JNI library/symlink outputs). Source inventory was recorded at packaging start and extended from the prior inventory before ARM64 assembly; previous APK hashes/signatures were separately captured before either build. Comparison permits only the two Markdown reports and three replaced APK outputs; no runtime source, build configuration, version, key, policy, prior report or historical audit changed.
+
+Actual package checks:
+
+- `build-tools/36.0.0/apksigner verify --verbose --print-certs APK`: all three verify, one signer, v2 true, same certificate SHA-256 `d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a` as the prior APKs. No signing-key bytes were read or logged.
+- `build-tools/36.0.0/zipalign -c -P 16 4 APK`: all three pass. Python inspects actual packaged ELF64 headers: ARM64 machine183 and x86_64 machine62, expected single native library/ABI, each LOAD alignment at least 16384 and file/virtual offsets congruent modulo16384. Standalone has no native ELF.
+- `aapt dump badging APK` and `aapt dump xmltree APK AndroidManifest.xml`: actual Zing label, version0.1.4/codes1004+5, preserved `net.household.share.mobile`/`household.share.android` IDs, min26/target36. Actual merged manifests retain no-backup/no-cleartext configuration and network-security/data-extraction resources. Arrival click Activity, both job services, legacy transfer service and transfer receiver are nonexported; jobs retain BIND_JOB_SERVICE. No boot permission was added. Manifest dumps are `build/zing-final-{arm64-v8a,x86_64,standalone}-manifest.txt`.
+- Python ZIP SHA-256 inspection: every APK contains exactly the nine approved `assets/web/` files with matching bytes, no duplicates/stale assets and no duplicate native adapter. In each Tauri ELF, cached compressed asset blobs are located byte-for-byte at recorded ELF offsets and decompressed with existing Node's `node:zlib`. Eight assets match their frozen hashes exactly. Tauri parses/serializes `index.html`, so the native HTML differs in formatting/doctype casing/empty attributes; a standard-library HTML token comparison checks equivalent tags, attributes and non-whitespace text. The raw ZIP `index.html` remains byte-exact. All nine native compressed asset identities, decoded hashes and offsets are recorded.
+- `dexdump -d` on the actual packaged DEX files checks the identity/routing/arrival/queue/policy/lifecycle classes and extracts six changed core class bodies. It confirms the two strict UTF-8 REPORT decoder settings, boolean `preserveExisting` registration, the permission gate and throwing notification adapter without a catch, and ready-status handling before the incomplete length check. Full selected disassembly is `build/zing-final-{arm64-v8a,x86_64,standalone}-native-dex.txt`; class and evidence hashes are recorded. The first exploratory diagnostic decoder hit dexdump's modified UTF-8 output; the verifier uses replacement only when reading diagnostic stdout, unrelated to the app's strict response decoder. No APK or runtime source adjustment followed.
+- `bash -n clients/android/build-tauri.sh` and `node --check clients/android/tauri-plugin/src/init.js` passed. The shared viewport/inset policy hash remains `b1da6a9c53b96a5d7c07116bbdbb8e0b4378a9c262ee71f8aa34f3c814dbc6ee`.
+
+No JVM test or lint was rerun solely for packaging. The verifier reads and hashes the existing registration-preserve reports: **62 actually executed earlier JVM tests**, 56 standalone plus six lifecycle, zero failures/errors/skips; lint retains zero errors and 6/23/37 warnings with one host hint. These remain source-check evidence, not new packaging-run tests or Android instrumentation. The audit also individually verifies all named required Android source/config/history/report/package files exist and hashes them; the new report itself is separately hashed for the canonical handoff.
+
+No installation, emulator/device/ADB, Git/CI, host service/deployment, new Agent, system/toolchain install or publication operation was performed. Still unperformed for these exact 0.1.4 APKs: real-server Android registration/rename/routing/arrivals/shared-edit/Copy acceptance; permission/app/channel transitions, OS presentation/lock-screen/cold-warm clicks; JobScheduler/Doze/reboot/force-stop catch-up; physical-phone/legacy/ARM64/standalone runtime; UI/IME/Back/safe-area/rotation; source grants/storage crash and transfer recovery; memory and Android20GB transfer. The prior 0.1.3 UI, 0.1.2 rotation and 0.1.1 download evidence do not establish these outcomes. Root owns installed acceptance and publication; the native lead independently reviews final APKs.
+
+## 0.1.4 preserve-existing registration follow-up — source only
+
+Checked 2026-10-23. The coalesced rename clarification revealed that Android worker registration still omitted `preserveExisting`. Fixed in `app/src/main/java/household/share/android/DeviceRouting.kt`, with a focused regression in `app/src/test/java/household/share/android/DeviceRoutingTest.kt`; only these files and the Android docs changed. Source remains 0.1.4/code5 and Tauri1004, and retained APKs remain 0.1.3. `validation/registration-preserve-0.1.4-source.json` records this check; all three earlier 0.1.4 source reports remain historical and unchanged.
+
+Both upload and arrival workers call the same ensure-registration method. That method now sends one `POST /api/devices/register` with `preserveExisting: true`, without a GET-then-POST lookup. The server creates only when absent and leaves an existing label/platform authoritative. An older configured or queued label cannot request a registry rename, and a valid response with a different current label is accepted. Existing ID/platform validation remains. Immutable queued source ID/origin/targets and saved send labels are unchanged. Shared UI startup/reconnect and explicit naming remain interface-owned; Android's generic native API shape is unchanged.
+
+Before adding the flag, the actual registration request/response logic was moved into an injected register-callback overload. The focused device suite ran **nine tests with one expected failure** for the missing JSON property, retained in `build/registration-preserve-regression-before.log`. With the fix, the new regression sends both a stale configured name and a stale queued name through the actual native ensure method, round-trips its JSON, verifies create-only mode, and returns the current renamed device. It proves native request mode and response handling, not server SQLite atomicity or Android networking.
+
+Using existing JDK17/SDK36/caches and `--offline`, reran the same two compile/test/lint commands recorded in the arrival-permission section below. Exact full commands are also in the new JSON. Standalone `compileDebugKotlin`, `testDebugUnitTest` and `lintDebug` passed: **56 JVM tests**, zero failures/errors/skips, lint zero errors/six warnings. Shared-plugin `compileDebugKotlin`, `testDebugUnitTest`, `lintDebug` and generated-host `compileUniversalDebugKotlin`, `lintUniversalDebug` passed: **six lifecycle tests**, zero failures/errors/skips, lint zero errors with 23/37 warnings and one host hint. Total: **62 passing JVM tests**, including all prior permission/completion/UTF-8 cases. Logs are `build/registration-preserve-standalone-check.log` and `build/registration-preserve-tauri-check.log`. Rust and frontend asset-copy tasks were explicitly excluded.
+
+The baseline is `build/registration-preserve-pre-change.json`, covering 164 existing source/config/history/package files. No runtime dependency, endpoint, auth/config/bridge shape, source access, queue/routing, arrival permission/lifecycle/budget/privacy, viewport/inset/zoom policy, version or package byte changed. Strict UTF-8 decoding and empty-token Authorization omission remain intact. No APK/Rust/frontend build, signing/alignment check, ADB/device/emulator, Git/CI/host-service, installation, new agent or publication operation occurred.
+
+Real-server Android rename/registration/arrival/transfer integration, server-side atomicity, installed permission/notification behavior, background/recovery and 20 GB/memory validation remain outside these JVM checks. Root retains final frontend freeze, packaging and installed acceptance ownership. All previously documented OS presentation, reboot/force-stop and transfer limitations remain.
+
+## 0.1.4 arrival permission follow-up — source only
+
+Checked 2026-10-23. Changes are limited to `app/src/main/java/household/share/android/ArrivalPolicy.kt`, `Arrivals.kt`, `app/src/test/java/household/share/android/ArrivalPolicyTest.kt` and these Android docs. Version remains 0.1.4/code5 and Tauri1004. `validation/arrival-permission-0.1.4-source.json` records current evidence; both earlier 0.1.4 source reports and all historical package/runtime evidence are retained unchanged.
+
+The shared enabled-and-granted gate now prevents a foreground/job run from starting during an unresolved permission prompt or runtime/app/channel denial. Reconciliation cancels the periodic arrival job while blocked. Each active run checks permission before arrival fetch, posting, cursor persistence and ACK, including replay of an already-saved ACK. The real notification adapter uses a small injected permission/notify overload: detected permission loss throws, and SecurityException or other posting failures propagate before cursor/ACK processing. The overload is called immediately before NotificationManager.notify after building the generic notification; the previous silent return/catch was removed. A permission-blocked interruption does not create a new network-error backoff. Explicit grant/result and later resume use the existing reconcile path; startup still never requests permission, and For you remains independent.
+
+Before changing the posting behavior, the existing silent denied-return and swallowed-SecurityException paths were moved into that overload. The focused arrival suite then ran **14 tests with two expected regression failures**, retained in `build/arrival-permission-regression-before.log`. After the fix, three new regressions pass: default-off and enable/prompt/runtime-denied/app-blocked/channel-blocked states perform no simulated arrival fetch/post/persist/ACK until grant; permission loss at the actual posting gate leaves cursor/ACK unchanged; and the actual posting adapter propagates the original SecurityException, then successfully retries the same arrival in post/persist/ACK order. These exercise the shared gate, actual adapter overload and real cursor processor using injected callbacks. They do not instantiate an Android permission dialog, Context, NotificationManager, SharedPreferences or JobScheduler.
+
+Actual final commands using existing JDK17/SDK36/caches, from the repository root:
+
+```sh
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android \
+  :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug \
+  -x :app:bundleWeb --offline --console=plain
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  :tauri-plugin-household:compileDebugKotlin :tauri-plugin-household:testDebugUnitTest \
+  :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb \
+  -Pkotlin.incremental=false --offline --console=plain
+```
+
+Both passed: **61 total JVM tests**, 55 standalone (15 arrival cases) plus six plugin lifecycle tests, with zero failures/errors/skips. Standalone/shared-plugin/generated-host Kotlin compilation and lint passed. Lint remains zero errors with 6/23/37 warnings respectively and one generated-host informational hint. Final logs are `build/arrival-permission-standalone-check.log` and `build/arrival-permission-tauri-check.log`. Rust and frontend asset-copy tasks were explicitly excluded. No APK was assembled and no signing/alignment check was rerun.
+
+The 163-file pre-change source/config/history/package snapshot is `build/arrival-permission-pre-change.json`. Queue/routing/source access, strict UTF-8/completion fixes, device identity, application IDs/version/signing, wrapper lifecycle/visible-only Enable callbacks, native viewport/inset policy, generic notification/click content, cancellation, retry bounds, page/time/HTTP budgets and retained 0.1.3 package bytes remain unchanged. The background job still uses a separate minimum-15-minute network-constrained check, is not persisted across reboot, and can be delayed by Doze/OEM/Tailscale. Force-stop or reboot requires reopening.
+
+Permission checks, posting and persistence cannot be atomic with OS settings. A successful notify call is only an OS handoff, not proof of visible presentation. Settings may change after acceptance; a later block cannot undo cursor/ACK progress already accepted. A crash between post and persistence can still repeat a generic banner. Final frontend/APK/Rust assembly, all installed 0.1.4 checks, actual runtime/app/channel denial-to-grant behavior in both wrappers, OS presentation/lock-screen/cold-warm click checks, JobScheduler/Doze/reboot/force-stop acceptance, real-server Android routing/arrival/edit/Copy integration, storage/source-grant recovery and 20 GB/memory checks remain unperformed. No ADB/device/emulator, Git/CI/host service, installation, new agent or publication operation occurred. Root retains frozen frontend, final packaging and installed acceptance ownership.
+
+## 0.1.4 shared editing and strict UTF-8 follow-up — source only
+
+Checked 2026-10-23 against the final shared-editing sections of `docs/api-contract.md` and `clients/shared/native-contract.md`. Runtime changes are limited to `app/src/main/java/household/share/android/UploadCompletion.kt` and `NativeHttp.kt`. Version metadata remains 0.1.4/code5 and Tauri1004; device/arrival code, queue persistence/routing, application IDs/signing, native inset/viewport policy, source access and transfer streaming are unchanged. `validation/shared-edit-0.1.4-source.json` records the exact file/report hashes; the initial Zing source report and all historical APK/runtime evidence remain unchanged.
+
+The completion gate still verifies saved item ID and kind, rejects unknown states, reports failed validation and retains pending validation. It compares item size with the queued source while incomplete, but accepts a matching ready item after shared text edits enlarge, shrink or empty its current content. All normal completion, full-offset lost-ack, HEAD/final-PATCH validation and tus DELETE 409/422 paths already use this gate. Source review confirms original HEAD Upload-Length/offset and incomplete source checks remain intact. The early full-offset path returns before source staging/hash/access or upload creation, and both successful settlement paths retain their staged-source cleanup. The changed gate therefore no longer prevents that cleanup after an edit. No transfer-engine branch or new retry/creation path was added.
+
+Before the fix, the focused completion suite ran **10 tests with two expected regression failures**: edited-ready completion and pending-to-edited-ready recovery. `build/shared-edit-regression-before.log` retains that execution. After the fix, all ten completion tests pass, including larger/smaller/zero edited sizes, repeat ready probes, incomplete size mismatches, failed/pending states, wrong ID/kind and unknown state. These exercise the actual native completion gate with injected item responses and the existing original-offset validator; they do not instrument Android SQLite, source release or server requests.
+
+The API bridge now uses a UTF-8 decoder with REPORT for malformed/unmappable bytes after the existing bounded read. Invalid sequences reject with a recoverable download suggestion; valid BOM/whitespace/Unicode remain exact. Three new `NativeHttpTest` JVM cases cover bad continuation/leading bytes, truncated sequences, overlong encodings, surrogate encodings, out-of-range Unicode, empty/BOM-only content, CRLF/whitespace, composed/decomposed text, supplementary characters, NUL and an intentional U+FFFD. No Unicode normalization or BOM stripping is introduced. Text/clipboard stays 8 MiB, metadata 2 MiB, submitted JSON 40 MiB. `.txt`/`.md` Save still uses the existing item-ID download and suggested name; the empty-token Authorization omission is retained.
+
+Actual final commands, using existing JDK17/SDK36/caches:
+
+```sh
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android \
+  :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug \
+  -x :app:bundleWeb --offline --console=plain
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  :tauri-plugin-household:compileDebugKotlin :tauri-plugin-household:testDebugUnitTest \
+  :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb \
+  -Pkotlin.incremental=false --offline --console=plain
+```
+
+Both commands passed: **58 total JVM tests**, 52 standalone plus six plugin lifecycle tests, zero failures/errors/skips. The six net new tests are three completion cases and three UTF-8 cases; the existing identity/kind regression was updated for editable ready sizes. Standalone/shared-plugin/generated-host Kotlin compilation and lint all pass. Lint reports retain zero errors, with 6/23/37 warnings respectively and one generated-host informational hint. Final logs are `build/shared-edit-standalone-check.log` and `build/shared-edit-tauri-check.log`. Frontend asset-copy tasks and Rust build were explicitly excluded; no APK, frontend build or final packaging task ran.
+
+No ADB/device/emulator, real-server Android edit/reconciliation/Copy test, storage/source-cleanup instrumentation, 20 GB/recovery/memory check, Git/CI/host service, installation, new agent or publication operation was performed. The retained APKs remain 0.1.3. Root owns final frontend freeze, packaging and installed acceptance; all 0.1.4 runtime limitations in the initial handoff below remain open.
+
+## 0.1.4 Zing source handoff — not an APK release
+
+Checked 2026-10-23. Android-only source now uses visible Zing labels, version 0.1.4/code5 (standalone) and code1004 (Tauri), retaining application IDs, signing configuration, database/queue/source-grant locations, min26/target36, streamed file I/O and the unchanged `AppWebViewPolicy.kt`. Generated Tauri version properties agree. The existing 0.1.3 APKs and all prior `validation/api36-*.json` runtime records are unchanged. `build/final-package-verification.json` remains the historical audit of those retained 0.1.3 packages; its source/report hashes describe that release, not this unassembled source. New source evidence is `validation/zing-0.1.4-source.json`.
+
+Implemented shared native origin-scoped durable identity and redacted config; saved source/targets/server before Android Share intake, picker and Tauri handoff; additive persisted queue fields and tus metadata; native worker registration; unknown-upload-creation protection; one serialized arrival processor; foreground lifecycle start/stop; an independent network periodic JobService; explicit visible permission controls in both wrappers; blocked-channel settings state; generic private/public arrival notifications; a nonexported explicit click Activity committing a validated internal target before launcher activation; consumed targets; and generic transfer lock-screen public content. No external push account, public listener, perpetual arrival transfer service, runtime dependency or LocalSend code was added.
+
+Actual final commands, from the repository root using the existing JDK17/SDK36 and caches:
+
+```sh
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android \
+  :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug --offline --console=plain
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  :tauri-plugin-household:compileDebugKotlin :tauri-plugin-household:testDebugUnitTest \
+  :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -Pkotlin.incremental=false --offline --console=plain
+```
+
+Both final commands passed. **52 JVM tests** passed: 46 standalone (including 20 new device/routing/arrival cases) and six plugin lifecycle cases (one new pause/resume case), with zero failures, errors or skips. JSON tests exercise the actual queue serializer/parser and tus metadata using a cached test-only `org.json:json:20180813`; this does not add a runtime library. Tests cover normalized/persisted identity reuse and concurrent first creation, failed identity commits, redaction/label bytes, immutable routing snapshots through serialization and configuration changes, old-row Everyone defaults and 64-bit offsets, invalid/self/duplicate targets, unknown creation/crash recovery, full signed-64-bit cursors, malformed/reordered pages, post/commit/ACK order, lost ACK replay, disk/post failures, single-flight races and stale finish, cancellation before socket attachment, permission/channel states, visible Enable gating, durable/consumed/stale click targets and lifecycle start/stop. Storage tests inject commit/read functions into the native core; they are not Android SharedPreferences/SQLite power-loss tests or notification/permission instrumentation.
+
+Final logs are `build/zing-standalone-check-final.log` and `build/zing-tauri-check-final.log`. Standalone, shared-plugin and generated Tauri host lint report zero errors and respectively 6, 23 and 37 warnings; exact reports are in the source evidence JSON. Existing target-API/WebView/storage/dependency/generated-code warnings remain. Initial incremental Tauri compilation failed to resolve the unchanged shared `TransferControlCommand`; full nonincremental Kotlin compilation then passed. `build/zing-tauri-check.log` retains that failed attempt. No runtime fix or copied dependency source was used to hide the failure. Generated Tauri host compilation includes both permission-result and destruction callbacks. Rust/native library building was explicitly excluded; changing the Rust window title and Cargo version has no new compiled Rust evidence.
+
+Arrival work is default off; while enabled and visible, checks run about every five seconds. Background work is a separate network-constrained 15-minute periodic JobScheduler job, not UIDT or a permanent dataSync listener. Checks process at most four 50-row pages within a 70-second work budget, with individual HTTP calls capped at 20 seconds; cancellation can therefore also rely on that bounded call timeout in platform races. Errors persist backoff up to five minutes. There is no delivery deadline; Doze/OEM/Tailscale/connection delays apply. The periodic job is **not persisted across reboot**, so reopen Zing after reboot or force-stop. No RECEIVE_BOOT_COMPLETED permission or boot receiver was added. Native settings report blocked app/channel permission and point to Android Settings. Permission Granted is not proof of OS display.
+
+Posting and local cursor persistence are not atomic; best-effort stable-ID dedupe allows repeats after interruption. Cursor progress is committed before an idempotent ACK, and a lost ACK is retried using saved server-issued progress. Foreground and background work share one owner; pause/disable/disconnect/job-stop cancels its own I/O. Disabling does not cancel transfers. Queued source ID, exact targets, source label and original server cannot be edited by retry/reselection. Old JSON rows default to no source ID/Everyone, with no SQL schema or queue-location change. Captures can retain small abandoned routing journals after interrupted intake; file bytes are still handled by existing durable sources/staging and never stored in arrival/feed JSON.
+
+The creation-in-flight marker prevents automatic new POST after a crash/lost response without a saved upload URL; it cannot discover or remove an unknown server-side orphan. That error requires inspecting All shares and explicitly cancelling/reselecting. Known upload URLs still resume using HEAD. Historical rows lack the marker and retain legacy compatibility.
+
+No APK assembly, frontend rebuild, ADB/device/emulator action, Git/host service/CI change, installation, new agent or external publication was performed. Current package hashes are preserved in the evidence JSON; no signing/alignment command was rerun because no APK bytes changed. Root owns final frontend freeze, packaging authorization, installed acceptance and publication.
+
+Still unperformed for 0.1.4: real-server Android registration/routing/arrivals; OS notification permission/channel/lock-screen behavior in either wrapper; cold/warm notification-click presentation; background/Doze/job stop/reschedule; reboot/force-stop catch-up; Android SharedPreferences/SQLite crash instrumentation; actual source-grant restoration; API26–33 runtime; ARM64/standalone runtime; native UI/keyboard/safe-area regression; transfer recovery/memory and 20 GB. Prior 0.1.3 portrait UI, 0.1.2 rotation/Home and 0.1.1 33,555,133-byte SAF/checksum results below remain historical.
+
+## Retained 0.1.3 full-height frontend correction
 
 Packaging and root-owned installed 0.1.3 portrait API36 x86_64 emulator acceptance are complete; physical-phone confirmation remains open. The user's phone screenshot showed excess space above the header and below the tabs. The source permits duplicate spacing when native margins already reserve bars/cutouts and the WebView also delivers nonzero CSS safe-area values. The phone's actual WebView version, computed safe areas and native bounds were not measured. Prior 0.1.2 emulator acceptance used a WebView reporting zero CSS safe areas and does not prove this physical-phone case.
 

@@ -1,0 +1,391 @@
+{
+  "recordedAt": "2026-10-23T16:05:45.208530+00:00",
+  "status": "passed",
+  "scope": "Exact installed 0.1.4/code1004 Tauri x86_64 APK on disposable API36 emulator; actual Kotlin bridge, disposable Go server and Android SystemUI.",
+  "apkSHA256": "0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0",
+  "installedPackageBytesIndependentlyHashed": true,
+  "packageAudit": "clients/android/validation/package-0.1.4-menu.json",
+  "packageAuditSHA256": "613d7fa7212910023ba87c141c119e3fac059df43de901ff4750afe77485180c",
+  "previousRejectedCandidate": "docs/evidence/zing-android-candidate.json",
+  "webFreezeReportSHA256": "65a1689f644d1ba0b1ecf02f8feab1c94d5d3bdc651ea5a7fe2e4a788d051600",
+  "checks": {
+    "android-emulator.json": {
+      "passed": true,
+      "platform": "Android API36 x86_64 disposable emulator",
+      "coldLaunch": true,
+      "viewport": {
+        "width": 412,
+        "height": 839,
+        "contentWidth": 412,
+        "scale": 1,
+        "inputs": [
+          {
+            "name": "Text to share",
+            "fontSize": 16
+          },
+          {
+            "name": null,
+            "fontSize": 16
+          }
+        ]
+      },
+      "keyboard": {
+        "height": 839,
+        "scale": 1,
+        "contentWidth": 412,
+        "submit": {
+          "top": 181.71429443359375,
+          "bottom": 225.71429443359375,
+          "left": 345.4285888671875,
+          "right": 389.4285888671875
+        },
+        "webViewTop": 136,
+        "imeTop": 526.0952380952381
+      },
+      "checks": [
+        "automatic native bootstrap",
+        "explicit loopback development pairing",
+        "redacted config",
+        "UI text submit through real Kotlin API bridge",
+        "exact native text and headers",
+        "native clipboard write and Android paste",
+        "no browser API requests",
+        "initial scale 1 and no horizontal overflow",
+        "visible inputs at least 16 CSS px",
+        "actual visible OS keyboard leaves complete Share action uncovered"
+      ],
+      "binaryTransfers": "separate smoke; not implied by this text check",
+      "limitations": [
+        "not a physical phone",
+        "not a 20 GB Android transfer",
+        "not screen-lock/OS-job lifecycle proof",
+        "not a physical pinch-gesture test"
+      ]
+    },
+    "android-tabs.json": {
+      "passed": true,
+      "version": "0.1.4/code1004",
+      "apkSHA256": "0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0",
+      "viewport": {
+        "width": 412,
+        "height": 839,
+        "scale": 1,
+        "dpr": 2.625,
+        "contentWidth": 412
+      },
+      "safeArea": {
+        "android": true,
+        "values": [
+          "0px",
+          "0px",
+          "0px",
+          "0px"
+        ],
+        "headerHeight": 64,
+        "tabBarHeight": 72
+      },
+      "webViewBounds": {
+        "left": 0,
+        "top": 136,
+        "right": 1080,
+        "bottom": 2337
+      },
+      "keyboardTop": 526.0952380952381,
+      "safeBottom": 838.4761904761905,
+      "measurements": [
+        {
+          "stage": "docked above Android navigation area",
+          "boundary": 838.4761904761905,
+          "rows": [
+            {
+              "label": "All shares",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 12,
+              "right": 89.63690948486328,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "For you",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 89.63690948486328,
+              "right": 167.27381896972656,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Text",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 167.27381896972656,
+              "right": 244.91072845458984,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Files",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 244.9107208251953,
+              "right": 322.5476303100586,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Pinned",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 322.5476379394531,
+              "right": 400.1904983520508,
+              "height": 55.23809814453125,
+              "uncovered": true
+            }
+          ]
+        },
+        {
+          "stage": "editing with actual OS keyboard",
+          "boundary": 526.0952380952381,
+          "rows": [
+            {
+              "label": "All shares",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 24.761905670166016,
+              "right": 97.29166793823242,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "For you",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 97.29167175292969,
+              "right": 169.82738494873047,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Text",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 169.82737731933594,
+              "right": 242.35713958740234,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Files",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 242.35714721679688,
+              "right": 314.89286041259766,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Pinned",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 314.8928527832031,
+              "right": 387.42261505126953,
+              "height": 52,
+              "uncovered": true
+            }
+          ]
+        },
+        {
+          "stage": "redocked after Back and Done",
+          "boundary": 838.4761904761905,
+          "rows": [
+            {
+              "label": "All shares",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 12,
+              "right": 89.63690948486328,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "For you",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 89.63690948486328,
+              "right": 167.27381896972656,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Text",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 167.27381896972656,
+              "right": 244.91072845458984,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Files",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 244.9107208251953,
+              "right": 322.5476303100586,
+              "height": 55.23809814453125,
+              "uncovered": true
+            },
+            {
+              "label": "Pinned",
+              "top": 776,
+              "bottom": 831.2380981445312,
+              "left": 322.5476379394531,
+              "right": 400.1904983520508,
+              "height": 55.23809814453125,
+              "uncovered": true
+            }
+          ]
+        },
+        {
+          "stage": "search with actual OS keyboard",
+          "boundary": 526.0952380952381,
+          "rows": [
+            {
+              "label": "All shares",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 24.761905670166016,
+              "right": 97.29166793823242,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "For you",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 97.29167175292969,
+              "right": 169.82738494873047,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Text",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 169.82737731933594,
+              "right": 242.35713958740234,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Files",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 242.35714721679688,
+              "right": 314.89286041259766,
+              "height": 52,
+              "uncovered": true
+            },
+            {
+              "label": "Pinned",
+              "top": 364.7857360839844,
+              "bottom": 416.7857360839844,
+              "left": 314.8928527832031,
+              "right": 387.42261505126953,
+              "height": 52,
+              "uncovered": true
+            }
+          ]
+        }
+      ],
+      "checks": [
+        "native bootstrap and no browser API traffic",
+        "one accessible bottom tab bar above actual Android navigation area",
+        "all five tab targets at least 44px and uncovered",
+        "actual OS keyboard leaves Share/tabs/Done visible",
+        "Android Back dismisses keyboard without losing navigation/draft",
+        "Done redocks same nav DOM",
+        "Files selection preserves draft",
+        "search/Done preserves search and draft",
+        "final feed action and item menu remain above bottom tabs"
+      ],
+      "limits": [
+        "API36 x86_64 emulator only",
+        "not a physical phone or physical gesture check",
+        "not a background or20GB transfer check"
+      ]
+    },
+    "android-shared-board.json": {
+      "passed": true,
+      "platform": "Installed API36 x86_64 Tauri APK",
+      "checks": [
+        "retained origin-scoped native identity",
+        "arrival checks default off",
+        "real native API registration and recipient routing",
+        "For you displays targeted shared entry",
+        "UI Save preserves BOM/CRLF/Unicode in server bytes",
+        "native Copy followed by actual Android Paste",
+        "concurrent Save retains unsaved draft",
+        "editing adds no arrival",
+        "For you history survives ACK and WebView reload",
+        "no browser API transport"
+      ],
+      "limits": [
+        "Android textarea normalizes CRLF on pasted input; server bytes checked separately",
+        "no OS notification permission/presentation or background acceptance",
+        "no physical phone, Mac or 20 GB test"
+      ]
+    },
+    "android-arrivals.json": {
+      "passed": true,
+      "scope": "Actual API36 x86_64 installed Tauri app, disposable Go API and Android SystemUI",
+      "checks": [
+        "default-off settings and unacknowledged ready arrival",
+        "explicit visible Enable with previously granted OS permission",
+        "actual NotificationManager record and durable server ACK",
+        "generic notification text without sender/name/content",
+        "visible SystemUI notification and actual coordinate click",
+        "click opens and highlights exact For you item",
+        "no automatic download or clipboard replacement"
+      ],
+      "limits": [
+        "does not test initial permission prompt or denial-to-grant",
+        "foreground arrival then notification-shade click; no cold-process launch claim",
+        "no periodic background scheduling, lock-screen, reboot, Doze, physical phone or 20 GB validation"
+      ]
+    }
+  },
+  "screenshots": [
+    {
+      "path": ".tools/validation/zing-android-menu/android-emulator-native.png",
+      "sha256": "919dee1a0bf7be5d0f04216a9739eb48b253384ddee121469f2edef5f25e9042"
+    },
+    {
+      "path": ".tools/validation/zing-android-menu/android-tabs-docked.png",
+      "sha256": "678c527202b5a3abaa2f6d0a33f161e03ee1a537cf9bdfe3711478117da1b4bd"
+    },
+    {
+      "path": ".tools/validation/zing-android-menu/android-tabs-keyboard.png",
+      "sha256": "fa71ddad5067d7cb02c1985b0c58b2d72acec8ae2b033298afc6f90f45285760"
+    },
+    {
+      "path": ".tools/validation/zing-android-menu/android-tabs-last-item.png",
+      "sha256": "29c52fdfa9fff79a212041742aadd657e6d3d466817d79c0d1ca076972c4cb33"
+    },
+    {
+      "path": ".tools/validation/zing-android-menu/android-shared-conflict.png",
+      "sha256": "e1cc5d04e2db864caf4616ed50fafe7afa0e8e36c3b99e2321f1435468d003e5"
+    },
+    {
+      "path": ".tools/validation/zing-android-menu/android-arrival-system-ui.png",
+      "sha256": "dbf5e052e75a8be5e3220506831f97cc6f1523c55035c4163003fd975aed388f"
+    }
+  ],
+  "limits": [
+    "API36 x86_64 emulator only; ARM64 and standalone package checks are separate",
+    "Notification permission was already granted; initial prompt and denial-to-grant were not executed",
+    "Foreground arrival followed by actual notification-shade click; not cold-process launch, background periodic timing, Doze/OEM, lock-screen or reboot acceptance",
+    "No physical household phone/Mac, Android 8\u201313 or new 20 GB/memory test",
+    "Live server/data/configuration/Serve settings unchanged"
+  ]
+}

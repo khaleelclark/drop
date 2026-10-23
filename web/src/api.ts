@@ -1,5 +1,7 @@
-import type { FeedPage, Item, StorageInfo } from './types'
+import { validDeviceId } from './devices'
+import type { ArrivalPage, Device, FeedPage, Item, SendRouting, StorageInfo } from './types'
 export const COPY_LIMIT = 8 * 1024 * 1024
+export const REQUEST_LIMIT = 40 * 1024 * 1024
 export class ApiError extends Error {
   constructor(message: string, public status: number, public code?: string) { super(message); this.name = 'ApiError' }
 }
@@ -23,15 +25,32 @@ export class ApiClient {
   async json<T>(path: string, init?: RequestInit): Promise<T> { return (await this.response(path, init)).json() }
   session(token: string) { return this.response('/session', { method: 'POST', body: JSON.stringify({ token }) }) }
   logout() { return this.response('/session', { method: 'DELETE' }) }
-  list(query = '', before?: string) {
+  list(query = '', before?: string, forDevice?: string) {
     const params = new URLSearchParams({ limit: '50' }); if (query) params.set('q', query); if (before) params.set('before', before)
+    if (forDevice) params.set('forDevice', forDevice)
     return this.json<FeedPage>(`/items?${params}`)
   }
   storage() { return this.json<StorageInfo>('/storage') }
-  createText(text: string, sourceDevice: string) { return this.json<{item: Item}>('/text', { method: 'POST', body: JSON.stringify({ text, sourceDevice }) }) }
+  createText(text: string, sourceDevice: string, routing?: SendRouting) { return this.json<{item: Item}>('/text', { method: 'POST', body: JSON.stringify({ text, sourceDevice, ...routing }) }) }
+  item(id: string) { return this.json<{item: Item}>(`/items/${encodeURIComponent(id)}`) }
+  register(device: Pick<Device,'id'|'label'|'platform'> & {preserveExisting?:boolean}) { return this.json<{device:Device}>('/devices/register', {method:'POST',body:JSON.stringify(device)}) }
+  async devices() {
+    const page=await this.json<{devices:Device[]}>('/devices')
+    if(!Array.isArray(page.devices)||page.devices.length>64||page.devices.some(device=>!validDeviceId(device.id)||typeof device.label!=='string'||!['macos','linux','android','browser'].includes(device.platform)))throw new Error('Invalid device registry response. Retry after updating your server.')
+    return page
+  }
+  forgetDevice(id: string) { return this.response(`/devices/${encodeURIComponent(id)}`, {method:'DELETE'}) }
+  arrivals(id: string, after?: string) { return this.json<ArrivalPage>(`/devices/${encodeURIComponent(id)}/notifications?${new URLSearchParams({limit:'50',...(after ? {after} : {})})}`) }
+  acknowledge(id: string, through: string) { return this.json<{ackCursor:string}>(`/devices/${encodeURIComponent(id)}/notifications/ack`, {method:'POST',body:JSON.stringify({through})}) }
   pin(id: string, pinned: boolean) { return this.json<{item: Item}>(`/items/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ pinned }) }) }
+  edit(id: string, changes: {name:string;text?:string;expectedUpdatedAt:string}) {
+    if (changes.text !== undefined && new TextEncoder().encode(changes.text).length > COPY_LIMIT) throw new Error('This edit exceeds the 8 MiB preparation budget. Keep the draft and shorten it, or download the original.')
+    const body = JSON.stringify(changes)
+    if (new TextEncoder().encode(body).length > REQUEST_LIMIT) throw new Error('This encoded edit exceeds the 40 MiB request budget. Keep the draft and shorten it before saving.')
+    return this.json<{item: Item}>(`/items/${encodeURIComponent(id)}`, { method: 'PATCH', body })
+  }
   delete(id: string) { return this.response(`/items/${encodeURIComponent(id)}`, { method: 'DELETE' }) }
-  downloadURL(id: string) { return this.url(`/items/${encodeURIComponent(id)}/download`) }
+  downloadURL(id: string, format?: 'txt'|'md') { return this.url(`/items/${encodeURIComponent(id)}/download${format ? `?format=${format}` : ''}`) }
   async text(id: string, signal?: AbortSignal): Promise<string> {
     const response = await this.response(`/items/${encodeURIComponent(id)}/text`, { signal })
     if (Number(response.headers.get('Content-Length')) > COPY_LIMIT) { await response.body?.cancel(); throw new Error('This text is too large to prepare here. Download the full .txt file instead.') }

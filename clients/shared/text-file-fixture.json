@@ -1,0 +1,113 @@
+{
+  "version": 1,
+  "description": "Metadata candidate hints only; server validates full UTF-8/no binary controls before preparing kind=file, at most 8 MiB. kind=text uses existing semantics.",
+  "applicationTypes": [
+    "application/json",
+    "application/ld+json",
+    "application/javascript",
+    "application/ecmascript",
+    "application/xml",
+    "application/yaml",
+    "application/x-yaml",
+    "application/toml",
+    "application/sql",
+    "application/graphql"
+  ],
+  "extensions": [
+    "txt",
+    "md",
+    "markdown",
+    "json",
+    "jsonl",
+    "ndjson",
+    "yaml",
+    "yml",
+    "toml",
+    "xml",
+    "csv",
+    "tsv",
+    "log",
+    "js",
+    "mjs",
+    "cjs",
+    "jsx",
+    "ts",
+    "tsx",
+    "py",
+    "rs",
+    "go",
+    "c",
+    "h",
+    "cc",
+    "cpp",
+    "hpp",
+    "java",
+    "kt",
+    "kts",
+    "swift",
+    "dart",
+    "cs",
+    "php",
+    "rb",
+    "sh",
+    "bash",
+    "zsh",
+    "sql",
+    "html",
+    "htm",
+    "css",
+    "scss"
+  ],
+  "cases": [
+    {
+      "name": "note.md",
+      "mimeType": "application/octet-stream",
+      "candidate": true
+    },
+    {
+      "name": "README.MARKDOWN",
+      "mimeType": "",
+      "candidate": true
+    },
+    {
+      "name": "source.rs",
+      "mimeType": "application/octet-stream",
+      "candidate": true
+    },
+    {
+      "name": "plain",
+      "mimeType": "text/plain; charset=UTF-8",
+      "candidate": true
+    },
+    {
+      "name": "data",
+      "mimeType": "application/json",
+      "candidate": true
+    },
+    {
+      "name": "image.png",
+      "mimeType": "image/png",
+      "candidate": false
+    },
+    {
+      "name": "archive.zip",
+      "mimeType": "application/octet-stream",
+      "candidate": false
+    },
+    {
+      "name": "note.md",
+      "mimeType": "text/plain; charset=utf-16",
+      "candidate": false
+    },
+    {
+      "name": "note.txt",
+      "mimeType": "text/plain; charset=iso-8859-1",
+      "candidate": false
+    },
+    {
+      "name": "table.csv",
+      "mimeType": "text/csv; charset=\"utf-8\"",
+      "candidate": true
+    }
+  ]
+}

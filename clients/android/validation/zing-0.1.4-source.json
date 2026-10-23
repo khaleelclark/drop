@@ -1,0 +1,592 @@
+{
+  "checkedAt": "2026-10-23T14:36:25.162910+00:00",
+  "scope": "Android-only 0.1.4 source handoff; no new APK/device validation",
+  "sourceVersion": {
+    "versionName": "0.1.4",
+    "standaloneVersionCode": 5,
+    "tauriVersionCode": 1004
+  },
+  "files": [
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/DeviceRouting.kt",
+      "bytes": 5748,
+      "sha256": "a0deefa9cf0ebf27bf09bc1cd703d11aad88a1151473a860bf3c5b2903842d3e"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/ArrivalPolicy.kt",
+      "bytes": 4984,
+      "sha256": "cb11a518c509e958ada64c2c6dec7ba8d3ace05c150b3ba28beb3e24f35611ad"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/Arrivals.kt",
+      "bytes": 15247,
+      "sha256": "b23159a536e6332d196de69bcbefd861387da9a0152a24f8f07601c9a8430f0e"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/QueueStore.kt",
+      "bytes": 7560,
+      "sha256": "546857018e0eccf28e6624cf4204f987d17dcb5bdf2b5f5d2faf5baad9a070da"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/NativeHttp.kt",
+      "bytes": 6998,
+      "sha256": "c0f493c0cf97d20c937031705b0b5fe261d5c7929eb6162accefc545aa4274b7"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/PickerHandoff.kt",
+      "bytes": 1629,
+      "sha256": "42b48621bb444f046fb6f6eb18e7c173996b90c33b51908d4803f8c5fe2ea9af"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/MainActivity.kt",
+      "bytes": 27978,
+      "sha256": "718a20d2247753e0caa83983e2accedc3ca24f99637eb8b63d3b7311d3906645"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/TransferEngine.kt",
+      "bytes": 19991,
+      "sha256": "88a49e6279f9dd745985e51df26d920f808bc319f15854752ef3c8746e55784b"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/TransferServices.kt",
+      "bytes": 13951,
+      "sha256": "3cd3d78b0056ad200a9c6bb57e30d1826e0a93689dd971fffcde3e5f1ab41c28"
+    },
+    {
+      "path": "clients/android/app/src/main/AndroidManifest.xml",
+      "bytes": 2398,
+      "sha256": "98085e8940bcbe730d43ce8b325ff05f3ba594fdb7ec445777d1a029ce9de059"
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/src/main/AndroidManifest.xml",
+      "bytes": 1934,
+      "sha256": "b2aaf47285ad89fd6517f638d620344febdc428123ca84c73b73fd88b07006dc"
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/src/main/java/household/share/android/HouseholdPlugin.kt",
+      "bytes": 6763,
+      "sha256": "d1373783ea6938c61c28c249cac434c46cd06e4a2dbde64cab5916bc5d1a51a4"
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/src/main/java/household/share/android/ResumedActivityGate.kt",
+      "bytes": 897,
+      "sha256": "60b9eecff974816e84fabede8ca0fe9dd4ab94e53268fd53bb52260d889473a1"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/java/net/household/share/mobile/MainActivity.kt",
+      "bytes": 656,
+      "sha256": "45a279f8220e88a3ea0526e0838726200dca00f8b938339ecbfa677b56a60763"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/values/strings.xml",
+      "bytes": 123,
+      "sha256": "145918fde8fa360e86a1c449cf5dad7803499d8ba6f2aa2b1961ab280032459f"
+    },
+    {
+      "path": "clients/android/src-tauri/src/lib.rs",
+      "bytes": 625,
+      "sha256": "320dce5c81e6467fcbc6086e37a0f2681aec77570e33801d2c46140e448ac840"
+    },
+    {
+      "path": "clients/android/app/build.gradle.kts",
+      "bytes": 1165,
+      "sha256": "0e4c53d0e347b8743e954173c733f732851089602f49e391a7d76b3ff72480a8"
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/build.gradle.kts",
+      "bytes": 1174,
+      "sha256": "641d3f4bef1650aa3cb396d1b04b9255d078aaf51fe699787fee9f2435735def"
+    },
+    {
+      "path": "clients/android/src-tauri/Cargo.toml",
+      "bytes": 432,
+      "sha256": "bb90685c1d1c78319f80f3cfe84240db1a6a463b6439ebe011636130efeb953f"
+    },
+    {
+      "path": "clients/android/src-tauri/Cargo.lock",
+      "bytes": 104444,
+      "sha256": "8f1fd036180d42085cc025bc3c403b685c9dd3f2a63c7ecf3768f58d826a4a87"
+    },
+    {
+      "path": "clients/android/src-tauri/tauri.conf.json",
+      "bytes": 585,
+      "sha256": "2d4d1028ea4c6f26d621d0277d08ed6461f1c7fc8aca66acd1ef375d77b95f40"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/build.gradle.kts",
+      "bytes": 2246,
+      "sha256": "2e2298fdc88f03a8380354cbdccb8561df8fbcf216c36233e3cb57a6c80b703b"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/tauri.properties",
+      "bytes": 128,
+      "sha256": "f38267787d6bfd2b3d753aad534eafcfaff5786d0568339a469fbfc08811d1e8"
+    },
+    {
+      "path": "clients/android/app/src/test/java/household/share/android/DeviceRoutingTest.kt",
+      "bytes": 6407,
+      "sha256": "6edef16093691804115159a43f703d53f05311eb212a00662bea2f0f99046e94"
+    },
+    {
+      "path": "clients/android/app/src/test/java/household/share/android/ArrivalPolicyTest.kt",
+      "bytes": 8657,
+      "sha256": "36fd165b3b5458c8f9366cd6b4e7da94c33b990d943e0421007329e8c28b9ce8"
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/src/test/java/household/share/android/ResumedActivityGateTest.kt",
+      "bytes": 4669,
+      "sha256": "6e9c67cc97e694c09375c06b6b50061ff46b1126bb5b18b56a6c99057b02f9b9"
+    },
+    {
+      "path": "clients/android/README.md",
+      "bytes": 29308,
+      "sha256": "dbd8362218e71754bf9c8041d079767974a94e590bb99a3fa82ac507215692ff"
+    },
+    {
+      "path": "clients/android/VALIDATION.md",
+      "bytes": 53394,
+      "sha256": "1b623d366388ef60cfc0ca53416a9a0cf66e7b139f0cbe09c27ad572ca1f3f23"
+    }
+  ],
+  "changedPreexistingFiles": [
+    "clients/android/VALIDATION.md",
+    "clients/android/README.md",
+    "clients/android/src-tauri/tauri.conf.json",
+    "clients/android/src-tauri/Cargo.toml",
+    "clients/android/src-tauri/Cargo.lock",
+    "clients/android/app/build.gradle.kts",
+    "clients/android/tauri-plugin/android/build.gradle.kts",
+    "clients/android/tauri-plugin/android/src/main/AndroidManifest.xml",
+    "clients/android/tauri-plugin/android/src/test/java/household/share/android/ResumedActivityGateTest.kt",
+    "clients/android/tauri-plugin/android/src/main/java/household/share/android/HouseholdPlugin.kt",
+    "clients/android/tauri-plugin/android/src/main/java/household/share/android/ResumedActivityGate.kt",
+    "clients/android/app/src/main/AndroidManifest.xml",
+    "clients/android/app/src/main/java/household/share/android/QueueStore.kt",
+    "clients/android/app/src/main/java/household/share/android/TransferEngine.kt",
+    "clients/android/app/src/main/java/household/share/android/NativeHttp.kt",
+    "clients/android/app/src/main/java/household/share/android/PickerHandoff.kt",
+    "clients/android/app/src/main/java/household/share/android/TransferServices.kt",
+    "clients/android/app/src/main/java/household/share/android/MainActivity.kt",
+    "clients/android/src-tauri/src/lib.rs",
+    "clients/android/src-tauri/gen/android/app/build.gradle.kts",
+    "clients/android/src-tauri/gen/android/app/src/main/res/values/strings.xml",
+    "clients/android/src-tauri/gen/android/app/src/main/java/net/household/share/mobile/MainActivity.kt"
+  ],
+  "newSourceFiles": [
+    "clients/android/app/src/main/java/household/share/android/DeviceRouting.kt",
+    "clients/android/app/src/main/java/household/share/android/ArrivalPolicy.kt",
+    "clients/android/app/src/main/java/household/share/android/Arrivals.kt",
+    "clients/android/app/src/test/java/household/share/android/DeviceRoutingTest.kt",
+    "clients/android/app/src/test/java/household/share/android/ArrivalPolicyTest.kt"
+  ],
+  "updatedGeneratedMetadata": [
+    {
+      "path": "clients/android/src-tauri/gen/android/app/tauri.properties",
+      "bytes": 128,
+      "sha256": "f38267787d6bfd2b3d753aad534eafcfaff5786d0568339a469fbfc08811d1e8"
+    }
+  ],
+  "snapshot": {
+    "path": "clients/android/build/zing-pre-change.json",
+    "bytes": 24263,
+    "sha256": "58131e4886492a7e7c1150a3e388f67f5511df662bc555f5b1e53802f11dece6"
+  },
+  "comparedSnapshotFileCount": 127,
+  "verifier": {
+    "path": "clients/android/build/verify-zing-source.py",
+    "bytes": 8527,
+    "sha256": "b01f12b4aaf318891e0cbc8c98b9e1b9d15a475a69cdfc4d647d4d765d1442e6"
+  },
+  "retained013Packages": [
+    {
+      "path": "clients/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 2606400,
+      "sha256": "3b96a71b41fafbcd4fe3bc9d6c189c8015c11511020dabc96411f5491379332a"
+    },
+    {
+      "path": "clients/android/build/outputs/household-share-tauri-x86_64-debug.apk",
+      "bytes": 29447396,
+      "sha256": "91dd6863b2a6462fcd2c183249948cb1dcd395608ee3a3dc5b06459a51bb65ac"
+    },
+    {
+      "path": "clients/android/build/outputs/household-share-tauri-aarch64-debug.apk",
+      "bytes": 29771439,
+      "sha256": "fbc4681f00a1903ce48b819f080f7142c4aeb0f25905c4d0580116fc1bd7f1fc"
+    }
+  ],
+  "preservedHistory": [
+    {
+      "path": "clients/android/build/final-package-verification.json",
+      "bytes": 37174,
+      "sha256": "9785a9a38c3e519d0e9a3813d50dbce3d7dcc46568b11449143f1d1fdff5edfd"
+    },
+    {
+      "path": "clients/android/validation/api36-emulator.json",
+      "bytes": 2585,
+      "sha256": "e0f4c1fa9318faa4169b97aa87fdab17970d8bef277356982132dc66e5aa955e"
+    },
+    {
+      "path": "clients/android/validation/api36-ui-0.1.1.json",
+      "bytes": 4401,
+      "sha256": "af0dfa407a2bbf87b62fb28314c38e8b32ba33920cf7736d4291848ec4359939"
+    },
+    {
+      "path": "clients/android/validation/api36-ui-0.1.2.json",
+      "bytes": 15610,
+      "sha256": "072cae98f127c43123862f1ecda9a30816e2a7ebfee46257dece64d5355e6bd0"
+    },
+    {
+      "path": "clients/android/build/final-package-verification-0.1.1.json",
+      "bytes": 10812,
+      "sha256": "0587e14dcaafe40d1ee8e3a81d87a236443fd1c1d461aeb21c95503af6ee7824"
+    },
+    {
+      "path": "clients/android/build/final-package-verification-0.1.2-pre-insets.json",
+      "bytes": 12460,
+      "sha256": "030f151e325d97f77e5142dee037aad386e659cd61ecfcd0a1d03e3c6fabc709"
+    },
+    {
+      "path": "clients/android/build/final-package-verification-0.1.2.json",
+      "bytes": 19434,
+      "sha256": "b355eefb7d66a1fa2adfe628ada1c7f437529bf252bd51ec450c897fab9f2446"
+    },
+    {
+      "path": "clients/android/validation/api36-ui-0.1.3.json",
+      "bytes": 18503,
+      "sha256": "b0ce061a05c0a655ab020780d52cc266e1619a2fd19c23e2b00617745d06001b"
+    }
+  ],
+  "preservedNativePolicies": [
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/AppWebViewPolicy.kt",
+      "bytes": 5493,
+      "sha256": "b1da6a9c53b96a5d7c07116bbdbb8e0b4378a9c262ee71f8aa34f3c814dbc6ee"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/SourceAccess.kt",
+      "bytes": 6227,
+      "sha256": "60289c6cb998e04917cb68f43c37795555521261da1b62e06b4cff91657c2064"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/TransferPolicy.kt",
+      "bytes": 3384,
+      "sha256": "c2b49b4d586ffd5adcc1775d8b995547bb628ea94463ee4def88a19832019f48"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/TransferControlCommand.kt",
+      "bytes": 775,
+      "sha256": "24063511d8b3f26e563216d45dbb60314cc2e8924528cc2ae880125d27f9060c"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/ApiCalls.kt",
+      "bytes": 1209,
+      "sha256": "12ea073df87559664fddfe8a9f192a390aab5fa3e58adeb27b351cb790898102"
+    },
+    {
+      "path": "clients/android/app/src/main/java/household/share/android/UploadCompletion.kt",
+      "bytes": 1240,
+      "sha256": "f455a1eae0048bb087e6787d4d9c7aed86b132d74c18a646d578b94df57cc2a4"
+    }
+  ],
+  "jvm": {
+    "tests": 52,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "suites": [
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ApiCallsTest.xml",
+        "bytes": 855,
+        "sha256": "2d0443db7baa68334b28a7045c32ea13c0df9a1121f98120318e19db267c534b",
+        "suite": "household.share.android.ApiCallsTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "disconnectInvalidatesRequestsThatHadNotRegisteredYet",
+          "abortCancelsAnAlreadyRegisteredSocket",
+          "disconnectCancelsActiveSocketsAndReconnectAllowsANewGeneration",
+          "abortBeforeSocketRegistrationCancelsTheQueuedRequest"
+        ]
+      },
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.AppWebViewPolicyTest.xml",
+        "bytes": 880,
+        "sha256": "c9c37837fd3743e354ff16129128fed47a219b1c5f58d9b263ca82b556623fb0",
+        "suite": "household.share.android.AppWebViewPolicyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "repeatedLayoutsDoNotAccumulateSpace",
+          "rotationAndHiddenBarsRemoveOldReservationAndUseNewInsets",
+          "reservesOnlyOverlapAfterAncestorAndOriginalMarginSpace",
+          "parentResizeForKeyboardDoesNotAddKeyboardHeight"
+        ]
+      },
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ArrivalPolicyTest.xml",
+        "bytes": 1992,
+        "sha256": "e5cc9aed08632120c798ac541a7485a9b9a7cdf7a027a6a15e12a0d0a71eaccd",
+        "suite": "household.share.android.ArrivalPolicyTest",
+        "tests": 12,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "backgroundEnableCannotSaveOrPromptButDisableRemainsAvailable",
+          "lostAckDoesNotRedisplayPersistedBatchAndNeverRegresses",
+          "clickHandoffIsDurableConsumedOnceAndClearedAfterPairingChanges",
+          "invalidPageCannotAdvanceOrAck",
+          "permissionAndChannelDenialRemainVisibleAndBackoffIsBounded",
+          "cursorSupportsAllSqlite64BitsWithoutFloatingPoint",
+          "emptyPageOnlyAcksTheServerIssuedCursor",
+          "batchIsPostedThenCommittedThenAcked",
+          "cancellationBeforeHttpAttachmentCancelsTheLaterCall",
+          "simultaneousForegroundAndJobRunsHaveOneOwnerAndStaleFinishCannotClearIt",
+          "clickTargetsRejectOtherPairingsAndRemotePayloads",
+          "postingOrDiskFailureCannotAckUnprocessedContent"
+        ]
+      },
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.DeviceRoutingTest.xml",
+        "bytes": 1440,
+        "sha256": "c36fb1581bceda02fc8d9f933088de44e770b29c7f77f704f3408236407b4254",
+        "suite": "household.share.android.DeviceRoutingTest",
+        "tests": 8,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "failedIdentityCommitNeverHandsOutAnEphemeralId",
+          "configIsRedactedAndLabelsAreBoundedInBytes",
+          "everyoneIsExplicitlyEmptyAndRejectedTargetsNeverBecomeEveryone",
+          "concurrentFirstUseCommitsOnlyOneIdentity",
+          "crashOrLostCreationResponseCannotCreateAnotherItemOnRetry",
+          "legacyQueueUpgradeKeepsEveryoneAndExistingProgress",
+          "routingSurvivesPickerConfigSwitchQueuePersistenceAndRetry",
+          "durableIdentitySurvivesReopenRenameAndNormalizedOrigin"
+        ]
+      },
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.TransferPolicyTest.xml",
+        "bytes": 1816,
+        "sha256": "22b92ed7338019cb7fd31192052a3326b20cd429c736095f8350a3eff998a6f1",
+        "suite": "household.share.android.TransferPolicyTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "newlyQueuedWorkDrainsButFutureRetriesCannotBusyLoop",
+          "uploadLocationsStayWithinConfiguredOriginAndRoute",
+          "unsafeProviderNamesNeverBecomePaths",
+          "zeroByteAndAlreadyTransferredItemsOmitMinimumChunk",
+          "contentRangesRejectWrongShapeAndOversizedTotals",
+          "unknownDownloadOmitsMinimumNetworkChunk",
+          "offsetsUse64BitIntegersAndNeverExceedSource",
+          "rejectsPublicCleartextAndUrlCredentials",
+          "invalidNetworkEstimatesCannotReachJobInfo",
+          "reopenRecoversEveryInterruptedStateOnlyWhenNoWorkerOrJobOwnsIt",
+          "minimumChunkUsesRemainingBytesRatherThanTotalLength"
+        ]
+      },
+      {
+        "path": "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.UploadCompletionTest.xml",
+        "bytes": 1366,
+        "sha256": "a6d0b2846a63a10ad3caaee7297f1566f9f2eb791569d5f613eb906c8e168bed",
+        "suite": "household.share.android.UploadCompletionTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "cancelConflictWithFailedValidationRemainsAnAccurateError",
+          "pendingValidationCannotReleaseStagingAndCanBecomeReadyLater",
+          "mismatchedItemIdentityKindOrLengthCannotPublishTheLocalTransfer",
+          "cancelConflictDuringValidationRemainsPending",
+          "lostFinalAcknowledgementAndCancelConflictSettleAlreadyReadyContent",
+          "missingItemIdOrUnknownStatusCannotBecomeCompleted",
+          "fullOffsetFollowedByFailedValidationRemainsAnErrorOnEveryResume"
+        ]
+      },
+      {
+        "path": "clients/android/tauri-plugin/android/build/test-results/testDebugUnitTest/TEST-household.share.android.ResumedActivityGateTest.xml",
+        "bytes": 1200,
+        "sha256": "8427f8437f7acb4b1d890b7b2f936783ced7b66bc28bbc86c9cd438fcac197bc",
+        "suite": "household.share.android.ResumedActivityGateTest",
+        "tests": 6,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0,
+        "cases": [
+          "earlyLoadDoesNotStartWorkBeforeResumeOrAfterDestroy",
+          "backgroundResumeCannotChangePausedRowOrScheduleWork",
+          "detachDoesNotScheduleFurtherResumes",
+          "backgroundPauseAndCancelRemainAvailableWithoutStartingWork",
+          "latePluginLoadCatchesUpWithoutBackgroundForegroundCycle",
+          "arrivalListenerStopsOnPauseAndDoesNotDuplicateLateLoad"
+        ]
+      }
+    ],
+    "boundary": "Real JSON/native-core tests with injected persistence callbacks, not Android storage/OS instrumentation"
+  },
+  "lint": [
+    {
+      "path": "clients/android/app/build/reports/lint-results-debug.xml",
+      "bytes": 9630,
+      "sha256": "acaf2a373816cbd206292949b685544ceea8e86ab0b43ce31c821965295ab7ea",
+      "counts": {
+        "Error": 0,
+        "Warning": 6
+      },
+      "issueIds": [
+        "OldTargetApi",
+        "SetJavaScriptEnabled",
+        "UsableSpace"
+      ]
+    },
+    {
+      "path": "clients/android/tauri-plugin/android/build/reports/lint-results-debug.xml",
+      "bytes": 25136,
+      "sha256": "fd0f074264ff1e54ccce931ed69a2c183aa046ffa8d4c463567058b5e10522e5",
+      "counts": {
+        "Error": 0,
+        "Warning": 23
+      },
+      "issueIds": [
+        "GradleDependency",
+        "NewerVersionAvailable",
+        "SetJavaScriptEnabled",
+        "UsableSpace",
+        "UseKtx"
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/build/reports/lint-results-universalDebug.xml",
+      "bytes": 43496,
+      "sha256": "276a2b0101a0bd219142ff51bb62bd522349223bc65dd5bc4344217e0c47ddaf",
+      "counts": {
+        "Error": 0,
+        "Warning": 37
+      },
+      "issueIds": [
+        "AndroidGradlePluginVersion",
+        "DefaultLocale",
+        "GradleDependency",
+        "IconDipSize",
+        "IconDuplicates",
+        "IconLauncherShape",
+        "ObsoleteSdkInt",
+        "OldTargetApi",
+        "TrimLambda",
+        "UnusedResources",
+        "UseKtx",
+        "ViewConstructor"
+      ]
+    }
+  ],
+  "mergedSourceManifests": [
+    {
+      "path": "clients/android/app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml",
+      "bytes": 3155,
+      "sha256": "75ce31a3031d77907ac1f0df5d59a56284059fcf46b2623a98820d4f333f1fdd",
+      "applicationId": "household.share.android",
+      "versionName": "0.1.4",
+      "versionCode": 5,
+      "stage": "merged source manifest, not final APK"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/build/intermediates/merged_manifests/universalDebug/processUniversalDebugManifest/AndroidManifest.xml",
+      "bytes": 5797,
+      "sha256": "2b2b5a41649c9d7f29d52374073a4da7bff396ea0dc1ac24d902e692ee235843",
+      "applicationId": "net.household.share.mobile",
+      "versionName": "0.1.4",
+      "versionCode": 1004,
+      "stage": "merged source manifest, not final APK"
+    }
+  ],
+  "logs": [
+    {
+      "path": "clients/android/build/zing-standalone-check-final.log",
+      "bytes": 2227,
+      "sha256": "aa698b7cd69d87d61e5503c746351a5a573a6f50aff3a26ac9937bb4ffdd35c6"
+    },
+    {
+      "path": "clients/android/build/zing-tauri-check-final.log",
+      "bytes": 9849,
+      "sha256": "d311b07d01b860a966bd6786d2aef4d7ba626a939423acf032878dea6a2890bb"
+    },
+    {
+      "path": "clients/android/build/zing-tauri-check.log",
+      "bytes": 9170,
+      "sha256": "1b020da4c5ac9615df012810d5a1b0cca85f447bbdbd6ad1c1f7cea48873999f"
+    }
+  ],
+  "contractsRead": [
+    {
+      "path": "docs/api-contract.md",
+      "bytes": 25837,
+      "sha256": "1a62f2746a2f4524ac4b10ab8e9104fe05f2e7deca618e3be01f068060dc4cdb"
+    },
+    {
+      "path": "clients/shared/native-contract.md",
+      "bytes": 13846,
+      "sha256": "31464a8c4fe082913cfeb2a486cf4f853fc77fa9efbdf30f5afb087fe14885a9"
+    },
+    {
+      "path": "clients/shared/native-contract-fixture.json",
+      "bytes": 2913,
+      "sha256": "362a9d5e96a8a3cb503db5178bff68a5f50686ec56bb5ee7b81ff775973963a6"
+    }
+  ],
+  "runtimeDependencyChanges": [],
+  "testOnlyDependency": "org.json:json:20180813, reused cached bytes",
+  "arrivals": {
+    "defaultEnabled": false,
+    "foregroundPollSeconds": 5,
+    "backgroundMinimumMinutes": 15,
+    "persistedAcrossReboot": false,
+    "maxPagesPerRun": 4,
+    "pageLimit": 50,
+    "workBudgetSeconds": 70,
+    "httpCallLimitSeconds": 20,
+    "maximumErrorBackoffSeconds": 300,
+    "notificationContent": "Zing — New share available",
+    "dedupe": "stable origin/device/sequence IDs; best effort at least once",
+    "cursor": "canonical decimal string <= signed SQLite 64-bit max",
+    "ack": "persist processed cursor before ACK; retry saved cursor after lost ACK"
+  },
+  "notRun": [
+    "APK assembly",
+    "frontend rebuild",
+    "Rust/native library compile",
+    "APK signing/alignment rerun",
+    "ADB/device/emulator",
+    "Git/CI/host services",
+    "installations",
+    "new agents",
+    "external publication",
+    "physical phone permission/channel/click/lock-screen acceptance",
+    "background Doze/job/reboot/force-stop acceptance",
+    "Android storage power-loss instrumentation",
+    "real-server Android device routing/arrivals",
+    "source-grant restoration instrumentation",
+    "API26-33 runtime",
+    "ARM64/standalone runtime",
+    "0.1.4 UI safe-area/keyboard acceptance",
+    "20 GB transfer/recovery/memory"
+  ],
+  "limits": [
+    "Reopen Zing after force-stop or reboot; no persisted arrival job or RECEIVE_BOOT_COMPLETED",
+    "Doze/OEM/network/Tailscale may delay background checks, with no deadline",
+    "Permission status is not proof of OS presentation",
+    "OS post and local persistence are not atomic; repeat generic banners remain possible",
+    "Unknown upload creation outcome requires All shares inspection and explicit cancel/reselection; an orphan can remain on the server",
+    "Small routing journals can remain after interrupted pre-enqueue intake",
+    "Source-only integration needs root-owned frozen frontend, packaging authorization and installed acceptance"
+  ],
+  "localSendCodeCopied": false
+}

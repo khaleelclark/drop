@@ -29,7 +29,7 @@ object TransferNotifications {
     fun id(t: Transfer) = t.id.hashCode().and(0x3fffffff) + 100
     fun notification(context: Context, t: Transfer): Notification {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(
-            NotificationChannel(CHANNEL, "Household transfers", NotificationManager.IMPORTANCE_LOW)
+            NotificationChannel(CHANNEL, "Zing transfers", NotificationManager.IMPORTANCE_LOW)
         )
         val open = PendingIntent.getActivity(context, id(t), Intent(context, MainActivity::class.java), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         fun control(action: String): PendingIntent = if (action == "resume") {
@@ -38,7 +38,9 @@ object TransferNotifications {
             Intent(context, TransferControlReceiver::class.java).setAction(action).putExtra("id", t.id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val ongoing = t.status in setOf("queued", "running", "staging", "hashing", "exporting", "retry_wait", "validating", "cancelling")
         val text = if (t.error.isNotEmpty()) t.error else "${t.status}: ${t.offset.coerceAtLeast(0)} / ${t.size.coerceAtLeast(0)} bytes"
-        val builder = Notification.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_sys_upload)
+        val public = Notification.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_sys_upload)
+            .setContentTitle("Zing").setContentText("Transfer in progress").build()
+        val builder = Notification.Builder(context, CHANNEL).setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(public).setSmallIcon(android.R.drawable.stat_sys_upload)
             .setContentTitle(t.name).setContentText(text).setContentIntent(open).setOngoing(ongoing).setOnlyAlertOnce(true)
             .setProgress(1000, if (t.size > 0) (t.offset * 1000 / t.size).toInt() else 0, t.size < 0 || t.status in setOf("hashing", "staging", "exporting", "validating"))
         if (t.status !in setOf("completed", "cancelled")) {
@@ -126,6 +128,7 @@ object TransferScheduler {
             store.edit(t.id) { it.status = "paused"; it.error = "Disconnected. Reconnect to the original server to resume." }.also { TransferNotifications.update(context, it) }
         }
         ConfigStore(context).disconnect()
+        ArrivalScheduler.disconnected(context)
         NativeHttp.cancelAllApi()
         TransferJobService.active.values.forEach { it.stop() }
         context.getSystemService(JobScheduler::class.java).cancelAll()

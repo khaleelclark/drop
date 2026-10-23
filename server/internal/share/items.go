@@ -80,6 +80,20 @@ func (s *Server) items(w http.ResponseWriter, r *http.Request) {
 	}
 	query := `SELECT ` + columns + ` FROM items WHERE status!='deleting'`
 	args := []any{}
+	if values, present := r.URL.Query()["forDevice"]; present {
+		id := values[0]
+		if !validID.MatchString(id) {
+			writeError(w, 400, "invalid_device", "Invalid device ID")
+			return
+		}
+		var found string
+		if err := s.db.QueryRowContext(r.Context(), `SELECT id FROM devices WHERE id=?`, id).Scan(&found); err != nil {
+			deviceError(w, err)
+			return
+		}
+		query += ` AND status='ready' AND EXISTS(SELECT 1 FROM notifications n WHERE n.item_id=items.id AND n.device_id=?)`
+		args = append(args, id)
+	}
 	if raw := r.URL.Query().Get("before"); raw != "" {
 		before, id, err := decodeCursor(raw)
 		if err != nil {
@@ -192,39 +206,7 @@ func (s *Server) item(w http.ResponseWriter, r *http.Request) {
 		}
 		w.WriteHeader(204)
 	case "PATCH":
-		var body struct {
-			Pinned *bool `json:"pinned"`
-		}
-		if !decodeJSON(w, r, 4096, &body) {
-			return
-		}
-		if body.Pinned == nil {
-			writeError(w, 400, "missing_pinned", "A pinned boolean is required")
-			return
-		}
-		var row record
-		err := s.withItemLock(r.Context(), id, func() error {
-			var err error
-			row, err = s.get(id, false)
-			if err != nil {
-				return err
-			}
-			_, err = s.db.Exec(`UPDATE items SET pinned=?,updated_at=? WHERE id=?`, *body.Pinned, now(), id)
-			if err == nil {
-				row, err = s.get(id, false)
-			}
-			return err
-		})
-		if errors.Is(err, sql.ErrNoRows) {
-			writeError(w, 404, "not_found", "Item not found")
-			return
-		}
-		if err != nil {
-			safeInternal(w, err)
-			return
-		}
-		s.eventsBroker.publish("updated", id)
-		writeJSON(w, 200, map[string]any{"item": row.Item})
+		s.editItem(w, r, id)
 	default:
 		methodError(w)
 	}
@@ -236,9 +218,11 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var body struct {
-		Text         *strictString `json:"text"`
-		Name         strictString  `json:"name"`
-		SourceDevice strictString  `json:"sourceDevice"`
+		Text            *strictString `json:"text"`
+		Name            strictString  `json:"name"`
+		SourceDevice    strictString  `json:"sourceDevice"`
+		SourceDeviceID  deviceID      `json:"sourceDeviceId"`
+		TargetDeviceIDs targetList    `json:"targetDeviceIds"`
 	}
 	if !decodeJSON(w, r, 6*s.cfg.MaxTextBytes+(16<<10), &body) {
 		return
@@ -260,7 +244,7 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 		writeError(w, 400, "invalid_name", err.Error())
 		return
 	}
-	if body.SourceDevice != "" {
+	if body.SourceDeviceID == "" && body.SourceDevice != "" {
 		if err := safeLabel(string(body.SourceDevice), 128, false); err != nil {
 			writeError(w, 400, "invalid_source", err.Error())
 			return
@@ -272,7 +256,13 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	row := record{Item: Item{ID: id, Kind: "text", Name: name, Size: int64(len(text)), Status: "uploading", SourceDevice: string(body.SourceDevice), MIMEType: "text/plain"}}
+	row.SourceDeviceID = string(body.SourceDeviceID)
+	row.TargetDeviceIDs = body.TargetDeviceIDs
 	if err = s.reserve(&row); err != nil {
+		if errors.Is(err, errRouting) {
+			writeError(w, 400, "invalid_routing", errRouting.Error())
+			return
+		}
 		if errors.Is(err, errBudget) {
 			writeError(w, 507, "storage_full", "Storage capacity unavailable")
 			return
@@ -281,7 +271,7 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	err = s.withItemLock(r.Context(), id, func() error {
-		file, err := os.OpenFile(s.blob(id), os.O_WRONLY, 0600)
+		file, err := os.OpenFile(s.blob(row.BlobID), os.O_WRONLY, 0600)
 		if err != nil {
 			return err
 		}
@@ -295,12 +285,12 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 			err = closeErr
 		}
 		if err != nil {
+			_ = s.markFailed(id)
 			return err
 		}
 		return s.complete(id)
 	})
 	if err != nil {
-		_ = s.markFailed(id)
 		safeInternal(w, err)
 		return
 	}
@@ -313,51 +303,98 @@ func (s *Server) text(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) content(w http.ResponseWriter, r *http.Request, id string, textOnly bool) {
-	row, err := s.get(id, false)
-	if errors.Is(err, sql.ErrNoRows) {
-		writeError(w, 404, "not_found", "Item not found")
-		return
-	}
+	var row record
+	var file *os.File
+	err := s.withItemLock(r.Context(), id, func() (err error) {
+		row, file, err = s.openContent(id)
+		return err
+	})
 	if err != nil {
-		safeInternal(w, err)
-		return
-	}
-	if row.Status != "ready" {
-		writeError(w, 409, "not_ready", "Item is not ready")
-		return
-	}
-	if textOnly && row.Kind != "text" {
-		writeError(w, 404, "not_text", "Item is not text")
-		return
-	}
-	file, err := os.Open(s.blob(id))
-	if errors.Is(err, os.ErrNotExist) {
-		writeError(w, 404, "not_found", "Content not found")
-		return
-	}
-	if err != nil {
-		safeInternal(w, err)
+		writeItemError(w, err)
 		return
 	}
 	defer file.Close()
-	stat, err := file.Stat()
-	if err != nil {
-		safeInternal(w, err)
-		return
+	if textOnly && row.Kind == "file" {
+		if err := prepareTextFile(row, file); err != nil {
+			writeItemError(w, err)
+			return
+		}
 	}
-	if stat.Size() != row.Size || !stat.Mode().IsRegular() {
-		writeError(w, 409, "content_unavailable", "Stored content failed a length check")
-		return
+	name, format := row.Name, ""
+	if !textOnly {
+		values, err := url.ParseQuery(r.URL.RawQuery)
+		if err != nil {
+			writeError(w, 400, "invalid_format", "Invalid download format")
+			return
+		}
+		if formats, present := values["format"]; present {
+			if len(formats) != 1 || (formats[0] != "txt" && formats[0] != "md") {
+				writeError(w, 400, "invalid_format", "Use exactly one txt or md format")
+				return
+			}
+			if row.Kind != "text" {
+				writeError(w, 404, "not_text", "Download format is available for text entries")
+				return
+			}
+			format = formats[0]
+			name = textFilename(name, format)
+		}
 	}
 	w.Header().Set("ETag", `"sha256-`+row.Checksum+`"`)
 	w.Header().Set("Content-Type", "application/octet-stream")
 	if textOnly {
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	} else {
-		w.Header().Set("Content-Disposition", `attachment; filename="`+asciiFilename(row.Name)+`"; filename*=UTF-8''`+url.PathEscape(row.Name))
+		fallback := asciiFilename(name)
+		if format != "" {
+			fallback = textFilename(fallback, format)
+		}
+		w.Header().Set("Content-Disposition", `attachment; filename="`+fallback+`"; filename*=UTF-8''`+url.PathEscape(name))
 	}
 	created, _ := time.Parse(time.RFC3339Nano, row.UpdatedAt)
-	http.ServeContent(&contentResponse{ResponseWriter: w}, r, row.Name, created, file)
+	http.ServeContent(&contentResponse{ResponseWriter: w}, r, name, created, file)
+}
+
+// Caller holds the item lock (including tusd's lock for GetReader). The file
+// descriptor remains a consistent snapshot after an edit or delete unlinks it.
+func (s *Server) openContent(id string) (record, *os.File, error) {
+	row, err := s.get(id, false)
+	if err != nil {
+		return row, nil, err
+	}
+	if row.Status != "ready" {
+		return row, nil, &itemError{409, "not_ready", "Item is not ready"}
+	}
+	file, err := os.Open(s.blob(row.BlobID))
+	if err != nil {
+		return row, nil, err
+	}
+	stat, err := file.Stat()
+	if err == nil && (stat.Size() != row.Size || !stat.Mode().IsRegular()) {
+		err = &itemError{409, "content_unavailable", "Stored content failed a length check"}
+	}
+	if err != nil {
+		file.Close()
+		return row, nil, err
+	}
+	return row, file, nil
+}
+
+func textFilename(name, format string) string {
+	stem := name
+	if dot := strings.LastIndex(stem, "."); dot > 0 {
+		stem = stem[:dot]
+	}
+	suffix := "." + format
+	for len(stem)+len(suffix) > 255 {
+		_, size := utf8.DecodeLastRuneInString(stem)
+		stem = stem[:len(stem)-size]
+	}
+	name = stem + suffix
+	if stem == "" || safeLabel(name, 255, true) != nil {
+		return "Shared text" + suffix
+	}
+	return name
 }
 
 // Preserve the JSON error contract for errors generated by ServeContent (for

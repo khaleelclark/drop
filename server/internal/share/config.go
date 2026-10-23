@@ -18,6 +18,7 @@ type Config struct {
 	DataDir         string
 	WebDir          string
 	Origin          string
+	AuthMode        string // empty retains token mode for existing callers
 	Token           string
 	Dev             bool
 	MaxFileBytes    int64
@@ -28,12 +29,12 @@ type Config struct {
 }
 
 func DefaultConfig() Config {
-	return Config{Addr: "127.0.0.1:8787", DataDir: "./data", Origin: "http://127.0.0.1:8787", MaxFileBytes: 20 << 30, MaxTextBytes: 32 << 20, MinFreeBytes: 256 << 20, UploadTTL: 7 * 24 * time.Hour}
+	return Config{Addr: "127.0.0.1:8787", DataDir: "./data", Origin: "http://127.0.0.1:8787", AuthMode: "token", MaxFileBytes: 20 << 30, MaxTextBytes: 32 << 20, MinFreeBytes: 256 << 20, UploadTTL: 7 * 24 * time.Hour}
 }
 
 func ConfigFromEnv() (Config, error) {
 	c := DefaultConfig()
-	for key, target := range map[string]*string{"HOUSEHOLD_ADDR": &c.Addr, "HOUSEHOLD_DATA_DIR": &c.DataDir, "HOUSEHOLD_WEB_DIR": &c.WebDir, "HOUSEHOLD_PUBLIC_URL": &c.Origin, "HOUSEHOLD_TOKEN": &c.Token} {
+	for key, target := range map[string]*string{"HOUSEHOLD_ADDR": &c.Addr, "HOUSEHOLD_DATA_DIR": &c.DataDir, "HOUSEHOLD_WEB_DIR": &c.WebDir, "HOUSEHOLD_PUBLIC_URL": &c.Origin, "HOUSEHOLD_AUTH_MODE": &c.AuthMode, "HOUSEHOLD_TOKEN": &c.Token} {
 		if value, ok := os.LookupEnv(key); ok {
 			*target = value
 		}
@@ -59,6 +60,9 @@ func ConfigFromEnv() (Config, error) {
 }
 
 func (c Config) Validate() error {
+	if c.AuthMode != "" && c.AuthMode != "token" && c.AuthMode != "tailscale" {
+		return errors.New("HOUSEHOLD_AUTH_MODE must be token or tailscale")
+	}
 	host, _, err := net.SplitHostPort(c.Addr)
 	if err != nil {
 		return errors.New("HOUSEHOLD_ADDR must be a loopback IP and port")
@@ -71,7 +75,7 @@ func (c Config) Validate() error {
 	if err != nil || u.Host == "" || (u.Scheme != "https" && u.Scheme != "http") || u.User != nil || u.Path != "" || u.RawQuery != "" || u.Fragment != "" {
 		return errors.New("HOUSEHOLD_PUBLIC_URL must be an exact http(s) origin without a trailing slash")
 	}
-	if u.Scheme != "https" && !c.Dev {
+	if u.Scheme != "https" && (!c.Dev || c.AuthMode == "tailscale") {
 		return errors.New("HTTPS origin required outside explicit development mode")
 	}
 	if c.Dev && u.Scheme == "http" {
@@ -80,7 +84,7 @@ func (c Config) Validate() error {
 			return errors.New("HTTP development origin must be loopback")
 		}
 	}
-	if c.Token == "" && !c.Dev {
+	if c.Token == "" && !c.Dev && c.AuthMode != "tailscale" {
 		return errors.New("HOUSEHOLD_TOKEN is required outside explicit development mode")
 	}
 	if c.Token != "" && (len(c.Token) < 16 || len(c.Token) > 4096 || strings.TrimSpace(c.Token) != c.Token) {

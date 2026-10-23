@@ -14,6 +14,9 @@ describe('resumable browser queue', () => {
     queue.enqueue([new File([], 'empty.txt', { type: 'text/plain', lastModified: 99 })], 'text', 'My Mac', 20 * 1024 ** 3)
     await waitFor(() => expect(start).toHaveBeenCalled())
     expect(options.chunkSize).toBe(8 * 1024 ** 2)
+    const lost=new DetailedError('lost response');lost.originalRequest={getMethod:()=> 'POST'} as never
+    expect(options.onShouldRetry?.(lost,0,options)).toBe(false)
+    lost.originalRequest={getMethod:()=> 'PATCH'} as never;expect(options.onShouldRetry?.(lost,0,options)).toBe(true)
     expect(options.metadata).toEqual({ filename: 'empty.txt', filetype: 'text/plain', kind: 'text', sourceDevice: 'My Mac' })
     const xhr = { withCredentials: false }; options.onBeforeRequest?.({ getUnderlyingObject: () => xhr } as never)
     expect(xhr.withCredentials).toBe(true)
@@ -79,5 +82,22 @@ describe('resumable browser queue', () => {
     expect(() => safeUploadURL('https://evil.example/api/uploads/one', origin)).toThrow('server')
     expect(() => safeUploadURL(`${origin}/api/items/one`, origin)).toThrow('server')
     expect(() => safeUploadURL(`${origin}/api/uploads/one?secret=x`, origin)).toThrow('server')
+  })
+})
+
+describe('saved upload destinations',()=>{
+  it('retains copied target IDs across selection changes, pause, reload and source reselection',async()=>{
+    const targets=['2'.repeat(32)];let options!:UploadOptions
+    const queue=new BrowserTransfers(origin,vi.fn(),(_file,opts)=>{options=opts;return {start:vi.fn(),abort:vi.fn(),url:`${origin}/api/uploads/one`}})
+    const file=new File([],'empty.txt',{lastModified:99})
+    queue.enqueue([file],'text','My Mac',100,{sourceDeviceId:'1'.repeat(32),targetDeviceIds:targets})
+    targets[0]='3'.repeat(32)
+    await waitFor(()=>expect(options?.metadata).toBeDefined())
+    expect(options.metadata).toMatchObject({sourceDeviceId:'1'.repeat(32),targetDeviceIds:JSON.stringify(['2'.repeat(32)])})
+    const id=queue.getSnapshot()[0].id;await queue.pause(id)
+    const factory=vi.fn((_file:File,opts:UploadOptions)=>{options=opts;return {start:vi.fn(),abort:vi.fn(),url:`${origin}/api/uploads/one`}})
+    const restored=new BrowserTransfers(origin,vi.fn(),factory)
+    await restored.reattach(id,file);await waitFor(()=>expect(factory).toHaveBeenCalled())
+    expect(options.metadata).toMatchObject({sourceDeviceId:'1'.repeat(32),targetDeviceIds:JSON.stringify(['2'.repeat(32)])})
   })
 })

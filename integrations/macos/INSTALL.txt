@@ -1,15 +1,25 @@
-Household Share for macOS
+Zing for macOS
 
 1. Choose arm64 for an Apple Silicon Mac, or x86_64 for an Intel Mac.
-2. Open the DMG. Drag Household Share.app onto Applications.
-3. Eject the DMG, then open the installed app from Applications.
-4. This app uses an ad-hoc signature and is not notarized. macOS may block
-   the first launch. After attempting to open it, use System Settings >
-   Privacy & Security > Open Anyway if offered, then confirm the app.
-   See https://support.apple.com/en-us/102445 for Apple's current instructions.
-5. Pair with your household server's Tailscale HTTPS address and app token.
-   Each device must already have household Tailscale access. There is no
-   account/token in this installer and it does not deploy a server.
+   Verify the DMG's SHA-256 against its published SHA256SUMS.
+2. Open the verified DMG. If macOS blocks it, click Done, then go to
+   System Settings > Privacy & Security > Open Anyway for that DMG.
+   Confirm Open and authenticate if asked; reopen the DMG if needed.
+3. For an upgrade, quit the old Household Share app. Move that old app
+   bundle out of Applications yourself before installing Zing.app; keep
+   user data and queues. Do not keep two apps with net.household.share.
+   Drag Zing.app onto Applications, then eject the DMG.
+4. Open the installed app from Applications. If macOS blocks the app,
+   repeat step 2 for Zing.app, then open it again if needed.
+   The DMG and app use ad-hoc signatures without notarization. These are
+   separate per-file exceptions; leave Gatekeeper enabled.
+   See https://support.apple.com/en-us/102445 for Apple's instructions.
+5. Save your household server's Tailscale HTTPS address and this device's name
+   once in the app. Leave the token empty when the server explicitly uses
+   Tailscale Serve sign-in. If the server uses token authentication, or this
+   is a tagged Tailscale client, enter its configured app token under Advanced.
+   Each device must already have household Tailscale access. No server address
+   or credential is included in this installer; it does not deploy a server.
 
 Close hides the window while the transfer worker remains running. The
 menu-bar icon offers Open and Pause transfers and Quit. Command+Shift+H
@@ -18,7 +28,7 @@ Sleep, logout, shutdown and force-quit can interrupt work.
 
 Optional Finder/Shortcuts capture:
 The signed helper is inside the installed app:
-  /Applications/Household Share.app/Contents/Helpers/household-share-cli
+  /Applications/Zing.app/Contents/Helpers/household-share-cli
 The three capture scripts are in Contents/Resources/capture.
 See the repository's integrations/macos/README.md for setup. You can set
 HOUSEHOLD_CLI to the helper's full path in each capture script, or create
@@ -31,3 +41,9 @@ ad-hoc signatures, and runs native transfer-engine tests. It does not
 establish physical Mac installation, Gatekeeper approval, Finder or
 Shortcuts behavior, or transfers continuing after window close or sleep.
 The package targets macOS 11 or newer; older-system acceptance is untested.
+
+Arrivals are disabled until Enable in Zing settings. While enabled, this
+resident app checks about every 5 seconds (backing off on errors). Close
+keeps it running; explicit Quit, sleep and process exit stop checks.
+Banners are generic and may be suppressed by OS settings. A notification
+opens a share in For you without copying or downloading it.

@@ -1,0 +1,22 @@
+{
+  "status": "passed",
+  "scope": "Disposable data and separate old/new server processes. Existing service/data/config unchanged.",
+  "oldBinarySHA256": "50a060b579605fa859cc87872476084ac075532743fe2b975a23ce4ba4604203",
+  "newBinarySHA256": "0831a97f8de9e0cc7ccdda951e5bb7cf3479fe480182adb49b61bbc2c5a19f2e",
+  "schemaBefore": 1,
+  "schemaAfter": 3,
+  "checks": [
+    "old release creates exact text and binary ready file",
+    "stopped-process whole-directory backup",
+    "new release migration preserves IDs/text/file bytes",
+    "versioned edit and exact MD export after migration",
+    "stopped-process whole-directory backup restore plus old binary serves original bytes"
+  ],
+  "rollbackDataLoss": "Expected: post-backup edits disappear after restoring backup.",
+  "fileBytes": 9200,
+  "fileSHA256": "16099001979b4b7e79bdacb22139a06412bb3678783214ed5e2a834ba5df3e98",
+  "limits": [
+    "no actual live upgrade or service switch",
+    "no large-file/power-loss/OS/device validation"
+  ]
+}

@@ -1,7 +1,7 @@
 {
   "id": "/",
-  "name": "Household",
-  "short_name": "Household",
+  "name": "Zing",
+  "short_name": "Zing",
   "description": "Your private household feed for text and files",
   "start_url": "/",
   "scope": "/",

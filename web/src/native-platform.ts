@@ -1,8 +1,9 @@
 import type { PlatformAdapter } from './platform'
 import type { Transfer, TransferState, TransferStore } from './transfers'
+import type { ArrivalSettings, DevicePlatform } from './types'
 export type NativeInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>
 interface NativeTransfer { id: string; direction: 'upload' | 'download'; name: string; size: number; offset: number; status: string; error?: string; itemId?: string }
-interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean }
+interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform }
 declare global {
   interface Window {
     __TAURI__?: { core: { invoke: NativeInvoke } };
@@ -80,11 +81,15 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
     } finally { if(signal&&abort)signal.removeEventListener('abort',abort) }
   }
   return {
-    kind:'native',baseURL:origin,defaultDeviceName:config.sourceDevice,requiresConnection:!config.baseUrl || config.connected === false,transfers,request,
-    async configureConnection(nextOrigin,token,sourceDevice) { await invoke('native_configure',{baseUrl:nextOrigin,token,sourceDevice:sourceDevice || config.sourceDevice || 'My device'}); origin=nextOrigin },
+    kind:'native',get baseURL(){return origin},defaultDeviceName:config.sourceDevice,requiresConnection:!config.baseUrl || config.connected === false,transfers,request,
+    get deviceIdentity() { return config.deviceId && config.platform ? {id:config.deviceId,platform:config.platform} : undefined },
+    async configureConnection(nextOrigin,token,sourceDevice) { await invoke('native_configure',{baseUrl:nextOrigin,token,sourceDevice:sourceDevice || config.sourceDevice || 'My device'}); origin=nextOrigin; config=await invoke('native_get_config') as NativeConfig },
+    async getArrivalSettings() { return await invoke('native_get_arrival_settings') as ArrivalSettings },
+    async setArrivalEnabled(enabled) { return await invoke('native_set_arrival_enabled',{enabled}) as ArrivalSettings },
+    async takeArrivalTarget() { return await invoke('native_take_arrival_target') as {baseUrl:string;itemId:string}|null },
     async copyText(text) { await invoke('native_copy_text',{text}) },
     async download({itemId,name}) { await invoke('native_download',{itemId,name}) },
-    async chooseFiles(kind,sourceDevice) { await invoke('native_pick_uploads',{kind,sourceDevice}) },
+    async chooseFiles(kind,sourceDevice,targetDeviceIds) { await invoke('native_pick_uploads',{kind,sourceDevice,...(targetDeviceIds ? {targetDeviceIds:[...targetDeviceIds]} : {})}) },
     openEvents(refresh,status) {
       let stopped=false; let pending=false
       const poll=async()=>{

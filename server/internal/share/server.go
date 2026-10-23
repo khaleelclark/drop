@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"os"
 	"path/filepath"
 	"sync"
@@ -25,6 +26,7 @@ type Server struct {
 	tus          http.Handler
 	mux          *http.ServeMux
 	budgetMu     sync.Mutex
+	editFault    func(string) error // package tests inject durability-boundary failures
 	lastCreated  time.Time
 	eventsBroker broker
 	done         chan struct{}
@@ -65,28 +67,14 @@ func Open(cfg Config) (_ *Server, err error) {
 	if err = syscall.Flock(int(s.lockFile.Fd()), syscall.LOCK_EX|syscall.LOCK_NB); err != nil {
 		return nil, errors.New("data directory is already in use")
 	}
-	s.db, err = sql.Open("sqlite", filepath.Join(cfg.DataDir, "metadata.sqlite"))
+	databaseURL := url.URL{Scheme: "file", Path: filepath.Join(cfg.DataDir, "metadata.sqlite")}
+	databaseURL.RawQuery = url.Values{"_pragma": {"foreign_keys(1)", "busy_timeout(5000)", "synchronous(FULL)"}}.Encode()
+	s.db, err = sql.Open("sqlite", databaseURL.String())
 	if err != nil {
 		return nil, err
 	}
 	s.db.SetMaxOpenConns(1)
-	var schemaVersion int
-	if err = s.db.QueryRow(`PRAGMA user_version`).Scan(&schemaVersion); err != nil {
-		return nil, err
-	}
-	if schemaVersion > 1 {
-		return nil, errors.New("metadata schema is newer than this server supports")
-	}
-	_, err = s.db.Exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
-CREATE TABLE IF NOT EXISTS items (
- id TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, size INTEGER NOT NULL CHECK(size>=0),
- created_at TEXT NOT NULL, updated_at TEXT NOT NULL, status TEXT NOT NULL,
- preview TEXT NOT NULL DEFAULT '', pinned INTEGER NOT NULL DEFAULT 0, source_device TEXT NOT NULL DEFAULT '',
- mime_type TEXT NOT NULL DEFAULT '', checksum TEXT NOT NULL DEFAULT '', is_upload INTEGER NOT NULL DEFAULT 0
-);
-CREATE INDEX IF NOT EXISTS items_created ON items(created_at DESC,id DESC);
-PRAGMA user_version=1;`)
-	if err != nil {
+	if err = s.migrate(); err != nil {
 		return nil, err
 	}
 	if err = os.Chmod(filepath.Join(cfg.DataDir, "metadata.sqlite"), 0600); err != nil {
@@ -186,6 +174,9 @@ func (s *Server) routes() {
 	s.mux.HandleFunc("/api/text", s.text)
 	s.mux.HandleFunc("/api/storage", s.storage)
 	s.mux.HandleFunc("/api/events", s.events)
+	s.mux.HandleFunc("/api/devices", s.devices)
+	s.mux.HandleFunc("/api/devices/register", s.registerDevice)
+	s.mux.HandleFunc("/api/devices/", s.device)
 	s.mux.HandleFunc("/api/uploads/", s.uploads)
 	s.mux.HandleFunc("/api/", func(w http.ResponseWriter, r *http.Request) { writeError(w, 404, "not_found", "Endpoint not found") })
 	if s.cfg.WebDir != "" {

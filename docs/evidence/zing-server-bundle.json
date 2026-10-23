@@ -1,0 +1,15 @@
+{
+  "status": "passed",
+  "scope": "Extracted packaged executable with documented relative paths and disposable data/config only.",
+  "checks": [
+    "bundle binary matches tested root static binary",
+    "all eight served frontend assets match final frozen dist; map intentionally omitted",
+    "health and exact static index",
+    "anonymous protected feed returns401",
+    "authenticated feed succeeds"
+  ],
+  "limits": [
+    "no deployment or system service changes",
+    "not a new large-file/native-device test"
+  ]
+}

@@ -19,7 +19,7 @@ class TransferEngine(private val context: Context, private val onProgress: (Tran
     private val http = NativeHttp(context)
     private val stopping = AtomicBoolean(false)
 
-    fun stop() { stopping.set(true); http.active?.cancel() }
+    fun stop() { stopping.set(true); http.cancel() }
     private fun check(id: String) {
         if (stopping.get() || store.get(id)?.status in setOf("paused", "cancelled", "cancelling")) throw Paused()
     }
@@ -61,15 +61,19 @@ class TransferEngine(private val context: Context, private val onProgress: (Tran
                     store.edit(initial.id) { t ->
                         if (t.status in setOf("paused", "cancelled", "cancelling")) return@edit
                         t.attempts++
-                        t.error = when (e) {
-                            is NeedsSource -> e.message ?: "Reselect the source"
-                            is SourceChanged -> e.message!!
-                            is UploadRejected, is PendingValidation -> e.message!!
-                            is HttpFailure -> "Server returned HTTP ${e.status}"
-                            is IOException -> "Connection interrupted. Confirm Tailscale/server availability, then resume."
-                            else -> e.message?.take(300) ?: "Transfer failed"
+                        t.error = when {
+                            t.creationPending && t.uploadUrl.isEmpty() -> UploadCreationUnknown().message!!
+                            else -> when (e) {
+                                is NeedsSource -> e.message ?: "Reselect the source"
+                                is SourceChanged -> e.message!!
+                                is UploadRejected, is PendingValidation -> e.message!!
+                                is HttpFailure -> "Server returned HTTP ${e.status}"
+                                is IOException -> "Connection interrupted. Confirm Tailscale/server availability, then resume."
+                                else -> e.message?.take(300) ?: "Transfer failed"
+                            }
                         }
                         t.status = when {
+                            t.creationPending && t.uploadUrl.isEmpty() -> "error"
                             e is NeedsSource -> "needs_source"
                             e is SourceChanged -> "error"
                             e is UploadRejected -> "error"
@@ -90,6 +94,7 @@ class TransferEngine(private val context: Context, private val onProgress: (Tran
 
     private fun upload(initial: Transfer) {
         var t = initial
+        UploadRouting.requireCreatable(t)
         // Reconcile lost final acknowledgements before touching a source that may no longer be accessible.
         if (t.uploadUrl.isNotEmpty()) {
             t = headUpload(t)
@@ -110,15 +115,20 @@ class TransferEngine(private val context: Context, private val onProgress: (Tran
         t = progress(t.id) { it.fingerprint = digest; it.status = "running" }
         if (t.uploadUrl.isEmpty()) {
             check(t.id)
-            val metadata = linkedMapOf("filename" to t.name, "filetype" to t.mime, "kind" to t.kind, "sourceDevice" to t.sourceDevice)
+            if (t.sourceDeviceId.isNotEmpty()) DeviceRegistration.ensure(context, http, t.baseUrl, t.sourceDeviceId)
+            val metadata = UploadRouting.metadata(t)
                 .entries.joinToString(",") { (k, v) -> "$k ${Base64.encodeToString(v.toByteArray(Charsets.UTF_8), Base64.NO_WRAP)}" }
             val req = http.request(t, "${t.baseUrl}/api/uploads/").header("Tus-Resumable", "1.0.0")
                 .header("Upload-Length", t.size.toString()).header("Upload-Metadata", metadata)
                 .post(ByteArray(0).toRequestBody()).build()
-            http.checked(http.execute(req), 201).use { r ->
+            // A process death or lost response must not create a second item on retry.
+            t = progress(t.id) { it.creationPending = true }
+            val created = http.execute(req)
+            if (created.code in 400..499 && created.code != 408) store.edit(t.id) { it.creationPending = false }
+            http.checked(created, 201).use { r ->
                 val location = TransferPolicy.uploadLocation(t.baseUrl, r.header("Location") ?: error("Upload URL missing"))
                 // Preserve the returned URL even if Pause/Cancel raced with creation, so it can be terminated.
-                t = store.edit(t.id) { it.uploadUrl = location; it.itemId = r.header("X-Item-ID").orEmpty() }.also(onProgress)
+                t = store.edit(t.id) { it.uploadUrl = location; it.creationPending = false; it.itemId = r.header("X-Item-ID").orEmpty() }.also(onProgress)
                 check(t.id)
             }
         }

@@ -5,22 +5,29 @@ import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request
+import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.RequestBody
 import okhttp3.Response
 import okio.BufferedSink
 import org.json.JSONObject
 import java.io.IOException
+import java.nio.ByteBuffer
+import java.nio.charset.CharacterCodingException
+import java.nio.charset.CodingErrorAction
 import java.util.concurrent.TimeUnit
 import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
 
 class HttpFailure(val status: Int, message: String) : IOException(message)
 
-class NativeHttp(private val context: Context) {
+class NativeHttp(private val context: Context, boundedCallSeconds: Long = 0) {
     private val epoch = ApiCalls.epoch()
     private val client = OkHttpClient.Builder().followRedirects(false).followSslRedirects(false)
         .retryOnConnectionFailure(false).connectTimeout(30, TimeUnit.SECONDS)
-        .readTimeout(90, TimeUnit.SECONDS).writeTimeout(120, TimeUnit.SECONDS).build()
+        .callTimeout(boundedCallSeconds, TimeUnit.SECONDS).readTimeout(90, TimeUnit.SECONDS).writeTimeout(120, TimeUnit.SECONDS).build()
     @Volatile var active: Call? = null
+    private val cancelled = AtomicBoolean(false)
+    fun cancel() { cancelled.set(true); active?.cancel() }
     fun request(t: Transfer, url: String): Request.Builder {
         val config = ConfigStore(context).requireFor(t.baseUrl)
         require(url.startsWith(t.baseUrl + "/api/")) { "Request is outside the configured API" }
@@ -29,7 +36,7 @@ class NativeHttp(private val context: Context) {
     }
     fun execute(request: Request): Response {
         if (epoch != ApiCalls.epoch()) throw IOException("Disconnected")
-        return client.newCall(request).also { active = it }.execute()
+        return client.newCall(request).also { active = it; if (cancelled.get()) it.cancel() }.execute()
     }
     fun checked(response: Response, vararg allowed: Int): Response {
         if (response.code !in allowed) {
@@ -55,6 +62,24 @@ class NativeHttp(private val context: Context) {
                     remaining -= n
                 }
             }
+        }
+    }
+
+    /** Small worker requests use the same paired-origin authentication and bounded reader. */
+    fun json(base: String, path: String, body: JSONObject? = null): JSONObject {
+        require(path.startsWith("/api/") && !path.contains("..") && !path.contains('#') && !path.contains('\\'))
+        val request = request(Transfer(baseUrl = base), base + path).apply {
+            if (body == null) get() else post(body.toString().toRequestBody("application/json".toMediaType()))
+        }.build()
+        checked(execute(request), 200).use { r ->
+            val source = r.body?.source() ?: error("Missing server response")
+            val buffer = okio.Buffer()
+            require(r.body!!.contentLength() <= TransferPolicy.METADATA_LIMIT) { "Response exceeds metadata budget" }
+            while (!source.exhausted() && buffer.size <= TransferPolicy.METADATA_LIMIT) {
+                source.read(buffer, minOf(TransferPolicy.BUFFER.toLong(), TransferPolicy.METADATA_LIMIT + 1L - buffer.size))
+            }
+            require(buffer.size <= TransferPolicy.METADATA_LIMIT) { "Response exceeds metadata budget" }
+            return JSONObject(buffer.readUtf8())
         }
     }
 
@@ -92,7 +117,7 @@ class NativeHttp(private val context: Context) {
             }
             val bytes = buffer.readByteArray()
             require(bytes.size <= limit) { "Response exceeds the client preparation budget; download the full text as a file" }
-            return JSONObject().put("status", r.code).put("body", bytes.toString(Charsets.UTF_8)).put("headers", JSONObject().apply {
+            return JSONObject().put("status", r.code).put("body", decodeUtf8(bytes)).put("headers", JSONObject().apply {
                 r.headers.forEach { (name, value) -> if (!name.equals("Set-Cookie", true)) put(name, value) }
             })
             }
@@ -101,6 +126,12 @@ class NativeHttp(private val context: Context) {
         }
     }
     companion object {
+        internal fun decodeUtf8(bytes: ByteArray): String = try {
+            Charsets.UTF_8.newDecoder().onMalformedInput(CodingErrorAction.REPORT)
+                .onUnmappableCharacter(CodingErrorAction.REPORT).decode(ByteBuffer.wrap(bytes)).toString()
+        } catch (e: CharacterCodingException) {
+            throw IllegalArgumentException("Response is not valid UTF-8; download the file instead", e)
+        }
         fun cancelApi(id: String) = ApiCalls.cancel(id)
         fun cancelAllApi() = ApiCalls.cancelAll()
     }

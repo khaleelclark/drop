@@ -22,7 +22,7 @@ describe('safe-area ownership at startup', () => {
     try {
       await act(async () => { root = await startApplication(element) })
       expect(document.documentElement.hasAttribute('data-native-android')).toBe(runtime === 'android')
-      expect(screen.getByRole('dialog', {name:'Connect to Household'})).toBeInTheDocument()
+      expect(screen.getByRole('dialog', {name:'Connect to Zing'})).toBeInTheDocument()
     } finally { await act(async () => root.unmount()); element.remove() }
   })
 })
@@ -39,7 +39,7 @@ describe('installed runtime startup failure', () => {
     let root!: Awaited<ReturnType<typeof startApplication>>
     try {
       await act(async () => { root = await startApplication(element) })
-      expect(screen.getByRole('heading',{name:'Couldn’t start Household'})).toBeInTheDocument()
+      expect(screen.getByRole('heading',{name:'Couldn’t start Zing'})).toBeInTheDocument()
       expect(screen.getByRole('alert')).toHaveTextContent('native components')
       expect(document.documentElement).toHaveAttribute('data-native-android')
       expect(screen.getByRole('button',{name:'Try again'})).toBeEnabled()

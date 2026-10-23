@@ -12,7 +12,8 @@ function shell(...args) { return execFileSync(adb, ['-s', serial, ...args], { en
 async function main() {
   const output = process.env.HOUSEHOLD_ANDROID_OUTPUT ? path.resolve(process.env.HOUSEHOLD_ANDROID_OUTPUT) : path.resolve(__dirname, '../.tools/validation');
   await fs.mkdir(output, { recursive: true });
-  const token = (await fs.readFile(path.resolve(__dirname, '../.tools/ui-preview/token'), 'utf8')).trim();
+  const token = (await fs.readFile(process.env.HOUSEHOLD_ANDROID_TOKEN_FILE || path.resolve(__dirname, '../.tools/ui-preview/token'), 'utf8')).trim();
+  const baseUrl = process.env.HOUSEHOLD_ANDROID_URL || 'http://127.0.0.1:18877';
   const coldLaunch = process.argv.includes('--cold-launch');
   if (coldLaunch) {
     if (!serial.startsWith('emulator-')) throw new Error('Cold-launch validation is limited to a disposable emulator.');
@@ -41,11 +42,11 @@ async function main() {
   try {
     await expect.poll(() => page.evaluate(() => window.householdPlatform?.kind)).toBe('native');
     const initialConfig = await page.evaluate(() => window.__HOUSEHOLD_NATIVE__.invoke('native_get_config'));
-    if (initialConfig.baseUrl !== 'http://127.0.0.1:18877' || !initialConfig.connected) {
+    if (initialConfig.baseUrl !== baseUrl || !initialConfig.connected) {
       if (coldLaunch) throw new Error('Pair this disposable emulator once without --cold-launch before checking a cold launch.');
-      await page.evaluate(async ({ token }) => {
-        await window.__HOUSEHOLD_NATIVE__.invoke('native_configure', { baseUrl: 'http://127.0.0.1:18877', token, sourceDevice: 'Android emulator', allowInsecureLoopback: true });
-      }, { token });
+      await page.evaluate(async ({ token, baseUrl }) => {
+        await window.__HOUSEHOLD_NATIVE__.invoke('native_configure', { baseUrl, token, sourceDevice: 'Android emulator', allowInsecureLoopback: true });
+      }, { token, baseUrl });
       await page.reload();
       await expect.poll(() => page.evaluate(() => window.householdPlatform?.kind)).toBe('native');
       // A test-driven reload can race a callback to the previous WebView document.

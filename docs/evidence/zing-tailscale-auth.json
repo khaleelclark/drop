@@ -1,0 +1,31 @@
+{
+  "scope": "Temporary private Serve route + disposable database; existing app data/service and other suite routes untouched. No physical phone/Mac, browser UI, OS notification or 20 GB check.",
+  "checks": {
+    "temporary_port_unused": true,
+    "temporary_port_not_public": true,
+    "host_has_user_identity": true,
+    "direct_backend_without_identity_denied": true,
+    "serve_route_remained_private": true,
+    "real_serve_tokenless_feed": true,
+    "serve_replaced_spoofed_identity": true,
+    "real_serve_native_write_without_token": true,
+    "real_serve_same_origin_browser_write": true,
+    "real_serve_foreign_origin_denied": true,
+    "real_serve_browser_missing_origin_denied": true,
+    "real_serve_session_needs_no_token_or_cookie": true,
+    "all_observed_hops_have_actual_user_identity": true,
+    "existing_serve_configuration_restored": true
+  },
+  "serverBinarySha256": "ee555e61c1a145afd5d5c3751836f64b63d05051eea7f5e39b51bf21c4afe900",
+  "status": "passed",
+  "cleanupExitCode": 0,
+  "serveConfigRestoredExactly": true,
+  "executionOwner": "Root; actual private Tailscale Serve staging +disposable server, not mock headers.",
+  "sourceReportSha256": "82da0bdeb67e7e9f29fc7653d7aa9451ed6d5ba7ebdade9c2bc8714b4f2f0470",
+  "sourceSnapshot": {
+    "server/internal/share/auth.go": "dcbec931315a477e835e6d2fd344d196a89ef3dd6be4539570e8a0972462461c",
+    "server/internal/share/auth_test.go": "87bc3b79fc39307dbcaaa217681a4e601a4d7bbb49710b1078061fde9c01b4bb",
+    "server/internal/share/config.go": "4025ae0321123b74ae06364a4a9a7bf83ca67f8e9d965ddebbab18c43c4df969",
+    "docs/api-contract.md": "46d256da9c036514d6c964a44f32746d874d6efcc3022bbd7c0ec46b14fbf876"
+  }
+}

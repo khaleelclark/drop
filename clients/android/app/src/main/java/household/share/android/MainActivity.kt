@@ -1,15 +1,12 @@
 package household.share.android
 
-import android.Manifest
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Intent
-import android.content.pm.PackageManager
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
@@ -32,14 +29,20 @@ class MainActivity : Activity() {
     private var pending: Pending? = null
     private var visible = false
     private var waitingShare: Intent? = null
+    private var waitingShareRouteId: String? = null
+    private var shareConsumed = false
+    private val captures by lazy { RoutingCaptures(this) }
     private var handoff: Triple<String, String, String>? = null
     private data class Pending(val requestId: String?, val type: String, val args: JSONObject = JSONObject())
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
-            requestPermissions(arrayOf(Manifest.permission.POST_NOTIFICATIONS), 101)
+        savedInstanceState?.getString("pending")?.let {
+            val j = JSONObject(it)
+            pending = Pending(j.optString("requestId").ifEmpty { null }, j.getString("type"), j.getJSONObject("args"))
         }
+        waitingShareRouteId = savedInstanceState?.getString("waitingShareRouteId")
+        shareConsumed = savedInstanceState?.getBoolean("shareConsumed") ?: false
         web = WebView(this)
         web.settings.apply {
             javaScriptEnabled = true; domStorageEnabled = true
@@ -67,7 +70,7 @@ class MainActivity : Activity() {
                 val input = if (path == "index.html") {
                     val html = assets.open("web/index.html").bufferedReader().use { it.readText() }
                     val config = ConfigStore(this).current()
-                    val publicConfig = JSONObject().put("baseUrl", config.baseUrl).put("sourceDevice", config.sourceDevice).put("connected", config.connected)
+                    val publicConfig = config.redacted()
                     val encoded = android.util.Base64.encodeToString(publicConfig.toString().toByteArray(Charsets.UTF_8), android.util.Base64.NO_WRAP)
                     // Base64 keeps arbitrary user device labels out of the HTML script syntax.
                     val configScript = "window.__HOUSEHOLD_CONFIG__=JSON.parse(new TextDecoder().decode(Uint8Array.from(atob('$encoded'),c=>c.charCodeAt(0))));"
@@ -101,25 +104,39 @@ class MainActivity : Activity() {
         web.webChromeClient = WebChromeClient()
         setContentView(web)
         web.loadUrl("https://appassets.androidplatform.net/index.html")
-        acceptIntent(intent)
+        if (!shareConsumed && pending == null) acceptIntent(intent)
     }
 
     override fun onResume() {
         super.onResume(); visible = true
+        ArrivalScheduler.visible(this, this, true)
         // Reopening the app is renewed user initiation after reboot or explicit system/user interruption.
         runCatching { TransferScheduler.startVisible(this, store.all()) }.onFailure { toast(it.message.orEmpty()) }
         handoff?.let { (id, command, args) -> handoff = null; Bridge().request(id, command, args) }
         maybeHandleShare()
     }
-    override fun onPause() { visible = false; super.onPause() }
+    override fun onPause() { visible = false; ArrivalScheduler.visible(this, this, false); super.onPause() }
+    override fun onSaveInstanceState(outState: Bundle) {
+        pending?.let { outState.putString("pending", JSONObject().put("requestId", it.requestId ?: "").put("type", it.type).put("args", it.args).toString()) }
+        waitingShareRouteId?.let { outState.putString("waitingShareRouteId", it) }
+        outState.putBoolean("shareConsumed", shareConsumed)
+        super.onSaveInstanceState(outState)
+    }
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        ArrivalPermission.result(this, requestCode)
+    }
     override fun onNewIntent(intent: Intent) {
-        super.onNewIntent(intent); setIntent(intent); acceptIntent(intent); maybeHandleShare()
+        super.onNewIntent(intent); setIntent(intent); shareConsumed = false; acceptIntent(intent); maybeHandleShare()
         if (visible) runCatching { TransferScheduler.startVisible(this, store.all()) }.onFailure { toast(it.message.orEmpty()) }
     }
-    override fun onDestroy() { web.removeJavascriptInterface("HouseholdBridge"); web.destroy(); executor.shutdown(); super.onDestroy() }
+    override fun onDestroy() { ArrivalPermission.destroyed(this); web.removeJavascriptInterface("HouseholdBridge"); web.destroy(); executor.shutdown(); super.onDestroy() }
 
     private fun acceptIntent(incoming: Intent) {
-        if (incoming.action in setOf(Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE)) waitingShare = incoming
+        if (incoming.action in setOf(Intent.ACTION_SEND, Intent.ACTION_SEND_MULTIPLE) && waitingShare == null && pending == null) {
+            waitingShare = incoming
+            if (waitingShareRouteId == null) waitingShareRouteId = runCatching { captures.save(ConfigStore(this).capture()) }.getOrNull()
+        }
         incoming.getStringExtra("nativeHandoffId")?.let { id ->
             // This Activity is exported for Android Share; internal commands require a live unguessable handoff.
             if (!PickerHandoff.authorized(id)) return@let
@@ -147,36 +164,39 @@ class MainActivity : Activity() {
         }
         // ClipData can contain share URIs when EXTRA_STREAM is absent.
         if (uris.isEmpty()) shared.clipData?.let { c -> for (i in 0 until c.itemCount) c.getItemAt(i).uri?.let(uris::add) }
-        if (uris.isNotEmpty()) intake(uris.distinct(), shared.flags, null)
-        else shared.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString()?.let { text ->
-            if (text.isNotEmpty()) enqueueText(text)
+        val routeId = waitingShareRouteId ?: runCatching { captures.save(ConfigStore(this).capture()) }.getOrElse { toast(it.message.orEmpty()); return }
+        waitingShareRouteId = null; shareConsumed = true
+        if (uris.isNotEmpty()) intake(uris.distinct(), shared.flags, null, routeId = routeId)
+        else {
+            val text = shared.getCharSequenceExtra(Intent.EXTRA_TEXT)?.toString().orEmpty()
+            if (text.isNotEmpty()) enqueueText(text, routeId) else captures.remove(routeId)
         }
     }
 
-    private fun enqueueText(text: String) {
+    private fun enqueueText(text: String, routeId: String) {
         // Intent text is already bounded by Android Binder; keep it off bridge/feed JSON anyway.
         executor.execute {
             runCatching {
-                val c = configured()
-                val t = Transfer(baseUrl = c.baseUrl, sourceDevice = c.sourceDevice, kind = "text", mime = "text/plain", name = "Shared text.txt")
+                val route = captures.get(routeId)
+                val t = route.applyTo(Transfer(kind = "text", mime = "text/plain", name = "Shared text.txt"))
                 val dir = File(filesDir, "staged").apply { mkdirs() }
                 val file = File(dir, t.id)
                 file.outputStream().use { out -> out.write(text.toByteArray(Charsets.UTF_8)); out.fd.sync() }
                 t.localPath = file.absolutePath; t.size = file.length(); t.modified = file.lastModified()
-                store.insert(t)
+                store.insert(t); captures.remove(routeId)
                 runOnUiThread { start(listOf(t)); toast("Text queued") }
             }.onFailure { toast(it.message.orEmpty()) }
         }
     }
 
-    private fun configured() = ConfigStore(this).current().also { require(it.baseUrl.isNotEmpty()) { "Configure your household server first" } }
+    private fun configured() = ConfigStore(this).current().also { require(it.baseUrl.isNotEmpty()) { "Configure your Zing server first" } }
 
     /** A temporary/non-seekable source is never copied silently, particularly at 20 GiB. */
-    private fun intake(uris: List<Uri>, flags: Int, requestId: String?, reselectId: String? = null, kind: String = "file") {
+    private fun intake(uris: List<Uri>, flags: Int, requestId: String?, reselectId: String? = null, kind: String = "file", routeId: String? = null) {
         if (uris.size > 32) { finish(requestId, false, "Select up to 32 files per batch"); return }
         executor.execute {
             runCatching {
-                configured()
+                val route = if (reselectId == null) captures.get(routeId ?: error("Missing saved send routing")) else null
                 val sources = SourceAccess(this)
                 val info = uris.map { uri ->
                     val i = sources.inspect(uri)
@@ -191,7 +211,6 @@ class MainActivity : Activity() {
                     fun commit(stage: Boolean) {
                         executor.execute {
                             runCatching {
-                                val c = configured()
                                 val rows = info.map { (uri, i, durable) ->
                                     if (reselectId != null) {
                                         store.edit(reselectId) { t ->
@@ -202,11 +221,12 @@ class MainActivity : Activity() {
                                             if (t.fingerprint.isEmpty() && i.size >= 0) t.size = i.size
                                             t.modified = i.modified; t.status = "queued"; t.error = ""; t.retryAt = 0
                                         }
-                                    } else Transfer(name = i.name, size = i.size, modified = i.modified, baseUrl = c.baseUrl, kind = kind,
-                                        sourceDevice = c.sourceDevice, source = uri.toString(), needsStaging = !durable,
-                                        mime = if (kind == "text") "text/plain" else contentResolver.getType(uri) ?: "application/octet-stream").also { store.insert(it) }
+                                    } else route!!.applyTo(Transfer(name = i.name, size = i.size, modified = i.modified, kind = kind,
+                                        source = uri.toString(), needsStaging = !durable,
+                                        mime = if (kind == "text") "text/plain" else contentResolver.getType(uri) ?: "application/octet-stream")).also { store.insert(it) }
                                 }
                                 require(stage || !needsCopy)
+                                routeId?.let(captures::remove)
                                 runOnUiThread { start(rows); finish(requestId, true, JSONObject.NULL); toast("${rows.size} upload(s) queued") }
                             }.onFailure { finish(requestId, false, it.message.orEmpty()) }
                         }
@@ -216,9 +236,9 @@ class MainActivity : Activity() {
                         AlertDialog.Builder(this).setTitle("Make a durable local copy?")
                             .setMessage("This source offers temporary access, cannot seek, or has unknown size. A durable transfer needs a local staging copy (${if (size > 0) "$size bytes" else "size unknown"}). Local free space is checked with a 64 MiB reserve. No copy is made without your choice. Selecting the same file with the document picker can avoid staging.")
                             .setPositiveButton("Stage copy") { _, _ -> commit(true) }
-                            .setNeutralButton("Select document") { _, _ -> pickUploads(requestId, reselectId, kind) }
-                            .setNegativeButton("Cancel") { _, _ -> finish(requestId, false, "Share cancelled; no file was copied") }
-                            .setOnCancelListener { finish(requestId, false, "Share cancelled") }.show()
+                            .setNeutralButton("Select document") { _, _ -> pickUploads(requestId, reselectId, kind, routeId) }
+                            .setNegativeButton("Cancel") { _, _ -> routeId?.let(captures::remove); finish(requestId, false, "Share cancelled; no file was copied") }
+                            .setOnCancelListener { routeId?.let(captures::remove); finish(requestId, false, "Share cancelled") }.show()
                     }
                 }
             }.onFailure { finish(requestId, false, it.message.orEmpty()) }
@@ -233,10 +253,15 @@ class MainActivity : Activity() {
         runCatching { TransferScheduler.startVisible(this, rows) }.onFailure { e -> rows.forEach { store.edit(it.id) { it.status = "error"; it.error = e.message.orEmpty() } }; toast(e.message.orEmpty()) }
     }
 
-    private fun pickUploads(requestId: String?, reselectId: String? = null, kind: String = "file") {
+    private fun pickUploads(requestId: String?, reselectId: String? = null, kind: String = "file", routeId: String? = null) {
+        check(visible && !isFinishing && !isDestroyed) { "Open Zing to select files" }
         if (pending != null) { finish(requestId, false, "A file picker is already open"); return }
         require(kind in setOf("file", "text")) { "Invalid item kind" }
-        pending = Pending(requestId, "upload", JSONObject().apply { put("kind", kind); if (reselectId != null) put("reselectId", reselectId) })
+        val savedRoute = if (reselectId == null) routeId ?: captures.save(ConfigStore(this).capture()) else null
+        pending = Pending(requestId, "upload", JSONObject().apply {
+            put("kind", kind); if (reselectId != null) put("reselectId", reselectId)
+            if (savedRoute != null) put("routeId", savedRoute)
+        })
         startActivityForResult(Intent(Intent.ACTION_OPEN_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE).setType("*/*")
             .putExtra(Intent.EXTRA_ALLOW_MULTIPLE, reselectId == null)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_GRANT_PERSISTABLE_URI_PERMISSION), 200)
@@ -257,12 +282,15 @@ class MainActivity : Activity() {
         if (requestCode != 200) return
         val p = pending ?: return
         pending = null
-        if (resultCode != RESULT_OK || data == null) { finish(p.requestId, true, JSONObject.NULL); return }
+        if (resultCode != RESULT_OK || data == null) {
+            p.args.optString("routeId").ifEmpty { null }?.let(captures::remove)
+            finish(p.requestId, true, JSONObject.NULL); return
+        }
         if (p.type == "upload") {
             val uris = mutableListOf<Uri>()
             data.data?.let(uris::add)
             data.clipData?.let { c -> for (i in 0 until c.itemCount) uris.add(c.getItemAt(i).uri) }
-            intake(uris.distinct(), data.flags, p.requestId, p.args.optString("reselectId").ifBlank { null }, p.args.optString("kind", "file"))
+            intake(uris.distinct(), data.flags, p.requestId, p.args.optString("reselectId").ifBlank { null }, p.args.optString("kind", "file"), p.args.optString("routeId").ifEmpty { null })
         } else {
             runCatching {
                 val uri = data.data ?: error("No destination selected")
@@ -295,27 +323,32 @@ class MainActivity : Activity() {
                     val args = JSONObject(raw)
                     when (command) {
                         "native_configure" -> {
+                            ArrivalProcessor.stop()
                             val c = ConfigStore(this@MainActivity).set(args)
-                            finish(id, true, JSONObject().put("baseUrl", c.baseUrl).put("sourceDevice", c.sourceDevice).put("connected", c.connected))
+                            ArrivalClicks.clear(this@MainActivity)
+                            ArrivalScheduler.reconcile(this@MainActivity)
+                            finish(id, true, c.redacted())
                             runOnUiThread { maybeHandleShare() }
                         }
                         "native_get_config" -> {
                             val c = ConfigStore(this@MainActivity).current()
-                            finish(id, true, JSONObject().put("baseUrl", c.baseUrl).put("sourceDevice", c.sourceDevice).put("connected", c.connected))
+                            finish(id, true, c.redacted())
                         }
                         "native_list_transfers" -> finish(id, true, JSONArray(store.all().map { it.json(false) }))
                         "native_api" -> finish(id, true, NativeHttp(this@MainActivity).api(args))
                         "native_pick_uploads" -> {
                             configured()
-                            if (args.has("sourceDevice")) ConfigStore(this@MainActivity).sourceDevice(args.getString("sourceDevice"))
-                            runOnUiThread { runCatching { pickUploads(id, kind = args.optString("kind", "file")) }.onFailure { finish(id, false, it.message.orEmpty()) } }
+                            if (PickerHandoff.route(id) == null && args.has("sourceDevice")) ConfigStore(this@MainActivity).sourceDevice(args.getString("sourceDevice"))
+                            val routeId = PickerHandoff.route(id) ?: captures.save(ConfigStore(this@MainActivity).capture(args))
+                            runOnUiThread { runCatching { pickUploads(id, kind = args.optString("kind", "file"), routeId = routeId) }.onFailure { finish(id, false, it.message.orEmpty()) } }
                         }
                         "native_enqueue_upload" -> {
                             val uri = Uri.parse(args.getString("path"))
                             require(uri.scheme == "content") { "Android accepts document URIs only; use native_pick_uploads" }
                             val kind = args.optString("kind", "file")
                             require(kind in setOf("file", "text")) { "Invalid item kind" }
-                            runOnUiThread { intake(listOf(uri), 0, id, kind = kind) }
+                            val routeId = PickerHandoff.route(id) ?: captures.save(ConfigStore(this@MainActivity).capture(args))
+                            runOnUiThread { intake(listOf(uri), 0, id, kind = kind, routeId = routeId) }
                         }
                         "native_download" -> runOnUiThread { runCatching { pickDownload(id, args) }.onFailure { finish(id, false, it.message.orEmpty()) } }
                         "native_control" -> {
@@ -336,12 +369,22 @@ class MainActivity : Activity() {
                                 }
                             }
                         }
+                        "native_get_arrival_settings" -> finish(id, true, ArrivalStore.settings(this@MainActivity))
+                        "native_take_arrival_target" -> finish(id, true, ArrivalClicks.take(this@MainActivity))
+                        "native_set_arrival_enabled" -> runOnUiThread {
+                            runCatching {
+                                val enabled = args.getBoolean("enabled")
+                                ArrivalPolicy.control(enabled, { check(visible && !isFinishing && !isDestroyed) { "Open Zing to enable arrivals" } }) {
+                                    ArrivalPermission.set(this@MainActivity, enabled) { finish(id, true, it) }
+                                }
+                            }.onFailure { finish(id, false, it.message.orEmpty()) }
+                        }
                         "native_copy_text" -> {
                             val text = args.getString("text")
                             require(text.toByteArray(Charsets.UTF_8).size <= TransferPolicy.COPY_LIMIT) { "Clipboard preparation is limited to 8 MiB; download the full .txt instead" }
                             runOnUiThread { runCatching {
                                 require(visible) { "Open the app to copy text" }
-                                getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Household text", text))
+                                getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Zing text", text))
                                 finish(id, true, JSONObject().put("ok", true))
                             }.onFailure { finish(id, false, it.message.orEmpty()) } }
                         }

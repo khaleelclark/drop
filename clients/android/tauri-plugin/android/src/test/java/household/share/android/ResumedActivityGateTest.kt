@@ -84,4 +84,19 @@ class ResumedActivityGateTest {
         TransferControlCommand.run("cancel", { gate.requireResumed("Open the app") }, { row.apply { status = "cancelling" } }, schedule)
         assertEquals("cancelling", row.status)
     }
+    @Test fun arrivalListenerStopsOnPauseAndDoesNotDuplicateLateLoad() {
+        val owner = Owner()
+        owner.registry.currentState = Lifecycle.State.RESUMED
+        var starts = 0; var stops = 0
+        val gate = ResumedActivityGate(owner.lifecycle, onPaused = { stops++ }) { starts++ }
+        assertEquals(1, starts)
+        owner.registry.currentState = Lifecycle.State.STARTED
+        assertEquals(1, stops)
+        owner.registry.currentState = Lifecycle.State.RESUMED
+        assertEquals(2, starts)
+        gate.close()
+        assertEquals(2, stops)
+        owner.registry.currentState = Lifecycle.State.STARTED
+        assertEquals(2, stops)
+    }
 }

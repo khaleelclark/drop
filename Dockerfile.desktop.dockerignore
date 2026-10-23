@@ -15,7 +15,11 @@ data
 bin
 artifacts
 .env
+.env.*
+!.env.example
 *.keystore
 *.jks
 *.pem
+*.p12
+*.key
 clients/android

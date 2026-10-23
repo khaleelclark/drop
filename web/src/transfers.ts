@@ -1,16 +1,18 @@
 import { DetailedError, Upload, type UploadOptions } from 'tus-js-client'
 import { createSHA256 } from 'hash-wasm'
 import { errorMessage } from './types'
+import type { SendRouting } from './types'
 export type TransferState = 'queued' | 'checking' | 'uploading' | 'paused' | 'needs-file' | 'failed' | 'complete' | 'cancelling'
 export interface Transfer {
   id: string; direction?: 'upload' | 'download'; name: string; size: number; lastModified: number; kind: 'file' | 'text'; sourceDevice: string;
   destination: string; state: TransferState; confirmed: number; sent: number;
   phase?: string; hash?: string; uploadURL?: string; itemId?: string; error?: string; checked?: number;
+  sourceDeviceId?: string; targetDeviceIds?: string[];
 }
 export interface TransferStore {
   getSnapshot(): Transfer[];
   subscribe(listener: () => void): () => void;
-  enqueue(files: File[], kind: 'file' | 'text', sourceDevice: string, maxBytes: number): void;
+  enqueue(files: File[], kind: 'file' | 'text', sourceDevice: string, maxBytes: number, routing?: SendRouting): void;
   pause(id: string): Promise<void>;
   resume(id: string): void;
   cancel(id: string): Promise<void>;
@@ -66,10 +68,11 @@ export class BrowserTransfers implements TransferStore {
     this.listeners.forEach(fn => fn())
   }
   private patch(id: string, patch: Partial<Transfer>) { this.rows = this.rows.map(r => r.id === id ? { ...r, ...patch } : r); this.notify() }
-  enqueue(files: File[], kind: 'file' | 'text', sourceDevice: string, maxBytes: number) {
+  enqueue(files: File[], kind: 'file' | 'text', sourceDevice: string, maxBytes: number, routing?: SendRouting) {
+    const savedRouting = routing ? {sourceDeviceId:routing.sourceDeviceId,targetDeviceIds:[...routing.targetDeviceIds]} : {}
     const additions = files.map(file => {
       const id = crypto.randomUUID(); this.files.set(id, file)
-      return { id, name: file.name, size: file.size, lastModified: file.lastModified, kind, sourceDevice, destination: this.destination, state: file.size > maxBytes ? 'failed' as const : 'queued' as const, confirmed: 0, sent: 0, error: file.size > maxBytes ? 'This file exceeds the server’s per-file limit.' : this.storageWarning ? 'Browser storage is unavailable; keep this tab open to retain progress.' : undefined }
+      return { id, name: file.name, size: file.size, lastModified: file.lastModified, kind, sourceDevice, ...savedRouting, destination: this.destination, state: file.size > maxBytes ? 'failed' as const : 'queued' as const, confirmed: 0, sent: 0, error: file.size > maxBytes ? 'This file exceeds the server’s per-file limit.' : this.storageWarning ? 'Browser storage is unavailable; keep this tab open to retain progress.' : undefined }
     })
     this.rows = [...this.rows, ...additions]; this.notify(); this.schedule()
   }
@@ -95,9 +98,12 @@ export class BrowserTransfers implements TransferStore {
       this.patch(id, { state: 'uploading', error: undefined })
       const options: UploadOptions = {
         endpoint: `${this.destination}/api/uploads/`, chunkSize: CHUNK,
-        retryDelays: [0, 1000, 3000, 5000, 10000], storeFingerprintForResuming: false,
+        retryDelays: [0, 1000, 3000, 5000, 10000],
+        // Creating a new item is not idempotent if its response is lost.
+        onShouldRetry: error => error.originalRequest?.getMethod() !== 'POST' && (!error.originalResponse || [0,408,409,423,429].includes(error.originalResponse.getStatus()) || error.originalResponse.getStatus() >= 500),
+        storeFingerprintForResuming: false,
         uploadUrl: row.uploadURL ? safeUploadURL(row.uploadURL, this.destination) : undefined,
-        metadata: { filename: file.name, filetype: row.kind === 'text' ? 'text/plain' : (file.type || 'application/octet-stream'), kind: row.kind, sourceDevice: row.sourceDevice },
+        metadata: { filename: file.name, filetype: row.kind === 'text' ? 'text/plain' : (file.type || 'application/octet-stream'), kind: row.kind, sourceDevice: row.sourceDevice, ...(row.sourceDeviceId ? {sourceDeviceId:row.sourceDeviceId,targetDeviceIds:JSON.stringify(row.targetDeviceIds || [])} : {}) },
         onBeforeRequest: request => { const xhr = request.getUnderlyingObject(); if (xhr && 'withCredentials' in xhr) xhr.withCredentials = true },
         onAfterResponse: (_request, response) => {
           const itemId = response.getHeader('X-Item-ID'); const upload = this.uploads.get(id)

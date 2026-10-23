@@ -5,6 +5,7 @@ import android.content.Context
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
+import org.json.JSONArray
 import java.util.UUID
 
 data class Transfer(
@@ -17,12 +18,15 @@ data class Transfer(
     var error: String = "",
     var baseUrl: String = "",
     var sourceDevice: String = "Android",
+    var sourceDeviceId: String = "",
+    var targetDeviceIds: List<String> = emptyList(),
     var source: String = "",
     var localPath: String = "",
     var needsStaging: Boolean = false,
     var fingerprint: String = "",
     var modified: Long = -1,
     var uploadUrl: String = "",
+    var creationPending: Boolean = false,
     var itemId: String = "",
     var kind: String = "file",
     var mime: String = "application/octet-stream",
@@ -35,8 +39,9 @@ data class Transfer(
         put("offset", offset); put("status", status); put("itemId", itemId); if (error.isNotEmpty()) put("error", error)
         if (privateFields) {
             put("baseUrl", baseUrl); put("sourceDevice", sourceDevice); put("source", source)
+            put("sourceDeviceId", sourceDeviceId); put("targetDeviceIds", JSONArray(targetDeviceIds))
             put("localPath", localPath); put("needsStaging", needsStaging); put("fingerprint", fingerprint)
-            put("modified", modified); put("uploadUrl", uploadUrl); put("itemId", itemId); put("kind", kind)
+            put("modified", modified); put("uploadUrl", uploadUrl); put("creationPending", creationPending); put("itemId", itemId); put("kind", kind)
             put("mime", mime); put("etag", etag); put("attempts", attempts); put("retryAt", retryAt)
         }
     }
@@ -45,8 +50,10 @@ data class Transfer(
             id = j.getString("id"), direction = j.optString("direction", "upload"), name = j.getString("name"),
             size = j.optLong("size", -1), offset = j.optLong("offset"), status = j.getString("status"), error = j.optString("error"),
             baseUrl = j.getString("baseUrl"), sourceDevice = j.optString("sourceDevice", "Android"), source = j.optString("source"),
+            sourceDeviceId = j.optString("sourceDeviceId").also { if (it.isNotEmpty()) DevicePolicy.id(it) },
+            targetDeviceIds = DevicePolicy.targets(j, j.optString("sourceDeviceId")),
             localPath = j.optString("localPath"), needsStaging = j.optBoolean("needsStaging"), fingerprint = j.optString("fingerprint"),
-            modified = j.optLong("modified", -1), uploadUrl = j.optString("uploadUrl"), itemId = j.optString("itemId"),
+            modified = j.optLong("modified", -1), uploadUrl = j.optString("uploadUrl"), creationPending = j.optBoolean("creationPending"), itemId = j.optString("itemId"),
             kind = j.optString("kind", "file"), mime = j.optString("mime", "application/octet-stream"), etag = j.optString("etag"),
             attempts = j.optInt("attempts"), retryAt = j.optLong("retryAt"),
         )
@@ -68,7 +75,9 @@ class QueueStore private constructor(context: Context) : SQLiteOpenHelper(contex
     }
     @Synchronized fun edit(id: String, mutate: (Transfer) -> Unit): Transfer {
         val t = get(id) ?: error("Transfer not found")
+        val routing = listOf(t.baseUrl, t.sourceDevice, t.sourceDeviceId, t.targetDeviceIds.toList())
         mutate(t)
+        require(routing == listOf(t.baseUrl, t.sourceDevice, t.sourceDeviceId, t.targetDeviceIds)) { "Queued send routing is immutable" }
         writableDatabase.update("queue", ContentValues().apply { put("data", t.json().toString()) }, "id=?", arrayOf(id))
         return t
     }
@@ -82,17 +91,37 @@ class QueueStore private constructor(context: Context) : SQLiteOpenHelper(contex
 
 class ConfigStore(context: Context) {
     private val prefs = context.getSharedPreferences("connection", Context.MODE_PRIVATE)
-    data class Config(val baseUrl: String, val token: String, val sourceDevice: String, val connected: Boolean)
-    fun current(): Config = Config(prefs.getString("baseUrl", "")!!, prefs.getString("token", "")!!, prefs.getString("sourceDevice", "Android")!!, prefs.getBoolean("connected", true))
-    fun sourceDevice(name: String) { require(prefs.edit().putString("sourceDevice", name.take(100)).commit()) { "Could not save device name" } }
-    fun set(j: JSONObject): Config {
+    private val identities = DeviceIdentity({ prefs.getString(it, null) }, { key, value ->
+        check(prefs.edit().putString(key, value).commit()) { "Could not save device identity" }
+    })
+    data class Config(val baseUrl: String, val token: String, val sourceDevice: String, val connected: Boolean, val deviceId: String) {
+        fun redacted() = JSONObject().put("baseUrl", baseUrl).put("sourceDevice", sourceDevice).put("connected", connected)
+            .put("deviceId", deviceId).put("platform", "android")
+    }
+    fun current(): Config = synchronized(lock) {
+        val base = prefs.getString("baseUrl", "")!!
+        Config(base, prefs.getString("token", "")!!, prefs.getString("sourceDevice", "Android")!!,
+            prefs.getBoolean("connected", true), if (base.isEmpty()) "" else identities.forServer(base))
+    }
+    fun capture(args: JSONObject = JSONObject()): SendRouting = synchronized(lock) {
+        val c = current()
+        require(c.connected && c.baseUrl.isNotEmpty()) { "Configure your Zing server first" }
+        SendRouting(c.baseUrl, c.sourceDevice, c.deviceId, DevicePolicy.targets(args, c.deviceId))
+    }
+    fun sourceDevice(name: String) = synchronized(lock) {
+        require(prefs.edit().putString("sourceDevice", DevicePolicy.label(name)).commit()) { "Could not save device name" }
+    }
+    fun set(j: JSONObject): Config = synchronized(lock) {
         val base = TransferPolicy.baseUrl(j.getString("baseUrl"), j.optBoolean("allowInsecureLoopback"))
         val token = j.optString("token")
         require(!token.contains('\r') && !token.contains('\n')) { "Invalid token" }
-        val device = j.optString("sourceDevice", "Android").take(100)
+        val device = DevicePolicy.label(j.optString("sourceDevice", "Android"))
+        // Identity is committed first, including on an existing installation's first upgrade.
+        identities.forServer(base)
         require(prefs.edit().putString("baseUrl", base).putString("token", token).putString("sourceDevice", device).putBoolean("connected", true).commit()) { "Could not save connection" }
-        return current()
+        current()
     }
-    fun disconnect() { require(prefs.edit().remove("token").putBoolean("connected", false).commit()) { "Could not erase saved token" } }
+    fun disconnect() = synchronized(lock) { require(prefs.edit().remove("token").putBoolean("connected", false).commit()) { "Could not erase saved token" } }
     fun requireFor(base: String): Config = current().also { require(it.connected && it.baseUrl == base && base.isNotEmpty()) { "Reconnect to the transfer's original server to continue" } }
+    companion object { private val lock = Any() }
 }

@@ -2,7 +2,13 @@ export interface Item {
   id: string; kind: 'text' | 'file'; name: string; size: number;
   createdAt: string; updatedAt: string; status: 'uploading' | 'ready' | 'failed';
   preview?: string; pinned: boolean; sourceDevice?: string; mimeType?: string;
+  sourceDeviceId?: string; targetDeviceIds?: string[];
 }
+export type DevicePlatform = 'macos' | 'linux' | 'android' | 'browser'
+export interface Device { id: string; label: string; platform: DevicePlatform; createdAt: string }
+export interface SendRouting { sourceDeviceId: string; targetDeviceIds: string[] }
+export interface ArrivalSettings { enabled: boolean; permission: 'granted'|'denied'|'prompt'|'unknown'|'unavailable'; mode: 'resident'|'scheduled'; lastCheckedAt?: string; lastError?: string }
+export interface ArrivalPage { notifications: {sequence: string; itemId: string; createdAt: string}[]; nextCursor: string; ackCursor: string; hasMore: boolean }
 export interface FeedPage { items: Item[]; nextCursor: string | null }
 export interface StorageInfo { usedBytes: number; freeBytes: number; maxFileBytes: number; maxTextBytes: number; maxStorageBytes: number | null }
 export const formatBytes = (bytes: number): string => {

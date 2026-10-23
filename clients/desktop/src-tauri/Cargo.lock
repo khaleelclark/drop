@@ -1630,7 +1630,7 @@ dependencies = [
 
 [[package]]
 name = "household-share"
-version = "0.1.1"
+version = "0.1.2"
 dependencies = [
  "household-native",
  "serde_json",
@@ -1640,6 +1640,7 @@ dependencies = [
  "tauri-plugin-dialog",
  "tauri-plugin-global-shortcut",
  "tauri-plugin-single-instance",
+ "zing-desktop-notifications",
 ]
 
 [[package]]
@@ -5676,6 +5677,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn 3.0.9",
+]
+
+[[package]]
+name = "zing-desktop-notifications"
+version = "0.1.0"
+dependencies = [
+ "async-io",
+ "cc",
+ "futures-lite",
+ "household-native",
+ "zbus",
 ]
 
 [[package]]

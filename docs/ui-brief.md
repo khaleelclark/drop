@@ -38,12 +38,65 @@ the installed packages and live release.
 
 The user also requested inspiration from [Blip](https://blip.net/). Its app demo uses a compact device list, plain search, short rows and a single-purpose panel. Apply that directness to the household feed: keep sending close at hand, make file identity and progress easy to scan, and give each item one obvious Copy or Download action. Preserve the approved shared inbox and its offline receiving behavior. Use the reference for interaction clarity and density; keep Household’s own assets and visual system.
 
+Latest direction (2026-10-23): the user likes the current interface but finds it
+too heavy, with individual entries occupying too much space. Move toward a
+compact utility on both desktop and phone. Replace tall boxed cards and repeated
+heading/body/footer structure with short content-first rows, one quiet metadata
+line, thin separators and an immediately visible Copy or Download action. Aim
+for roughly 80–100 CSS px for ordinary short phone entries; long filenames,
+expanded text, errors and recovery controls may need more room. Reduce the
+oversized page heading, composer spacing and repetitive feed boilerplate.
+Keep readable text, at least 44 px action targets, the existing mobile bottom
+tabs, accessible menus and full text/streaming behavior. Preserve Android's
+native safe-area ownership and real keyboard/Back/Done/draft/search behavior.
+This supersedes the earlier instruction to retain desktop composition where
+that composition conflicts with the requested lighter density.
+
+The user subsequently supplied Blip's compact menu-bar device list and requested
+a registered household device picker, arrival notifications, and a cute, short
+name suggesting quickness. Keep that picker small and searchable, with named
+phone/computer rows and an Everyone destination. Do not invent online presence,
+delivery receipts or automatic downloads. Arrival notifications must refer only
+to ready content and open the corresponding item. System permission, privacy,
+deduplication, offline recovery and closed-app behavior need a real platform
+implementation, not a browser-only visual mock. The user chose **Zing** as the
+new visible app name; preserve app identifiers, signing identity, pairing and
+saved transfers when rebranding. The user confirmed one shared household feed
+plus a **For you** view for items addressed to the current device. **All shares**
+shows everything; **Send to** chooses registered device recipients or Everyone.
+Targeting routes inbox entries and alerts without hiding content from other
+household devices. Notification selection opens the corresponding ready item.
+Do not retroactively alert for existing history or claim private access controls.
+Root coordinates the
+server/native contract before the interface owner implements these controls.
+Compact density work continues while the contracts are resolved.
+
+The user also explicitly requested inspiration and suitable implementation
+reuse from [LocalSend](https://localsend.org/) and its
+[source](https://github.com/localsend/localsend). The reviewed reference checkout
+is pinned at `6e37efd5fe750299758b6778d2b150b31af3b95d`; its root license is
+Apache-2.0. Apply its straightforward content selection, named device picker,
+send/receive separation and transfer feedback where they fit. Any copied or
+adapted code must retain applicable license/attribution notices and identify
+the source revision and modifications. UI inspiration alone does not imply
+that code has been ported. Preserve Zing's Tailscale/loopback server, shared
+history, offline receiving and bounded resumable transfers when evaluating
+LocalSend's different device-to-device transport.
+
 ## Experience
 
 Household is a quick shared inbox for plain text and files. The most common jobs take very few actions: paste/send; drop/send; copy; download. Make the shared feed the primary screen with an easy-to-reach composer and visible transfer status. On a phone, essential actions remain within thumb reach and do not depend on hover.
 
 ## Visual direction
 
+- Latest user preference: use judgment about lightweight icon actions versus
+  labels; avoid large filled blocks for routine Copy, Download and composer
+  controls without turning everything into an icon. Retain clear accessible names, visible focus,
+  feedback and 44 px tap areas without drawing a large block around each one.
+  Use the saved space for content: show ordinary short notes in full, give long
+  text a generous bounded preview with a visible Expand/Collapse control, and
+  allow filenames to wrap. Compactness must come from less chrome rather than
+  aggressive two-line truncation.
 - Light neutral iOS-inspired interface with a restrained blue accent, system typography, precise spacing, soft corners, subtle separators, and readable contrast.
 - Use deliberate hierarchy and whitespace, avoiding decorative dashboard metrics or a wall of equal-weight buttons.
 - Each card has one clear primary action: Copy for text or Download for files. Expand and secondary management actions are quieter.
@@ -55,7 +108,17 @@ Household is a quick shared inbox for plain text and files. The most common jobs
 
 ## Product behavior
 
+- The inbox is a shared board of entries. Text entries support explicit inline
+  editing with Save/Cancel; entry names can be changed. Preserve an unsaved draft
+  on failure/conflict, and never silently overwrite another household edit.
+  Root coordinates the edit API and crash-safe storage before implementation;
+  edits retain the entry's identity/routing and do not resend arrival alerts.
 - Copy always targets full stored text; the preview is clearly a preview. “Copied” appears only after success.
+- Pasted code and Markdown remain inert text with a visible Copy action. Short
+  notes are readable; long code stays collapsed by default with Expand so it
+  does not dominate the board. Offer exact-byte text downloads as `.txt` or
+  `.md`; files retain Download. Format choices name the saved file, without
+  converting whitespace or rendering/executing the content.
 - Download starts a normal/native streamed transfer; it does not fetch a huge JavaScript Blob first.
 - Make multi-file uploads, clipboard paste, and drag/drop discoverable without crowding the composer.
 - Empty, disconnected, uploading, failed, and storage-full states need intentional designs.

@@ -3,6 +3,7 @@ package share
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/fs"
@@ -63,25 +64,16 @@ func (s *Server) usedBytes() (int64, error) {
 func (s *Server) reserve(r *record) error {
 	s.budgetMu.Lock()
 	defer s.budgetMu.Unlock()
-	var reserved int64
-	if err := s.db.QueryRow(`SELECT COALESCE(SUM(size),0) FROM items`).Scan(&reserved); err != nil {
-		return err
-	}
-	used, err := s.usedBytes()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return err
 	}
-	free, err := s.freeBytes()
-	if err != nil {
+	defer tx.Rollback()
+	if err := validateRouting(tx, r); err != nil {
 		return err
 	}
-	committed := max(reserved, used)
-	if s.cfg.MaxStorageBytes > 0 && (committed > s.cfg.MaxStorageBytes || r.Size > s.cfg.MaxStorageBytes-committed) {
-		return errBudget
-	}
-	remaining := max(int64(0), reserved-used)
-	if free < s.cfg.MinFreeBytes || remaining > free-s.cfg.MinFreeBytes || r.Size > free-s.cfg.MinFreeBytes-remaining {
-		return errBudget
+	if err := s.checkBudget(tx, r.Size); err != nil {
+		return err
 	}
 	created := time.Now().UTC()
 	if !created.After(s.lastCreated) {
@@ -89,8 +81,23 @@ func (s *Server) reserve(r *record) error {
 	}
 	r.CreatedAt = created.Format(timestampFormat)
 	r.UpdatedAt = r.CreatedAt
-	_, err = s.db.Exec(`INSERT INTO items (`+columns+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`, r.ID, r.Kind, r.Name, r.Size, r.CreatedAt, r.UpdatedAt, r.Status, r.Preview, r.Pinned, r.SourceDevice, r.MIMEType, r.Checksum, r.Upload)
+	targets := "[]"
+	if len(r.TargetDeviceIDs) > 0 {
+		encoded, err := json.Marshal(r.TargetDeviceIDs)
+		if err != nil {
+			return err
+		}
+		targets = string(encoded)
+	}
+	r.BlobID = r.ID
+	if r.Upload {
+		r.UploadLength = r.Size
+	}
+	_, err = tx.Exec(`INSERT INTO items (`+columns+`) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`, r.ID, r.Kind, r.Name, r.Size, r.CreatedAt, r.UpdatedAt, r.Status, r.Preview, r.Pinned, r.SourceDevice, r.MIMEType, r.Checksum, r.Upload, r.SourceDeviceID, targets, r.BlobID, r.UploadLength)
 	if err != nil {
+		return err
+	}
+	if err = tx.Commit(); err != nil {
 		return err
 	}
 	s.lastCreated = created
@@ -110,6 +117,81 @@ func (s *Server) reserve(r *record) error {
 		return err
 	}
 	s.eventsBroker.publish("created", r.ID)
+	return nil
+}
+
+// Caller holds budgetMu. Read upload remainders before measuring free space:
+// active uploads can then only make the remainder estimate more conservative.
+func (s *Server) checkBudget(q interface {
+	Query(string, ...any) (*sql.Rows, error)
+}, candidate int64) error {
+	rows, err := q.Query(`SELECT blob_id,size,status FROM items`)
+	if err != nil {
+		return err
+	}
+	known := map[string]bool{}
+	var promised, remaining int64
+	for rows.Next() {
+		var id, status string
+		var size int64
+		if err = rows.Scan(&id, &size, &status); err != nil {
+			rows.Close()
+			return err
+		}
+		if !validID.MatchString(id) {
+			rows.Close()
+			return errors.New("invalid stored blob ID")
+		}
+		known[id] = true
+		stat, statErr := os.Stat(s.blob(id))
+		var written int64
+		if statErr == nil {
+			if !stat.Mode().IsRegular() {
+				rows.Close()
+				return errors.New("non-regular blob found")
+			}
+			written = stat.Size()
+		} else if !errors.Is(statErr, fs.ErrNotExist) {
+			rows.Close()
+			return statErr
+		}
+		promised += max(size, written)
+		if status != "ready" {
+			remaining += max(int64(0), size-written)
+		}
+	}
+	err = rows.Err()
+	rows.Close()
+	if err != nil {
+		return err
+	}
+	entries, err := os.ReadDir(filepath.Join(s.cfg.DataDir, "blobs"))
+	if err != nil {
+		return err
+	}
+	for _, entry := range entries {
+		if known[entry.Name()] || !entry.Type().IsRegular() {
+			continue
+		}
+		stat, err := entry.Info()
+		if errors.Is(err, fs.ErrNotExist) {
+			continue
+		}
+		if err != nil {
+			return err
+		}
+		promised += stat.Size()
+	}
+	free, err := s.freeBytes()
+	if err != nil {
+		return err
+	}
+	if s.cfg.MaxStorageBytes > 0 && (promised > s.cfg.MaxStorageBytes || candidate > s.cfg.MaxStorageBytes-promised) {
+		return errBudget
+	}
+	if free < s.cfg.MinFreeBytes || remaining > free-s.cfg.MinFreeBytes || candidate > free-s.cfg.MinFreeBytes-remaining {
+		return errBudget
+	}
 	return nil
 }
 
@@ -149,14 +231,20 @@ func (s *Server) storage(w http.ResponseWriter, r *http.Request) {
 // downloadable. Recovery retries tombstones and removes unreferenced blobs.
 // Caller holds the same per-item lock used by tusd.
 func (s *Server) deleteRecord(id string) error {
-	if _, err := s.get(id, true); err != nil {
+	row, err := s.get(id, true)
+	if err != nil {
 		return err
 	}
 	if _, err := s.db.Exec(`UPDATE items SET status='deleting',updated_at=? WHERE id=?`, now(), id); err != nil {
 		return err
 	}
-	if err := os.Remove(s.blob(id)); err != nil && !errors.Is(err, fs.ErrNotExist) {
-		return err
+	for _, blob := range []string{row.BlobID, id} {
+		if !validID.MatchString(blob) {
+			return errors.New("invalid stored blob ID")
+		}
+		if err := os.Remove(s.blob(blob)); err != nil && !errors.Is(err, fs.ErrNotExist) {
+			return err
+		}
 	}
 	if err := s.syncBlobs(); err != nil {
 		return err
@@ -189,17 +277,17 @@ func (s *Server) recover() error {
 	rows.Close()
 	known := make(map[string]bool, len(records))
 	for _, r := range records {
-		if !validID.MatchString(r.ID) {
+		if !validID.MatchString(r.ID) || !validID.MatchString(r.BlobID) {
 			return errors.New("invalid stored item ID")
 		}
-		known[r.ID] = true
+		known[r.BlobID] = true
 		if r.Status == "deleting" {
 			if err := s.deleteRecord(r.ID); err != nil {
 				return err
 			}
 			continue
 		}
-		stat, err := os.Stat(s.blob(r.ID))
+		stat, err := os.Stat(s.blob(r.BlobID))
 		if errors.Is(err, fs.ErrNotExist) {
 			if err := s.markFailed(r.ID); err != nil {
 				return err

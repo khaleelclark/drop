@@ -1,4 +1,5 @@
 //! Real HTTP integration tests: bounded chunks, restart, source identity and range safety.
+use base64::{engine::general_purpose::STANDARD, Engine as _};
 use household_native::{Config, Queue};
 use std::{
     collections::HashMap,
@@ -91,6 +92,20 @@ struct State {
     reject_final: bool,
     drop_final_ack: bool,
     ready_conflict: bool,
+    registration: Option<serde_json::Value>,
+    registration_requests: Vec<serde_json::Value>,
+    upload_metadata: String,
+    upload_kind: String,
+    item_override: Option<serde_json::Value>,
+    arrivals: Vec<serde_json::Value>,
+    ack: u64,
+    ack_lost: bool,
+    ack_calls: Vec<String>,
+    arrival_queries: Vec<String>,
+    bad_cursor: bool,
+    drop_creation: bool,
+    creation_status: Option<u16>,
+    creations: u32,
 }
 struct Server {
     url: String,
@@ -124,7 +139,96 @@ impl Server {
                 );
                 let mut s = shared.lock().unwrap();
                 match (req.method.as_str(), req.path.as_str()) {
+                    ("POST", "/api/devices/register") => {
+                        let device: serde_json::Value = serde_json::from_slice(&req.body).unwrap();
+                        s.registration_requests.push(device.clone());
+                        if device["preserveExisting"] != true || s.registration.is_none() {
+                            s.registration = Some(
+                                serde_json::json!({"id": device["id"], "label": device["label"], "platform": device["platform"]}),
+                            );
+                        }
+                        reply(
+                            &mut stream,
+                            "200 OK",
+                            &[],
+                            &serde_json::to_vec(&serde_json::json!({"device":s.registration}))
+                                .unwrap(),
+                            false,
+                        );
+                    }
+                    ("GET", path) if path.contains("/notifications?") => {
+                        s.arrival_queries.push(path.into());
+                        let cursor = path
+                            .split("after=")
+                            .nth(1)
+                            .unwrap()
+                            .split('&')
+                            .next()
+                            .unwrap()
+                            .parse::<u64>()
+                            .unwrap();
+                        let matching: Vec<_> = s
+                            .arrivals
+                            .iter()
+                            .filter(|n| {
+                                n["sequence"].as_str().unwrap().parse::<u64>().unwrap() > cursor
+                            })
+                            .take(50)
+                            .cloned()
+                            .collect();
+                        let next = if s.bad_cursor {
+                            "9223372036854775808".into()
+                        } else {
+                            matching
+                                .last()
+                                .map(|n| n["sequence"].as_str().unwrap().to_string())
+                                .unwrap_or(cursor.to_string())
+                        };
+                        let body = serde_json::json!({"notifications": matching,"nextCursor":next,"ackCursor":s.ack.to_string(),"hasMore":false});
+                        reply(
+                            &mut stream,
+                            "200 OK",
+                            &[],
+                            &serde_json::to_vec(&body).unwrap(),
+                            false,
+                        );
+                    }
+                    ("POST", path) if path.ends_with("/notifications/ack") => {
+                        let body: serde_json::Value = serde_json::from_slice(&req.body).unwrap();
+                        let cursor = body["through"].as_str().unwrap();
+                        s.ack_calls.push(cursor.into());
+                        s.ack = s.ack.max(cursor.parse().unwrap());
+                        if s.ack_lost {
+                            s.ack_lost = false;
+                            continue;
+                        }
+                        let bytes =
+                            serde_json::to_vec(&serde_json::json!({"ackCursor":s.ack.to_string()}))
+                                .unwrap();
+                        reply(&mut stream, "200 OK", &[], &bytes, false);
+                    }
                     ("POST", "/api/uploads/") => {
+                        s.creations += 1;
+                        if s.drop_creation {
+                            continue;
+                        }
+                        if let Some(status) = s.creation_status {
+                            reply(
+                                &mut stream,
+                                &format!("{status} Test rejection"),
+                                &[],
+                                b"",
+                                false,
+                            );
+                            continue;
+                        }
+                        s.upload_metadata = req.headers["upload-metadata"].clone();
+                        let kind = s
+                            .upload_metadata
+                            .split(',')
+                            .find_map(|field| field.strip_prefix("kind "))
+                            .unwrap();
+                        s.upload_kind = String::from_utf8(STANDARD.decode(kind).unwrap()).unwrap();
                         s.length = req.headers["upload-length"].parse().unwrap();
                         reply(
                             &mut stream,
@@ -229,7 +333,10 @@ impl Server {
                             }
                             .into()
                         });
-                        let body=serde_json::to_vec(&serde_json::json!({"item":{"id":"item","size":s.length,"status":status}})).unwrap();
+                        let item = s.item_override.clone().unwrap_or_else(|| {
+                            serde_json::json!({"id":"item","kind":s.upload_kind,"size":s.length,"status":status})
+                        });
+                        let body = serde_json::to_vec(&serde_json::json!({"item":item})).unwrap();
                         reply(&mut stream, "200 OK", &[], &body, false);
                     }
                     ("GET", "/api/items/item/text") => reply(
@@ -603,4 +710,383 @@ fn pending_validation_retains_stage_and_can_resume_after_restart() {
     q.tick().unwrap();
     assert_eq!(q.list().unwrap()[0].status, "complete");
     assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 0);
+}
+
+#[test]
+fn edited_ready_text_reconciles_without_reupload_or_retained_stage() {
+    use household_native::spool_text;
+    let original = b"original text";
+    for path in ["final_ack", "validation", "lost_final_ack", "cancel"] {
+        for edited_size in [original.len() + 23, 4, 0] {
+            let server = Server::new();
+            {
+                let mut s = server.state.lock().unwrap();
+                s.drop_final_ack = matches!(path, "lost_final_ack" | "cancel");
+                s.ready_conflict = path == "cancel";
+                s.validation = Some("uploading".into());
+                if path == "final_ack" {
+                    s.item_override = Some(serde_json::json!({
+                        "id":"item", "kind":"text", "status":"ready", "size":edited_size
+                    }));
+                }
+            }
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().join("queue");
+            let q = Queue::open(root.clone()).unwrap();
+            q.configure(server.config()).unwrap();
+            spool_text(&root, &mut original.as_slice()).unwrap();
+            q.tick().unwrap();
+            let first = q.list().unwrap()[0].clone();
+            if path != "final_ack" {
+                assert_eq!(
+                    first.status,
+                    if path == "validation" {
+                        "validating"
+                    } else {
+                        "queued"
+                    }
+                );
+                assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 1);
+            }
+            drop(q);
+            server.state.lock().unwrap().item_override = Some(serde_json::json!({
+                "id":"item", "kind":"text", "status":"ready", "size":edited_size
+            }));
+            let q = Queue::open(root.clone()).unwrap();
+            if path != "final_ack" {
+                q.control(&first.id, "resume").unwrap();
+                if path == "cancel" {
+                    q.control(&first.id, "cancel").unwrap();
+                }
+                assert!(q.tick().unwrap());
+            }
+            let transfers = q.list().unwrap();
+            assert_eq!(transfers.len(), 1);
+            let t = &transfers[0];
+            assert_eq!(t.id, first.id);
+            assert_eq!(t.item_id.as_deref(), Some("item"));
+            assert_eq!(
+                t.status, "complete",
+                "{path}, edited size {edited_size}: {t:?}"
+            );
+            assert_eq!(t.size, original.len() as u64);
+            assert_eq!(t.offset, t.size);
+            assert!(t.error.is_none());
+            assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 0);
+            assert!(!q.tick().unwrap());
+            let s = server.state.lock().unwrap();
+            assert_eq!(s.bytes, original);
+            assert_eq!(s.length, original.len());
+            assert_eq!(s.chunks, vec![original.len()]);
+            assert_eq!(s.creations, 1);
+            assert!(!s.delete);
+        }
+    }
+}
+
+#[test]
+fn upload_reconciliation_rejects_invalid_item_metadata_and_retains_stage() {
+    use household_native::spool_text;
+    for cancel in [false, true] {
+        for (field, invalid) in [
+            ("id", serde_json::json!("another-item")),
+            ("kind", serde_json::json!("file")),
+            ("status", serde_json::json!("unexpected")),
+            ("status", serde_json::json!("failed")),
+            ("size", serde_json::json!("4")),
+            ("size", serde_json::json!(-1)),
+            ("uploading_size", serde_json::json!(5)),
+        ] {
+            let server = Server::new();
+            let mut item = serde_json::json!({
+                "id":"item", "kind":"text", "status":"ready", "size":4
+            });
+            if field == "uploading_size" {
+                item["status"] = serde_json::json!("uploading");
+                item["size"] = invalid;
+            } else {
+                item[field] = invalid;
+            }
+            {
+                let mut s = server.state.lock().unwrap();
+                s.item_override = Some(item);
+                s.drop_final_ack = cancel;
+                s.ready_conflict = cancel;
+            }
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().join("queue");
+            let q = Queue::open(root.clone()).unwrap();
+            q.configure(server.config()).unwrap();
+            spool_text(&root, &mut &b"text"[..]).unwrap();
+            q.tick().unwrap();
+            let first = q.list().unwrap()[0].clone();
+            if cancel {
+                assert_eq!(first.status, "queued");
+                q.control(&first.id, "resume").unwrap();
+                q.control(&first.id, "cancel").unwrap();
+                q.tick().unwrap();
+            }
+            let t = q.list().unwrap()[0].clone();
+            assert_eq!(t.status, "error", "{field}, cancel {cancel}: {t:?}");
+            assert!(t.error.is_some());
+            assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 1);
+            assert!(!q.tick().unwrap());
+            let s = server.state.lock().unwrap();
+            assert_eq!(s.creations, 1);
+            assert!(!s.delete);
+        }
+    }
+}
+
+#[test]
+fn edited_ready_text_does_not_bypass_original_tus_completion_checks() {
+    use household_native::spool_text;
+    for bad_offset in [false, true] {
+        let server = Server::new();
+        server.state.lock().unwrap().drop_final_ack = true;
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("queue");
+        let q = Queue::open(root.clone()).unwrap();
+        q.configure(server.config()).unwrap();
+        spool_text(&root, &mut &b"text"[..]).unwrap();
+        q.tick().unwrap();
+        let first = q.list().unwrap()[0].clone();
+        assert_eq!(first.status, "queued");
+        drop(q);
+        {
+            let mut s = server.state.lock().unwrap();
+            s.item_override = Some(serde_json::json!({
+                "id":"item", "kind":"text", "status":"ready", "size":0
+            }));
+            if bad_offset {
+                s.bytes.push(b'!');
+            } else {
+                s.length += 1;
+            }
+        }
+        let q = Queue::open(root.clone()).unwrap();
+        q.control(&first.id, "resume").unwrap();
+        q.tick().unwrap();
+        let t = q.list().unwrap()[0].clone();
+        assert_eq!(t.status, "error");
+        assert!(t
+            .error
+            .unwrap()
+            .contains("Invalid server upload length or offset"));
+        assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 1);
+        assert_eq!(server.state.lock().unwrap().creations, 1);
+    }
+}
+
+#[test]
+fn recipients_source_and_registration_survive_picker_pairing_and_restart() {
+    let server = Server::new();
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("queue");
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(server.config()).unwrap();
+    let source = q.connection().unwrap().device_id.unwrap();
+    let target = "b".repeat(32);
+    let context = q.prepare_send(None, Some(vec![target.clone()])).unwrap();
+    let file = tmp.path().join("file.txt");
+    fs::write(&file, b"test bytes").unwrap();
+    q.configure(Config {
+        base_url: "https://different.example".into(),
+        ..server.config()
+    })
+    .unwrap();
+    q.enqueue_prepared(&file, "file", &context).unwrap();
+    assert_eq!(q.list().unwrap()[0].status, "paused");
+    let transfer = q.list().unwrap()[0].id.clone();
+    drop(context);
+    drop(q);
+    let q = Queue::open(root).unwrap();
+    q.configure(Config {
+        source_device: "Later label".into(),
+        ..server.config()
+    })
+    .unwrap();
+    q.control(&transfer, "resume").unwrap();
+    q.tick().unwrap();
+    assert_eq!(q.list().unwrap()[0].status, "complete");
+    let s = server.state.lock().unwrap();
+    assert_eq!(s.registration.as_ref().unwrap()["id"], source);
+    assert_eq!(s.registration.as_ref().unwrap()["label"], "test");
+    assert!(s
+        .upload_metadata
+        .contains(&format!("sourceDeviceId {}", STANDARD.encode(source))));
+    assert!(s.upload_metadata.contains(&format!(
+        "targetDeviceIds {}",
+        STANDARD.encode(serde_json::to_vec(&vec![target]).unwrap())
+    )));
+}
+
+#[test]
+fn queued_and_arrival_registration_preserve_explicit_device_rename() {
+    let server = Server::new();
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("queue");
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(server.config()).unwrap();
+    let id = q.connection().unwrap().device_id.unwrap();
+    let file = tmp.path().join("old-capture.txt");
+    fs::write(&file, b"queued before rename").unwrap();
+    q.enqueue_upload(&file, "file").unwrap();
+    q.api(
+        "POST",
+        "/api/devices/register",
+        Some(serde_json::json!({
+            "id":id, "label":"Current explicit name", "platform":"browser"
+        })),
+    )
+    .unwrap();
+    drop(q);
+    let q = Queue::open(root).unwrap();
+    q.tick().unwrap();
+    assert_eq!(q.list().unwrap()[0].status, "complete");
+    q.set_arrival_enabled(true).unwrap();
+    q.poll_arrivals(|_| panic!("No new arrivals")).unwrap();
+    let s = server.state.lock().unwrap();
+    let device = s.registration.as_ref().unwrap();
+    assert_eq!(device["id"], id);
+    assert_eq!(device["label"], "Current explicit name");
+    assert_eq!(device["platform"], "browser");
+    assert_eq!(s.registration_requests.len(), 3);
+    assert!(s.registration_requests[0].get("preserveExisting").is_none());
+    for request in &s.registration_requests[1..] {
+        assert_eq!(request["label"], "test", "Exercise stale saved labels");
+        assert_eq!(request["preserveExisting"], true);
+    }
+}
+
+fn arrival(sequence: u64) -> serde_json::Value {
+    serde_json::json!({"sequence":sequence.to_string(), "itemId":format!("{sequence:032x}"), "createdAt":"2026-10-23T14:00:00Z"})
+}
+#[test]
+fn arrival_batches_dedupe_after_lost_ack_and_restart_and_keep_for_you() {
+    let server = Server::new();
+    server.state.lock().unwrap().arrivals = vec![arrival(1), arrival(2)];
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("queue");
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(server.config()).unwrap();
+    q.poll_arrivals(|_| panic!("disabled means no banner"))
+        .unwrap();
+    assert!(server.state.lock().unwrap().registration.is_none());
+    q.set_arrival_enabled(true).unwrap();
+    server.state.lock().unwrap().ack_lost = true;
+    let mut posted = Vec::new();
+    assert!(q
+        .poll_arrivals(|b| {
+            posted.push(b);
+            Ok(())
+        })
+        .is_err());
+    assert_eq!(posted.len(), 1);
+    assert!(posted[0].multiple);
+    assert_eq!(posted[0].target.item_id, format!("{:032x}", 2));
+    q.record_arrival_click(posted[0].target.clone()).unwrap();
+    drop(q);
+    let q = Queue::open(root).unwrap();
+    assert_eq!(
+        q.take_arrival_target().unwrap(),
+        Some(posted[0].target.clone())
+    );
+    q.poll_arrivals(|_| panic!("saved progress must prevent repeat after lost ACK"))
+        .unwrap();
+    let s = server.state.lock().unwrap();
+    assert_eq!(s.arrivals.len(), 2, "ACK retains For you records");
+    assert_eq!(s.ack, 2);
+    assert_eq!(s.ack_calls, vec!["2", "2"]);
+    assert!(s.arrival_queries.last().unwrap().contains("after=2"));
+}
+#[test]
+fn arrival_failure_replays_stable_id_and_invalid_cursor_never_acks() {
+    let server = Server::new();
+    server.state.lock().unwrap().arrivals = vec![arrival(3)];
+    let tmp = tempfile::tempdir().unwrap();
+    let q = Queue::open(tmp.path().into()).unwrap();
+    q.configure(server.config()).unwrap();
+    q.set_arrival_enabled(true).unwrap();
+    let mut ids = Vec::new();
+    assert!(q
+        .poll_arrivals(|b| {
+            ids.push(b.id);
+            Err("OS preparation failure".into())
+        })
+        .is_err());
+    assert!(server.state.lock().unwrap().ack_calls.is_empty());
+    assert!(q.arrival_settings().unwrap().last_error.is_some());
+    q.poll_arrivals(|b| {
+        ids.push(b.id);
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(ids.len(), 2);
+    assert_eq!(ids[0], ids[1]);
+    assert!(q.arrival_settings().unwrap().last_error.is_none());
+    server.state.lock().unwrap().bad_cursor = true;
+    let before = server.state.lock().unwrap().ack_calls.len();
+    assert!(q
+        .poll_arrivals(|_| panic!("invalid page must not post"))
+        .is_err());
+    assert_eq!(
+        server.state.lock().unwrap().ack_calls.len(),
+        before + 1,
+        "only retry saved ACK"
+    );
+    q.set_arrival_enabled(false).unwrap();
+    let before = server.state.lock().unwrap().arrival_queries.len();
+    q.poll_arrivals(|_| panic!("disabled")).unwrap();
+    assert_eq!(server.state.lock().unwrap().arrival_queries.len(), before);
+}
+#[test]
+fn arrival_singleflight_and_quit_stop_work() {
+    let server = Server::new();
+    server.state.lock().unwrap().arrivals = vec![arrival(1)];
+    let tmp = tempfile::tempdir().unwrap();
+    let q = Queue::open(tmp.path().into()).unwrap();
+    q.configure(server.config()).unwrap();
+    q.set_arrival_enabled(true).unwrap();
+    q.poll_arrivals(|_| {
+        q.poll_arrivals(|_| panic!("must not reenter processor"))
+            .unwrap();
+        Ok(())
+    })
+    .unwrap();
+    assert_eq!(server.state.lock().unwrap().arrival_queries.len(), 1);
+    q.shutdown().unwrap();
+    q.poll_arrivals(|_| panic!("Quit stops arrivals")).unwrap();
+    assert_eq!(server.state.lock().unwrap().arrival_queries.len(), 1);
+}
+#[test]
+fn ambiguous_upload_creation_is_not_automatically_retried() {
+    for status in [None, Some(400), Some(500)] {
+        let server = Server::new();
+        {
+            let mut s = server.state.lock().unwrap();
+            s.drop_creation = status.is_none();
+            s.creation_status = status;
+        }
+        let tmp = tempfile::tempdir().unwrap();
+        let q = Queue::open(tmp.path().join("queue")).unwrap();
+        q.configure(server.config()).unwrap();
+        let file = tmp.path().join("file");
+        fs::write(&file, b"file").unwrap();
+        q.enqueue_upload(&file, "file").unwrap();
+        q.tick().unwrap();
+        assert_eq!(q.list().unwrap()[0].status, "error");
+        let prefix = if status == Some(400) {
+            "Upload creation rejected"
+        } else {
+            "Upload creation outcome unknown"
+        };
+        assert!(q.list().unwrap()[0]
+            .error
+            .as_deref()
+            .unwrap()
+            .starts_with(prefix));
+        assert!(!q.tick().unwrap());
+        assert_eq!(server.state.lock().unwrap().creations, 1);
+    }
 }

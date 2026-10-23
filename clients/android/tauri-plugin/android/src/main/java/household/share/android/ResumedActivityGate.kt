@@ -7,6 +7,7 @@ import androidx.lifecycle.LifecycleOwner
 /** Attach and check on the UI thread. A late observer receives the current resume event. */
 internal class ResumedActivityGate(
     private val lifecycle: Lifecycle,
+    private val onPaused: () -> Unit = {},
     private val onResumed: () -> Unit,
 ) : DefaultLifecycleObserver, AutoCloseable {
     init { lifecycle.addObserver(this) }
@@ -16,6 +17,7 @@ internal class ResumedActivityGate(
     }
 
     override fun onResume(owner: LifecycleOwner) { onResumed() }
+    override fun onPause(owner: LifecycleOwner) { onPaused() }
     override fun onDestroy(owner: LifecycleOwner) { close() }
-    override fun close() { lifecycle.removeObserver(this) }
+    override fun close() { lifecycle.removeObserver(this); onPaused() }
 }

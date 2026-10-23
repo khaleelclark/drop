@@ -1,8 +1,8 @@
-# Household
+# Zing
 
-A private shared inbox for household text and files, designed for Linux hosting behind Tailscale and Mac, Linux, Android, and browser clients.
+Zing is a private shared inbox for household text and files, designed for Linux hosting behind Tailscale and Mac, Linux, Android, and browser clients.
 
-Source repository: [khaleelclark/household-share](https://github.com/khaleelclark/household-share). The source is public; access to a running household instance requires its configured private network and app token.
+Source repository: [khaleelclark/household-share](https://github.com/khaleelclark/household-share). The source is public; a running household instance uses private Tailscale access and its explicitly configured authentication mode.
 
 The app has one shared feed, explicit Copy and Download actions, resumable native transfer queues, and a browser fallback. See [validation evidence](docs/validation.md) for the exact builds and checks performed. Mac packaging and physical-phone background behavior require checks on those devices.
 
@@ -16,7 +16,11 @@ bash scripts/build.sh
 cp .env.example .env
 ```
 
-Edit `.env`: set a strong `HOUSEHOLD_TOKEN` of at least 16 bytes and set `HOUSEHOLD_PUBLIC_URL` to your exact Tailscale HTTPS origin. Keep the loopback address. From the project or unpacked server-bundle directory:
+Edit `.env`: set `HOUSEHOLD_AUTH_MODE=tailscale` for URL-only access through the
+local Tailscale Serve proxy, and set `HOUSEHOLD_PUBLIC_URL` to its exact HTTPS
+origin. Keep the loopback address and restrict Tailscale access to the household.
+For explicit token mode instead, set `HOUSEHOLD_AUTH_MODE=token` and a strong
+private `HOUSEHOLD_TOKEN` of at least 16 bytes. From the project or unpacked server-bundle directory:
 
 ```sh
 set -a
@@ -31,7 +35,12 @@ In another terminal on the same host, configure the private HTTPS entry point:
 tailscale serve --bg http://127.0.0.1:8787
 ```
 
-Open that HTTPS address on a household device connected to Tailscale, then enter the app token. The server must remain awake and online. Files stay until explicitly deleted; storage budgets and abandoned-upload expiry are configurable. See [hosting and storage](docs/deployment.md) and [server configuration](server/README.md). No deployment is performed by building the project.
+Open that HTTPS address on a household device connected to Tailscale. In
+Tailscale mode, no app token is needed; token mode retains its explicit login.
+The server must remain awake and online. Files stay until explicitly deleted;
+storage budgets and abandoned-upload expiry are configurable. See
+[hosting and storage](docs/deployment.md) and [server configuration](server/README.md).
+No deployment is performed by building the project.
 
 ## Install clients
 
@@ -63,13 +72,25 @@ The user approved project-local Go and Rust installation for this build. `python
 
 ## Development and hosting
 
-Configuration uses the variables in `.env.example`. The production service requires a configured token. Browser clients exchange it for a same-site session; installed clients use bearer authentication. Keep the application on loopback and use Tailscale Serve as the HTTPS entry point.
+Configuration uses the variables in `.env.example`. Explicit Tailscale mode
+requires a trusted local Serve identity on every request; default token mode
+requires a configured token, exchanged for a browser session or sent privately
+by the installed client. Keep the application on loopback and use Tailscale
+Serve as the HTTPS entry point. Tagged clients need the advanced token fallback;
+see the hosting guide for the local proxy trust boundary.
 
 The intended production layout is a server binary, built web assets, and a persistent data directory. Downloads are streamed; feed updates contain metadata; incomplete uploads remain unavailable until validated. Storage budgets count unfinished transfers.
 
 `bash scripts/test.sh` runs frontend and Go tests. Component-specific checks are in their READMEs. The real-server browser smoke is `node scripts/browser-smoke.cjs`; it requires a disposable configured loopback test server and token file, as described in [validation](docs/validation.md). No service has been deployed by this repository.
 
 After the final source and web/server build, `python3 scripts/package.py` creates a source archive, a Linux x86_64 server bundle, and their SHA256 manifest under `artifacts/`. The server bundle contains `bin/household-server`, `web/dist`, configuration example and hosting instructions; unpack it and run from its `household/` directory. The source archive excludes local toolchains, queues, credentials, signing keys, dependencies and build outputs. Native packages are built separately using the platform instructions above.
+
+Packaging selects the current native versions and rejects Android APKs with a
+different frontend. It requires both current Mac installers; while those are
+pending, `python3 scripts/package.py --allow-missing-macos` creates an explicitly
+incomplete candidate whose manifest lists the missing installers. Older Mac
+packages are never substituted. Check all included bytes from the project root
+with `sha256sum -c artifacts/SHA256SUMS`.
 
 ## Interaction
 

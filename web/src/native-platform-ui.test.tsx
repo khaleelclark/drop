@@ -17,9 +17,13 @@ describe('shared native fixture at the interface boundary', () => {
       if (command === 'native_configure') { connected = true; return null }
       if (command === 'native_disconnect') { connected = false; return null }
       if (command === 'native_list_transfers') return []
+      if (command === 'native_get_arrival_settings') return fixture.arrivalSettings
+      if (command === 'native_take_arrival_target') return null
       if (command === 'native_api') {
         if (!connected) return {status:401,body:'{"error":{"message":"Connect first"}}'}
         if (String(args?.path).startsWith('/api/items?')) return {status:200,body:'{"items":[],"nextCursor":null}'}
+        if (args?.path === '/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
+        if (args?.path === '/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
         if (args?.path === '/api/storage') return {status:200,body:JSON.stringify({usedBytes:0,freeBytes:100000,maxFileBytes:21474836480,maxTextBytes:33554432,maxStorageBytes:null})}
         return {status:200,body:'{"status":"ok"}'}
       }
@@ -27,16 +31,17 @@ describe('shared native fixture at the interface boundary', () => {
     })
     window.householdPlatform = await nativePlatform(invoke)
     render(<App />)
-    const dialog = screen.getByRole('dialog',{name:'Connect to Household'})
+    const dialog = screen.getByRole('dialog',{name:'Connect to Zing'})
     expect(within(dialog).getByLabelText('Household server')).toHaveValue(fixture.unpairedConfig.baseUrl)
-    fireEvent.change(within(dialog).getByLabelText('App token'),{target:{value:'pairing-token'}})
+    fireEvent.click(within(dialog).getByRole('button',{name:'Advanced · Use app token'}))
+    fireEvent.change(within(dialog).getByLabelText('App token (optional)'),{target:{value:'pairing-token'}})
     fireEvent.click(within(dialog).getByRole('button',{name:'Connect household'}))
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
     expect(invoke).toHaveBeenCalledWith('native_configure',{baseUrl:fixture.unpairedConfig.baseUrl,token:'pairing-token',sourceDevice:fixture.unpairedConfig.sourceDevice})
     fireEvent.click(screen.getByRole('button',{name:'Connection and device settings'}))
     fireEvent.click(await screen.findByRole('button',{name:'Disconnect this app'}))
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('native_disconnect'))
-    expect(await screen.findByRole('dialog',{name:'Connect to Household'})).toBeInTheDocument()
+    expect(await screen.findByRole('dialog',{name:'Connect to Zing'})).toBeInTheDocument()
     expect(screen.queryByRole('button',{name:'Disconnect this app'})).not.toBeInTheDocument()
     expect((await nativePlatform(invoke)).requiresConnection).toBe(true)
     expect(browserFetch).not.toHaveBeenCalled()
@@ -91,5 +96,44 @@ describe('shared native fixture at the interface boundary', () => {
     await adapter.transfers.reselect!('needs-source')
     expect(screen.queryByText('saved.bin')).not.toBeInTheDocument()
     expect(onError).not.toHaveBeenCalled()
+  })
+})
+
+describe('URL-only installed connection',()=>{
+  it.each([false,true])('verifies a protected native fetch before connected (failed=%s), without browser fallback',async fail=>{
+    let configured=false
+    const browserFetch=vi.fn().mockRejectedValue(new Error('No browser transport'))
+    vi.stubGlobal('fetch',browserFetch)
+    const invoke=vi.fn<NativeInvoke>(async(command,args)=>{
+      if(command==='native_get_config')return configured?fixture.config:fixture.unpairedConfig
+      if(command==='native_configure'){configured=true;return null}
+      if(command==='native_list_transfers')return []
+      if(command==='native_take_arrival_target')return null
+      if(command==='native_api'){
+        if(!configured||fail)return {status:401,body:'{"error":{"message":"Access denied"}}'}
+        const path=String(args?.path)
+        if(path.startsWith('/api/items?'))return {status:200,body:'{"items":[],"nextCursor":null}'}
+        if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
+        if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
+        if(path==='/api/storage')return {status:200,body:'{"usedBytes":0,"freeBytes":1000,"maxFileBytes":21474836480,"maxTextBytes":33554432,"maxStorageBytes":null}'}
+        return {status:200,body:'{}'}
+      }
+      throw new Error(`Unexpected command ${command}`)
+    })
+    window.householdPlatform=await nativePlatform(invoke);render(<App/>)
+    const dialog=screen.getByRole('dialog',{name:'Connect to Zing'})
+    expect(within(dialog).queryByLabelText('App token (optional)')).not.toBeInTheDocument()
+    fireEvent.click(within(dialog).getByRole('button',{name:'Connect household'}))
+    expect(await waitFor(()=>{expect(invoke).toHaveBeenCalledWith('native_configure',{baseUrl:fixture.unpairedConfig.baseUrl,token:'',sourceDevice:fixture.unpairedConfig.sourceDevice});return true})).toBe(true)
+    if(fail){
+      await waitFor(()=>expect(within(dialog).getByRole('alert')).toHaveTextContent('Access was not accepted'))
+      expect(dialog).toBeInTheDocument();expect(within(dialog).getByRole('button',{name:'Advanced · Use app token'})).toBeEnabled()
+      expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeDisabled()
+    }else{
+      await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+      await waitFor(()=>expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeEnabled())
+      expect(invoke.mock.calls.some(([command,args])=>command==='native_api'&&args?.path==='/api/devices/register'&&JSON.parse(String(args.body)).preserveExisting===true)).toBe(true)
+    }
+    expect(browserFetch).not.toHaveBeenCalled();expect(JSON.stringify(localStorage)).not.toContain('token')
   })
 })

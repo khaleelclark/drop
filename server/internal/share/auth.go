@@ -9,10 +9,13 @@ import (
 	"errors"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strconv"
 	"strings"
 	"time"
+	"unicode"
+	"unicode/utf8"
 )
 
 const cookieName = "household_session"
@@ -41,7 +44,32 @@ func (s *Server) sessionValue(expiry int64) string {
 	return message + "." + hex.EncodeToString(mac.Sum(nil))
 }
 
-func (s *Server) authenticated(r *http.Request) (ok, bearer bool) {
+// Serve strips caller identity headers; only its local TCP hop is trusted.
+func (s *Server) tailscaleAuthenticated(r *http.Request) bool {
+	if s.cfg.AuthMode != "tailscale" {
+		return false
+	}
+	host, _, err := net.SplitHostPort(r.RemoteAddr)
+	if err != nil {
+		return false
+	}
+	ip := net.ParseIP(host)
+	if ip == nil || !ip.IsLoopback() {
+		return false
+	}
+	values := r.Header.Values("Tailscale-User-Login")
+	if len(values) != 1 || len(values[0]) > 1024 || strings.TrimSpace(values[0]) == "" || !utf8.ValidString(values[0]) {
+		return false
+	}
+	for _, ch := range values[0] {
+		if unicode.IsControl(ch) {
+			return false
+		}
+	}
+	return true
+}
+
+func (s *Server) authenticated(r *http.Request) (ok, native bool) {
 	if value := r.Header.Get("Authorization"); value != "" {
 		if s.cfg.Token == "" {
 			return false, false
@@ -51,8 +79,19 @@ func (s *Server) authenticated(r *http.Request) (ok, bearer bool) {
 		}
 		return secureEqual(strings.TrimPrefix(value, "Bearer "), s.cfg.Token), true
 	}
-	if s.cfg.Dev && s.cfg.Token == "" {
+	if s.tailscaleAuthenticated(r) {
+		for key := range r.Header {
+			if strings.HasPrefix(strings.ToLower(key), "sec-fetch-") {
+				return true, false
+			}
+		}
 		return true, true
+	}
+	if s.cfg.AuthMode != "tailscale" && s.cfg.Dev && s.cfg.Token == "" {
+		return true, true
+	}
+	if s.cfg.Token == "" {
+		return false, false
 	}
 	cookie, err := r.Cookie(cookieName)
 	if err != nil {
@@ -69,12 +108,12 @@ func (s *Server) authenticated(r *http.Request) (ok, bearer bool) {
 	return secureEqual(cookie.Value, s.sessionValue(expiry)), false
 }
 
-func (s *Server) originAllowed(r *http.Request, bearer bool) bool {
-	origin := r.Header.Get("Origin")
-	if origin == "" {
-		return bearer
+func (s *Server) originAllowed(r *http.Request, native bool) bool {
+	origins := r.Header.Values("Origin")
+	if len(origins) == 0 {
+		return native
 	}
-	return origin == s.cfg.Origin
+	return len(origins) == 1 && origins[0] == s.cfg.Origin
 }
 
 func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
@@ -91,13 +130,13 @@ func (s *Server) serveHTTP(w http.ResponseWriter, r *http.Request) {
 	if strings.HasPrefix(r.URL.Path, "/api/") {
 		w.Header().Set("Cache-Control", "no-store")
 		if r.URL.Path != "/api/health" && r.URL.Path != "/api/session" {
-			ok, bearer := s.authenticated(r)
+			ok, native := s.authenticated(r)
 			if !ok {
 				writeError(w, 401, "unauthorized", "Authentication required")
 				return
 			}
 			mutating := r.Method != "GET" && r.Method != "HEAD" && r.Method != "OPTIONS"
-			if mutating && !s.originAllowed(r, bearer) {
+			if mutating && !s.originAllowed(r, native) {
 				writeError(w, 403, "origin_denied", "Request origin not allowed")
 				return
 			}
@@ -113,6 +152,10 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, limit int64, dest any) b
 		writeError(w, 415, "content_type", "Expected application/json")
 		return false
 	}
+	if r.ContentLength > limit {
+		writeError(w, 413, "request_too_large", "JSON request exceeds the configured limit")
+		return false
+	}
 	r.Body = http.MaxBytesReader(w, r.Body, limit)
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
@@ -126,7 +169,12 @@ func decodeJSON(w http.ResponseWriter, r *http.Request, limit int64, dest any) b
 		return false
 	}
 	if err := decoder.Decode(new(any)); err != io.EOF {
-		writeError(w, 400, "invalid_json", "Expected one JSON value")
+		var tooLarge *http.MaxBytesError
+		if errors.As(err, &tooLarge) {
+			writeError(w, 413, "request_too_large", "JSON request exceeds the configured limit")
+		} else {
+			writeError(w, 400, "invalid_json", "Expected one JSON value")
+		}
 		return false
 	}
 	return true
@@ -147,13 +195,17 @@ func (s *Server) session(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(204)
 		return
 	}
+	if s.tailscaleAuthenticated(r) {
+		w.WriteHeader(204)
+		return
+	}
 	var body struct {
 		Token string `json:"token"`
 	}
 	if !decodeJSON(w, r, 16<<10, &body) {
 		return
 	}
-	if !secureEqual(body.Token, s.cfg.Token) {
+	if s.cfg.Token == "" || !secureEqual(body.Token, s.cfg.Token) {
 		writeError(w, 401, "unauthorized", "Invalid token")
 		return
 	}

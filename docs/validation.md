@@ -1,5 +1,103 @@
 # Build and validation evidence
 
+## Zing shared-board update — local acceptance, 2026-10-23
+
+The new source adds registered recipients/For you, opt-in arrivals, lighter
+controls, readable notes, shared versioned editing, exact TXT/MD exports and
+optional Tailscale Serve sign-in. Android 0.1.4 and Linux 0.1.2 packages are built
+and checked. Current Mac installers and the live schema-3 upgrade remain
+pending; the older release evidence below remains historical.
+
+The initial combined candidate was built as Android 0.1.4/code1004 and Linux
+0.1.2. Root installed the exact x86_64 APK over the prior emulator app and passed
+cold launch, native text submission/clipboard/Android Paste, scale 1 and native
+keyboard clearance. Actual native shared-board checks also passed registered
+identity, addressed For you, Save preserving stored BOM/CRLF/Unicode, conflict
+draft retention, no additional arrival and For you after ACK/reload. All API
+traffic used the actual Kotlin bridge and disposable Go server. These results
+do not establish physical-phone or OS arrival notification behavior.
+
+The complete installed navigation check **rejected this candidate**: the last
+text entry's five-action menu extends below the bottom tabs (908.83 CSS px,
+maximum 768.24, at 412×839). Docked targets, actual keyboard/Back/Done and draft
+checks passed before that failure. The original candidate is retained as
+rejected history (`docs/evidence/zing-android-candidate.json`). The replacement
+Bn7PZLMa/CeynTtsM frontend opens the menu upward or scrolls it within the
+available viewport. Root installed replacement x86_64 APK SHA256
+`0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0`
+and independently hashed its actual installed APK bytes. All four installed
+checks passed: cold native bootstrap/Copy/Android Paste; all five tabs, real
+IME/Back/Done/search/drafts and the original final-item menu regression; shared
+Save/conflict/For you; and actual Android arrival presentation/click.
+
+The notification test began with default-off arrivals and already-granted OS
+permission, explicitly enabled the native listener, observed its generic
+NotificationManager record and durable server ACK, then expanded actual
+SystemUI. Root viewed the real “Zing — New share available” notification and
+clicked its inspected bounds. It opened/highlighted the exact For you item
+without changing the existing clipboard or download queue. The test disabled
+notifications afterward. This is foreground/emulator evidence; initial
+permission prompts, denial-to-grant, periodic scheduling, cold-process launch,
+lock-screen, Doze, reboot and physical-phone behavior remain unperformed.
+Full reports, package provenance, screenshots and limits are preserved in
+`docs/evidence/zing-android-menu.json`.
+
+The new Linux shell/notification adapter compiled in the existing isolated
+SDK. The DEB retains package `household-share` and launcher
+`Household Share.desktop`, displays Zing and embeds the reviewed candidate
+assets. A nonroot, network-disabled run with private cookie-authenticated Xvfb
+rendered Zing; normal window close kept it resident and Ctrl+Shift+H reopened
+the same window. No host library installation or sandbox-disable option was
+used. This is unpaired lifecycle evidence, not native notification or transfer
+acceptance (`docs/evidence/zing-linux-package.json`). The final Linux replacement
+was rebuilt from the corrected frozen assets without a web rebuild and retains
+the same package/launcher identity; exact hashes and build limits are in
+`docs/evidence/zing-linux-menu-package.json`.
+
+Root also exercised an actual schema-1 to schema-3 upgrade using the old and new
+executables against disposable data, preserving existing text/file IDs and
+bytes, saving an edit and exporting exact Markdown. Restoring the stopped
+whole-directory backup with the old executable recovered original bytes;
+post-backup edits disappear as documented. No live service/data/configuration
+changed (`docs/evidence/zing-upgrade-rollback.json`). The static CGO-disabled
+root server binary passed the full HTTP/restart smoke separately.
+
+Root passed the full real HTTP smoke against the new server, including routing,
+ACK/For you through restart, editing/conflicts, exact exports and original tus
+lengths after an uploaded Markdown entry was edited to empty. A real Chromium
+round trip against a disposable server passed selected-recipient metadata,
+full text Copy/TXT/MD bytes, Save/conflict draft retention without additional
+arrivals, a 1,048,713-byte file upload/download with matching SHA256, and a second
+browser identity's For you history after ACK/reload. No API routes were mocked
+in that round trip. Exact source/build hashes and scope are recorded in
+`docs/evidence/zing-integration.json`.
+
+The separate real Tailscale Serve staging check passed tokenless protected
+access, actual identity-header stripping, native writes and browser Origin
+enforcement. Its temporary private route was removed and the complete previous
+Serve configuration restored; the live application and data were unchanged.
+See `docs/evidence/zing-tailscale-auth.json`.
+
+The interface owner's final source checks report 90 unit/component tests,
+29 Chromium fixtures and a successful TypeScript/Vite build. Root verified all
+nine frozen asset hashes and the named review files and inspected rendered
+phone/desktop/editor/recovery images. Fixture notification/native behavior is
+not OS or device evidence. The separately executed installed Android checks
+above are actual root runtime evidence. Both APK ABIs and the standalone package
+passed signature, manifest, alignment, native-class and nine-asset audits;
+`clients/android/validation/package-0.1.4-menu.json` is the immutable build-time
+snapshot. Source/Android documentation may subsequently link the runtime result.
+
+The current source/server archives and seven available package checksums are
+created with `scripts/package.py --allow-missing-macos`. The manifest explicitly
+lists both missing Mac 0.1.2 installers; it never substitutes older DMGs.
+The extracted server bundle starts using documented relative paths, serves the
+exact frozen index, rejects anonymous data access and accepts authenticated
+access (`docs/evidence/zing-server-bundle.json`). The package-source review found
+no concrete credential or compiled-output inclusion regression. Current Mac
+compilation/installation, the live upgrade, physical phones, new background and
+20 GB acceptance remain pending.
+
 ## Android full-height correction, 2026-10-23
 
 Android 0.1.3/code1003 removes duplicate system-safe spacing inside the native

@@ -11,7 +11,9 @@ class UploadCompletion(private val itemId: String, private val kind: String, pri
     fun requireReady(fetch: () -> Item) {
         require(itemId.matches(Regex("[A-Za-z0-9_-]+"))) { "Upload item ID missing or invalid; cannot confirm publication" }
         val item = fetch()
-        require(item.id == itemId && item.kind == kind && item.size == size) { "Server returned different upload metadata" }
+        require(item.id == itemId && item.kind == kind) { "Server returned different upload metadata" }
+        // A ready text entry may have been edited after its original tus bytes completed.
+        require(item.status == "ready" || item.size == size) { "Server/source lengths differ while upload is incomplete" }
         when (item.status) {
             "ready" -> return
             "failed" -> throw UploadRejected()

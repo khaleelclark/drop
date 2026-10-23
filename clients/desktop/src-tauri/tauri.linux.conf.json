@@ -1,0 +1,9 @@
+{
+  "productName": "Household Share",
+  "bundle": {
+    "linux": {
+      "deb": { "desktopTemplate": "Zing.desktop.hbs" },
+      "rpm": { "desktopTemplate": "Zing.desktop.hbs" }
+    }
+  }
+}

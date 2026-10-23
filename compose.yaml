@@ -4,7 +4,8 @@ services:
     restart: unless-stopped
     network_mode: host
     environment:
-      HOUSEHOLD_TOKEN: ${HOUSEHOLD_TOKEN:?Set HOUSEHOLD_TOKEN in .env}
+      HOUSEHOLD_AUTH_MODE: ${HOUSEHOLD_AUTH_MODE:-token}
+      HOUSEHOLD_TOKEN: ${HOUSEHOLD_TOKEN:-}
       HOUSEHOLD_PUBLIC_URL: ${HOUSEHOLD_PUBLIC_URL:?Set the exact HTTPS Tailscale Serve origin}
     volumes:
       - household-data:/data

@@ -75,7 +75,7 @@ fn run() -> Result<(), String> {
 fn launch() {
     #[cfg(target_os = "macos")]
     let result = Command::new("/usr/bin/open")
-        .args(["-g", "-a", "Household Share", "--args", "--background"])
+        .args(["-g", "-b", "net.household.share", "--args", "--background"])
         .spawn();
     #[cfg(not(target_os = "macos"))]
     let result = {
@@ -86,7 +86,7 @@ fn launch() {
         Command::new(executable).arg("--background").spawn()
     };
     if let Err(e) = result {
-        eprintln!("Capture is safely queued. Open Household Share to process it ({e}).");
+        eprintln!("Capture is safely queued. Open Zing to process it ({e}).");
     }
 }
 fn main() {

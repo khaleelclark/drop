@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"io"
 	"mime"
@@ -46,7 +47,17 @@ func (store *uploadStore) NewUpload(ctx context.Context, info handler.FileInfo) 
 		return nil, tusError(400, "invalid_kind", "Upload kind must be file or text")
 	}
 	source := info.MetaData["sourceDevice"]
-	if source != "" {
+	sourceID, hasSourceID := info.MetaData["sourceDeviceId"]
+	if hasSourceID && !validID.MatchString(sourceID) {
+		return nil, tusError(400, "invalid_routing", errRouting.Error())
+	}
+	var targets targetList
+	if raw, present := info.MetaData["targetDeviceIds"]; present {
+		if err := json.Unmarshal([]byte(raw), &targets); err != nil {
+			return nil, tusError(400, "invalid_routing", errRouting.Error())
+		}
+	}
+	if !hasSourceID && source != "" {
 		if err := safeLabel(source, 128, false); err != nil {
 			return nil, tusError(400, "invalid_source", err.Error())
 		}
@@ -55,15 +66,18 @@ func (store *uploadStore) NewUpload(ctx context.Context, info handler.FileInfo) 
 	if contentType == "" {
 		contentType = "application/octet-stream"
 	}
-	typ, params, err := mime.ParseMediaType(contentType)
+	_, _, err := mime.ParseMediaType(contentType)
 	if err != nil || len(contentType) > 255 {
 		return nil, tusError(400, "invalid_type", "Invalid content type")
 	}
-	if kind == "text" && (typ != "text/plain" || (params["charset"] != "" && !strings.EqualFold(params["charset"], "utf-8"))) {
-		return nil, tusError(400, "invalid_type", "Text uploads must be UTF-8 text/plain")
+	if kind == "text" && !textFileCandidate(name, contentType) {
+		return nil, tusError(400, "invalid_type", "Text uploads require supported UTF-8 text metadata")
 	}
-	row := record{Item: Item{ID: info.ID, Kind: kind, Name: name, Size: info.Size, Status: "uploading", SourceDevice: source, MIMEType: contentType}, Upload: true}
+	row := record{Item: Item{ID: info.ID, Kind: kind, Name: name, Size: info.Size, Status: "uploading", SourceDevice: source, MIMEType: contentType, SourceDeviceID: sourceID, TargetDeviceIDs: targets}, Upload: true}
 	if err := store.s.reserve(&row); err != nil {
+		if errors.Is(err, errRouting) {
+			return nil, tusError(400, "invalid_routing", errRouting.Error())
+		}
 		if errors.Is(err, errBudget) {
 			return nil, tusError(507, "storage_full", "Storage capacity unavailable")
 		}
@@ -95,30 +109,45 @@ func (u *upload) GetInfo(ctx context.Context) (handler.FileInfo, error) {
 	if err != nil {
 		return handler.FileInfo{}, err
 	}
-	stat, err := os.Stat(u.s.blob(u.id))
-	if errors.Is(err, os.ErrNotExist) {
-		return handler.FileInfo{}, handler.ErrNotFound
-	}
-	if err != nil {
-		return handler.FileInfo{}, err
-	}
-	if !stat.Mode().IsRegular() || stat.Size() > row.Size {
-		return handler.FileInfo{}, tusError(409, "invalid_length", "Stored upload length is invalid")
-	}
-	// tusd does not call FinishUpload again when a retried PATCH is already
-	// at its final offset. Retry recoverable finalization here, under tusd's
-	// item lock for existing uploads, so HEAD/resume also repairs a full blob
-	// left uploading by a temporary fsync/read/SQLite error. Newly created
-	// zero-byte uploads are safe to finalize before their first response.
-	if row.Status == "uploading" && stat.Size() == row.Size {
-		if err := u.s.complete(u.id); err != nil {
-			if errors.Is(err, errValidation) {
-				return handler.FileInfo{}, tusError(422, "validation_failed", "Uploaded content failed validation")
-			}
+	offset := row.UploadLength
+	if row.Status != "ready" {
+		stat, err := os.Stat(u.s.blob(row.BlobID))
+		if errors.Is(err, os.ErrNotExist) {
+			return handler.FileInfo{}, handler.ErrNotFound
+		}
+		if err != nil {
 			return handler.FileInfo{}, err
 		}
+		if !stat.Mode().IsRegular() || stat.Size() > row.UploadLength {
+			return handler.FileInfo{}, tusError(409, "invalid_length", "Stored upload length is invalid")
+		}
+		// tusd does not call FinishUpload again when a retried PATCH is already
+		// at its final offset. Retry recoverable finalization here, under tusd's
+		// item lock for existing uploads, so HEAD/resume also repairs a full blob
+		// left uploading by a temporary fsync/read/SQLite error. Newly created
+		// zero-byte uploads are safe to finalize before their first response.
+		if row.Status == "uploading" && stat.Size() == row.UploadLength {
+			if err := u.s.complete(u.id); err != nil {
+				if errors.Is(err, errValidation) {
+					return handler.FileInfo{}, tusError(422, "validation_failed", "Uploaded content failed validation")
+				}
+				return handler.FileInfo{}, err
+			}
+		}
+		offset = stat.Size()
 	}
-	return handler.FileInfo{ID: u.id, Size: row.Size, Offset: stat.Size(), MetaData: handler.MetaData{"filename": row.Name, "filetype": row.MIMEType, "kind": row.Kind, "sourceDevice": row.SourceDevice}}, nil
+	metadata := handler.MetaData{"filename": row.Name, "filetype": row.MIMEType, "kind": row.Kind, "sourceDevice": row.SourceDevice}
+	if row.SourceDeviceID != "" {
+		metadata["sourceDeviceId"] = row.SourceDeviceID
+	}
+	if len(row.TargetDeviceIDs) > 0 {
+		targets, err := json.Marshal(row.TargetDeviceIDs)
+		if err != nil {
+			return handler.FileInfo{}, err
+		}
+		metadata["targetDeviceIds"] = string(targets)
+	}
+	return handler.FileInfo{ID: u.id, Size: row.UploadLength, Offset: offset, MetaData: metadata}, nil
 }
 
 // The tus handler holds its per-item lock and limits src to the remaining size.
@@ -131,7 +160,7 @@ func (u *upload) WriteChunk(ctx context.Context, offset int64, src io.Reader) (i
 	if row.Status != "uploading" {
 		return 0, tusError(409, "not_uploading", "Item no longer accepts upload bytes")
 	}
-	file, err := os.OpenFile(u.s.blob(u.id), os.O_WRONLY, 0600)
+	file, err := os.OpenFile(u.s.blob(row.BlobID), os.O_WRONLY, 0600)
 	if err != nil {
 		return 0, err
 	}
@@ -151,7 +180,11 @@ func (u *upload) WriteChunk(ctx context.Context, offset int64, src io.Reader) (i
 	if err = file.Sync(); err != nil {
 		return n, err
 	}
-	if _, err = u.s.db.Exec(`UPDATE items SET updated_at=? WHERE id=?`, now(), u.id); err != nil {
+	updated, err := nextUpdated(row.UpdatedAt)
+	if err != nil {
+		return n, err
+	}
+	if _, err = u.s.db.Exec(`UPDATE items SET updated_at=? WHERE id=?`, updated, u.id); err != nil {
 		return n, err
 	}
 	return n, copyErr
@@ -185,14 +218,8 @@ func (w *budgetWriter) Write(p []byte) (int, error) {
 
 func (u *upload) GetReader(ctx context.Context) (io.ReadCloser, error) {
 	// tus download routes are disabled; still defend this datastore boundary.
-	row, err := u.s.get(u.id, false)
-	if err != nil {
-		return nil, err
-	}
-	if row.Status != "ready" {
-		return nil, tusError(409, "not_ready", "Item is not ready")
-	}
-	return os.Open(u.s.blob(u.id))
+	_, file, err := u.s.openContent(u.id)
+	return file, err
 }
 func (u *upload) FinishUpload(ctx context.Context) error {
 	err := u.s.complete(u.id)

@@ -17,6 +17,8 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use url::Url;
+mod devices;
+pub use devices::{ArrivalBanner, ArrivalSettings, ArrivalTarget, SendContext};
 
 pub type Result<T> = std::result::Result<T, String>;
 const CHUNK: u64 = 8 * 1024 * 1024;
@@ -172,6 +174,8 @@ struct Transfer {
     retries: u32,
     #[serde(default)]
     retry_at: u64,
+    #[serde(default)]
+    routing: Option<devices::Routing>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -213,11 +217,15 @@ enum Inbox {
         #[serde(default)]
         source_device: Option<String>,
         config: Config,
+        #[serde(default)]
+        routing: Option<devices::Routing>,
     },
     Text {
         source: Source,
         name: String,
         config: Config,
+        #[serde(default)]
+        routing: Option<devices::Routing>,
     },
 }
 
@@ -284,11 +292,11 @@ fn spool_upload_as(
     kind: &str,
     source_device: Option<String>,
 ) -> Result<String> {
-    let mut config = read_config(root)?;
-    config.token.clear();
-    if source_device.as_ref().is_some_and(|s| s.len() > 256) {
-        return Err("Device name is too long".into());
-    }
+    let context = devices::prepare_send(root, source_device, None)?;
+    spool_prepared(root, path, kind, &context)
+}
+fn spool_prepared(root: &Path, path: &Path, kind: &str, context: &SendContext) -> Result<String> {
+    let config = context.config.clone();
     if kind != "file" && kind != "text" {
         return Err("Invalid item kind".into());
     }
@@ -308,16 +316,17 @@ fn spool_upload_as(
             source,
             kind: kind.to_owned(),
             name,
-            source_device,
+            source_device: None,
             config,
+            routing: Some(context.routing.clone()),
         },
     )?;
     Ok(id)
 }
 /// Streams stdin to one owned staging file. Text is not copied into CLI arguments.
 pub fn spool_text(root: &Path, reader: &mut impl Read) -> Result<String> {
-    let mut config = read_config(root)?;
-    config.token.clear();
+    let context = devices::prepare_send(root, None, None)?;
+    let config = context.config.clone();
     let dir = root.join("staging");
     private_dir(&dir)?;
     let path = dir.join(format!("{}.txt", uuid::Uuid::new_v4()));
@@ -357,6 +366,7 @@ pub fn spool_text(root: &Path, reader: &mut impl Read) -> Result<String> {
             source,
             name: "Shared text.txt".into(),
             config,
+            routing: Some(context.routing.clone()),
         },
     )?;
     Ok(id)
@@ -369,6 +379,9 @@ pub struct Queue {
     stopping: AtomicBool,
     verified: Mutex<HashSet<String>>,
     api_cancellations: Mutex<HashMap<String, Arc<AtomicBool>>>,
+    pairing_lock: Mutex<()>,
+    arrival_flight: Mutex<()>,
+    arrival_started: AtomicBool,
     _lock: File,
 }
 impl Queue {
@@ -383,7 +396,7 @@ impl Queue {
             .open(root.join("queue.lock"))
             .map_err(err)?;
         lock.try_lock_exclusive()
-            .map_err(|_| "Household Share queue is already running".to_string())?;
+            .map_err(|_| "Zing queue is already running".to_string())?;
         let path = root.join("queue.json");
         // A corrupt queue is an error. Never silently discard resumable transfers.
         let mut state: DiskState = if path.exists() {
@@ -408,6 +421,9 @@ impl Queue {
             stopping: AtomicBool::new(false),
             verified: Mutex::new(HashSet::new()),
             api_cancellations: Mutex::new(HashMap::new()),
+            pairing_lock: Mutex::new(()),
+            arrival_flight: Mutex::new(()),
+            arrival_started: AtomicBool::new(false),
             _lock: lock,
         });
         q.save()?;
@@ -416,7 +432,7 @@ impl Queue {
     pub fn connection(&self) -> Result<ConnectionView> {
         let present = self.root.join("config.json").exists();
         let config: Config = if present {
-            read_json(&self.root.join("config.json"))?
+            read_json::<Config>(&self.root.join("config.json"))?.validate()?
         } else {
             Config {
                 base_url: String::new(),
@@ -424,7 +440,14 @@ impl Queue {
                 source_device: "Desktop".into(),
             }
         };
+        let identity = if present {
+            Some(devices::identity(&self.root, &config.base_url)?)
+        } else {
+            None
+        };
         Ok(ConnectionView {
+            device_id: identity.map(|d| d.id),
+            platform: devices::platform().into(),
             base_url: config.base_url,
             source_device: config.source_device,
             connected: present && !self.root.join("disconnected").exists(),
@@ -437,7 +460,10 @@ impl Queue {
         Ok(())
     }
     pub fn disconnect(&self) -> Result<()> {
+        let _flight = self.arrival_flight.lock().map_err(err)?;
+        let _pairing = self.pairing_lock.lock().map_err(err)?;
         self.ingest()?;
+        self.clear_arrivals_on_disconnect()?;
         if self.root.join("config.json").exists() {
             let mut config = read_config(&self.root)?;
             config.token.clear();
@@ -462,7 +488,9 @@ impl Queue {
         self.save_locked(&state)
     }
     pub fn configure(&self, config: Config) -> Result<()> {
+        let _pairing = self.pairing_lock.lock().map_err(err)?;
         let config = config.validate()?;
+        devices::identity(&self.root, &config.base_url)?;
         atomic_json(&self.root.join("config.json"), &config)?;
         if self.root.join("disconnected").exists() {
             fs::remove_file(self.root.join("disconnected")).map_err(err)?;
@@ -471,7 +499,7 @@ impl Queue {
         let mut state = self.state.lock().map_err(err)?;
         for t in &mut state.transfers {
             if t.config.base_url == config.base_url {
-                t.config = config.clone();
+                t.config.token = config.token.clone();
             }
         }
         self.save_locked(&state)
@@ -505,6 +533,17 @@ impl Queue {
         spool_upload_as(&self.root, path, kind, source_device)?;
         self.ingest()
     }
+    pub fn prepare_send(
+        &self,
+        source_device: Option<String>,
+        targets: Option<Vec<String>>,
+    ) -> Result<SendContext> {
+        devices::prepare_send(&self.root, source_device, targets)
+    }
+    pub fn enqueue_prepared(&self, path: &Path, kind: &str, context: &SendContext) -> Result<()> {
+        spool_prepared(&self.root, path, kind, context)?;
+        self.ingest()
+    }
     pub fn consume_spool(&self) -> Result<()> {
         self.ingest()
     }
@@ -525,19 +564,21 @@ impl Queue {
                 continue;
             }
             let message: Inbox = read_json(&path)?;
-            let (source, kind, name, source_device, config) = match message {
+            let (source, kind, name, source_device, config, routing) = match message {
                 Inbox::Upload {
                     source,
                     kind,
                     name,
                     source_device,
                     config,
-                } => (source, kind, name, source_device, config),
+                    routing,
+                } => (source, kind, name, source_device, config, routing),
                 Inbox::Text {
                     source,
                     name,
                     config,
-                } => (source, "text".into(), name, None, config),
+                    routing,
+                } => (source, "text".into(), name, None, config, routing),
             };
             let mut config = config.validate()?;
             // Captures never inherit a newly paired server or persist a token in the spool.
@@ -572,6 +613,7 @@ impl Queue {
                 etag: None,
                 retries: 0,
                 retry_at: 0,
+                routing,
             };
             state.transfers.push(t);
             self.save_locked(&state)?;
@@ -619,6 +661,7 @@ impl Queue {
             etag: None,
             retries: 0,
             retry_at: 0,
+            routing: None,
         };
         let mut state = self.state.lock().map_err(err)?;
         state.transfers.push(t);
@@ -883,7 +926,13 @@ impl Queue {
         }
         let value: serde_json::Value = serde_json::from_slice(&bytes).map_err(err)?;
         let item = &value["item"];
-        if item["id"].as_str() != Some(id) || item["size"].as_u64() != Some(t.size) {
+        if item["id"].as_str() != Some(id)
+            || item["kind"].as_str() != Some(t.kind.as_str())
+            || item["size"].as_u64().is_none()
+            // Ready text may have been edited after the original tus upload completed.
+            || (item["status"].as_str() != Some("ready")
+                && item["size"].as_u64() != Some(t.size))
+        {
             return Err("Application item does not match this upload".into());
         }
         match item["status"].as_str() {
@@ -908,7 +957,10 @@ impl Queue {
         }
         if t.upload_url.is_none() {
             self.verify_upload_source(t)?;
-            let meta = format!(
+            if let Some(routing) = &t.routing {
+                self.ensure_registration(&t.config, &routing.source_device_id)?;
+            }
+            let mut meta = format!(
                 "filename {},filetype {},kind {},sourceDevice {}",
                 B64.encode(t.name.as_bytes()),
                 B64.encode(if t.kind == "text" {
@@ -919,6 +971,13 @@ impl Queue {
                 B64.encode(t.kind.as_bytes()),
                 B64.encode(t.config.source_device.as_bytes())
             );
+            if let Some(routing) = &t.routing {
+                meta.push_str(&format!(
+                    ",sourceDeviceId {},targetDeviceIds {}",
+                    B64.encode(&routing.source_device_id),
+                    B64.encode(serde_json::to_vec(&routing.target_device_ids).map_err(err)?)
+                ));
+            }
             let response = Self::checked(
                 self.request(
                     reqwest::Method::POST,
@@ -930,7 +989,14 @@ impl Queue {
                 .header("Upload-Metadata", meta)
                 .header("Content-Length", 0)
                 .send(),
-            )?;
+            )
+            .map_err(|e| {
+                if e.starts_with("HTTP 4") {
+                    format!("Upload creation rejected; review recipients, pairing and server limits ({e})")
+                } else {
+                    format!("Upload creation outcome unknown; inspect server before retrying ({e})")
+                }
+            })?;
             if response.status().as_u16() != 201 {
                 return Err("Upload creation did not return 201".into());
             }
@@ -1330,6 +1396,9 @@ pub struct ConnectionView {
     pub base_url: String,
     pub source_device: String,
     pub connected: bool,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub device_id: Option<String>,
+    pub platform: String,
 }
 
 #[cfg(test)]

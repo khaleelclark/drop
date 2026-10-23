@@ -37,10 +37,36 @@ class UploadCompletionTest {
         try { completion.requireReady { item("failed") }; fail("Cancellation cannot announce success for rejected bytes") }
         catch (_: UploadRejected) { }
     }
-    @Test fun mismatchedItemIdentityKindOrLengthCannotPublishTheLocalTransfer() {
-        listOf(item("ready").copy(id = "other"), item("ready").copy(kind = "file"), item("ready").copy(size = 1)).forEach { wrong ->
+    @Test fun mismatchedItemIdentityOrKindCannotPublishEvenAfterAnEdit() {
+        listOf(item("ready").copy(id = "other", size = 0), item("ready").copy(kind = "file", size = 1)).forEach { wrong ->
             try { completion.requireReady { wrong }; fail("Wrong item metadata accepted") }
             catch (_: IllegalArgumentException) { }
+        }
+    }
+    @Test fun readyTextCanBeEditedLargerSmallerOrEmptyAfterOriginalTusCompletion() {
+        val originalSize = 20_000_000_000L
+        assertEquals(originalSize, TransferPolicy.acknowledgedOffset(originalSize.toString(), originalSize))
+        listOf(originalSize + 1, 1L, 0L).forEach { editedSize ->
+            var probes = 0
+            completion.requireReady { probes++; item("ready").copy(size = editedSize) }
+            assertEquals(1, probes)
+        }
+    }
+    @Test fun pendingThenEditedReadyAlsoSettlesLostAcknowledgementAndCancelRecovery() {
+        listOf(20_000_000_001L, 1L, 0L).forEach { editedSize ->
+            val responses = ArrayDeque(listOf(item("uploading"), item("ready").copy(size = editedSize)))
+            try { completion.requireReady { responses.removeFirst() }; fail("Pending validation accepted") }
+            catch (_: PendingValidation) { }
+            repeat(2) { completion.requireReady { responses.first() } } // Both recovery paths share this gate.
+            assertEquals(1, responses.size)
+        }
+    }
+    @Test fun incompleteItemsStillRequireTheOriginalSourceSize() {
+        listOf("uploading", "failed").forEach { status ->
+            listOf(20_000_000_001L, 1L, 0L).forEach { wrongSize ->
+                try { completion.requireReady { item(status).copy(size = wrongSize) }; fail("Incomplete length mismatch accepted") }
+                catch (_: IllegalArgumentException) { }
+            }
         }
     }
     @Test fun missingItemIdOrUnknownStatusCannotBecomeCompleted() {

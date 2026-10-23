@@ -8,9 +8,7 @@ const { createRequire } = require('node:module');
 const { chromium, expect } = createRequire(path.resolve(__dirname, '../web/package.json'))('@playwright/test');
 const adb = process.env.HOUSEHOLD_ADB || '/home/phoenix/Android/Sdk/platform-tools/adb';
 const serial = process.env.HOUSEHOLD_ANDROID_SERIAL || 'emulator-5580';
-const output = path.resolve(__dirname, '../.tools/ui-full-height');
-const version = '0.1.3';
-const versionCode = 1003;
+const output = path.resolve(process.env.HOUSEHOLD_ANDROID_OUTPUT || path.resolve(__dirname, '../.tools/ui-zing/android'));
 const shell = (...args) => execFileSync(adb, ['-s', serial, ...args], { encoding: 'utf8' });
 const inset = type => shell('shell', 'dumpsys', 'window').match(new RegExp(`type=${type} frame=\\[(\\d+),(\\d+)\\]\\[(\\d+),(\\d+)\\].*visible=true`));
 const screenshot = async name => fs.writeFile(path.join(output, name), execFileSync(adb, ['-s', serial, 'exec-out', 'screencap', '-p']));
@@ -18,12 +16,16 @@ const screenshot = async name => fs.writeFile(path.join(output, name), execFileS
 async function main() {
   if (!serial.startsWith('emulator-')) throw new Error('This check requires a disposable emulator.');
   await fs.mkdir(output, { recursive: true });
+  const config = JSON.parse(await fs.readFile(path.resolve(__dirname, '../clients/android/src-tauri/tauri.conf.json'), 'utf8'));
+  const version = config.version;
+  const versionCode = config.bundle.android.versionCode;
   const installed = shell('shell', 'dumpsys', 'package', 'net.household.share.mobile');
   if (!installed.includes(`versionName=${version}`) || !installed.includes(`versionCode=${versionCode} `)) throw new Error(`Install the final ${version}/code${versionCode} APK first.`);
   const browser = await chromium.connectOverCDP('http://127.0.0.1:19224', { noDefaults: true });
   const page = browser.contexts()[0].pages().find(row => row.url().startsWith('http://tauri.localhost'));
   if (!page) { await browser.close(); throw new Error('Installed Tauri page not found'); }
   const browserApi = [];
+  let fixtureId;
   page.on('request', request => { if (new URL(request.url()).pathname.startsWith('/api/')) browserApi.push(request.url()); });
   const composer = page.getByRole('textbox', { name: 'Text to share', exact: true });
   const search = page.getByRole('searchbox');
@@ -40,7 +42,7 @@ async function main() {
       return { label: button.textContent, top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, height: rect.height,
         uncovered: button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)) };
     }));
-    expect(rows).toHaveLength(4);
+    expect(rows.map(row => row.label)).toEqual(['All shares', 'For you', 'Text', 'Files', 'Pinned']);
     for (const row of rows) {
       expect(row.height).toBeGreaterThanOrEqual(44);
       expect(row.top).toBeGreaterThanOrEqual(0);
@@ -51,6 +53,13 @@ async function main() {
   }
   try {
     expect(await page.evaluate(() => window.householdPlatform.kind)).toBe('native');
+    const connection = await page.evaluate(() => window.__HOUSEHOLD_NATIVE__.invoke('native_get_config'));
+    expect(connection.baseUrl).toBe(process.env.HOUSEHOLD_ANDROID_URL || 'http://127.0.0.1:18877');
+    const fixture = await page.evaluate(() => window.__HOUSEHOLD_NATIVE__.invoke('native_api', {
+      method: 'POST', path: '/api/text', body: { text: 'Installed navigation fixture: café 🏠', name: 'Navigation fixture' },
+    }));
+    expect(fixture.status).toBe(201);
+    fixtureId = JSON.parse(fixture.body).item.id;
     if (inset('ime')) shell('shell', 'input', 'keyevent', '4');
     await expect.poll(() => Boolean(inset('ime'))).toBe(false);
     if (await done.count()) await done.click();
@@ -143,11 +152,12 @@ async function main() {
     expect(browserApi).toEqual([]);
     const apk = await fs.readFile(path.resolve(__dirname, '../clients/android/build/outputs/household-share-tauri-x86_64-debug.apk'));
     const report = { passed: true, version: `${version}/code${versionCode}`, apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, safeArea, webViewBounds, keyboardTop, safeBottom, measurements,
-      checks: ['native bootstrap and no browser API traffic', 'one accessible bottom tab bar above actual Android navigation area', 'all four tab targets at least 44px and uncovered', 'actual OS keyboard leaves Share/tabs/Done visible', 'Android Back dismisses keyboard without losing navigation/draft', 'Done redocks same nav DOM', 'Files selection preserves draft', 'search/Done preserves search and draft', 'final feed action and item menu remain above bottom tabs'],
+      checks: ['native bootstrap and no browser API traffic', 'one accessible bottom tab bar above actual Android navigation area', 'all five tab targets at least 44px and uncovered', 'actual OS keyboard leaves Share/tabs/Done visible', 'Android Back dismisses keyboard without losing navigation/draft', 'Done redocks same nav DOM', 'Files selection preserves draft', 'search/Done preserves search and draft', 'final feed action and item menu remain above bottom tabs'],
       limits: ['API36 x86_64 emulator only', 'not a physical phone or physical gesture check', 'not a background or20GB transfer check'] };
     await fs.writeFile(path.join(output, 'android-tabs.json'), JSON.stringify(report, null, 2) + '\n');
     console.log('PASS: installed bottom tabs, actual keyboard/Back, navigation safe area, focus and draft/search preservation');
   } finally {
+    if (fixtureId) await page.evaluate(id => window.__HOUSEHOLD_NATIVE__.invoke('native_api', { method: 'DELETE', path: `/api/items/${id}` }), fixtureId).catch(() => {});
     await composer.fill(originalDraft).catch(() => {});
     await search.fill(originalSearch).catch(() => {});
     if (await done.count()) await done.click().catch(() => {});

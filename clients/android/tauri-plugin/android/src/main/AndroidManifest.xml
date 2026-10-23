@@ -16,5 +16,7 @@
         <service android:name="household.share.android.TransferJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
         <service android:name="household.share.android.LegacyTransferService" android:foregroundServiceType="dataSync" android:exported="false" />
         <receiver android:name="household.share.android.TransferControlReceiver" android:exported="false" />
+        <activity android:name="household.share.android.ArrivalOpenActivity" android:exported="false" android:theme="@android:style/Theme.Translucent.NoTitleBar" android:excludeFromRecents="true" />
+        <service android:name="household.share.android.ArrivalJobService" android:permission="android.permission.BIND_JOB_SERVICE" android:exported="false" />
     </application>
 </manifest>

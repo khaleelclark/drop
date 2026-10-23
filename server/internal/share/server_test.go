@@ -360,8 +360,10 @@ func TestFinalizationRetryWithoutServerRestart(t *testing.T) {
 	for _, method := range []string{"HEAD", "PATCH"} {
 		t.Run(method, func(t *testing.T) {
 			s := openTest(t, testConfig(t))
+			register(t, s, senderID, "Sender")
+			register(t, s, recipientID, "Recipient")
 			content := []byte("complete bytes survive a transient ready transition failure")
-			location, id := createUpload(t, s, int64(len(content)), "recoverable.bin", "file", "application/octet-stream")
+			location, id := routedUpload(t, s, int64(len(content)), "file", senderID, []string{recipientID})
 			// Fail only the final metadata transition after WriteChunk has synced
 			// all bytes. Dropping the trigger clears the temporary fault while
 			// keeping the same Server, database connection, and upload resource.
@@ -373,6 +375,9 @@ func TestFinalizationRetryWithoutServerRestart(t *testing.T) {
 			requireStatus(t, patch(s, location, 0, bytes.NewReader(content)), 500)
 			if getItem(t, s, id).Status != "uploading" {
 				t.Fatal("transient failure lost pending state")
+			}
+			if len(arrivalIDs(t, s, recipientID)) != 0 {
+				t.Fatal("failed finalization committed arrivals")
 			}
 			requireStatus(t, request(s, "GET", "/api/items/"+id+"/download", nil, nil), 409)
 			stat, err := os.Stat(s.blob(id))
@@ -393,6 +398,9 @@ func TestFinalizationRetryWithoutServerRestart(t *testing.T) {
 			}
 			if getItem(t, s, id).Status != "ready" {
 				t.Fatal("retry did not finish pending validation")
+			}
+			if got := arrivalIDs(t, s, recipientID); len(got) != 1 || got[0] != id {
+				t.Fatal("finalization retry missed or duplicated arrival")
 			}
 			w := request(s, "GET", "/api/items/"+id+"/download", nil, nil)
 			requireStatus(t, w, 200)

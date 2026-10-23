@@ -36,7 +36,7 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/household-dmg.XXXXXX")"
 trap 'rm -rf -- "$work"' EXIT
 version="$(node -p "require('./clients/desktop/src-tauri/tauri.conf.json').version")"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die 'Expected a numeric app version.'
-name="Household-Share_${version}_${arch}"
+name="Zing_${version}_${arch}"
 [[ ! -e "$out/$name.dmg" ]] || die "Output already exists: $out/$name.dmg; choose a clean output directory before rebuilding."
 
 {
@@ -94,8 +94,8 @@ NODE
 stage="$work/volume"
 mkdir -p "$stage"
 chmod 755 "$stage"
-app="$stage/Household Share.app"
-ditto "$root/clients/desktop/src-tauri/target/$target/release/bundle/macos/Household Share.app" "$app"
+app="$stage/Zing.app"
+ditto "$root/clients/desktop/src-tauri/target/$target/release/bundle/macos/Zing.app" "$app"
 mkdir -p "$app/Contents/Helpers" "$app/Contents/Resources/capture"
 cp "$root/clients/desktop/native/target/$target/release/household-share-cli" "$app/Contents/Helpers/household-share-cli"
 chmod 755 "$app/Contents/Helpers/household-share-cli"
@@ -118,7 +118,7 @@ set -e
 [[ "$helper_status" == 1 ]] || die "Helper usage returned unexpected status $helper_status."
 [[ "$(cat "$out/helper-execution.log")" == Usage:\ household-share-cli* ]] || die 'Helper failed before showing its usage.'
 
-hdiutil create -volname 'Household Share' -srcfolder "$stage" -fs HFS+ -format UDZO "$out/$name.dmg" 2>&1 | tee "$out/dmg-create.log"
+hdiutil create -volname 'Zing' -srcfolder "$stage" -fs HFS+ -format UDZO "$out/$name.dmg" 2>&1 | tee "$out/dmg-create.log"
 codesign --force --sign - --timestamp=none "$out/$name.dmg"
 bash "$here/verify-dmg.sh" "$out/$name.dmg" "$arch" 2>&1 | tee "$out/dmg-verification.log"
 cp "$here/INSTALL.txt" "$out/INSTALL.txt"

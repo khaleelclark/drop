@@ -17,8 +17,8 @@ COPY clients/desktop/ /build/clients/desktop/
 RUN --mount=type=cache,id=household-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=household-native-target,target=/build/clients/desktop/native/target \
     --mount=type=cache,id=household-tauri-target,target=/build/clients/desktop/src-tauri/target \
-    cargo build --release --manifest-path clients/desktop/native/Cargo.toml \
-    && pnpm --dir clients/desktop build --bundles deb \
+    cargo build --locked --release --manifest-path clients/desktop/native/Cargo.toml \
+    && pnpm --dir clients/desktop exec tauri build --config src-tauri/tauri.linux.conf.json --bundles deb -- --locked \
     && mkdir /output \
     && cp clients/desktop/native/target/release/household-share-cli /output/ \
     && cp clients/desktop/src-tauri/target/release/bundle/deb/*.deb /output/

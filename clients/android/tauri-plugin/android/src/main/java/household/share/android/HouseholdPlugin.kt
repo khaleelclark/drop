@@ -25,11 +25,12 @@ class HouseholdPlugin(private val activity: Activity) : app.tauri.plugin.Plugin(
             foreground?.close()
             // Tauri can load a plugin after Activity.onResume. Lifecycle observers catch up
             // immediately and currentState remains authoritative for each later UI operation.
-            foreground = ResumedActivityGate((activity as LifecycleOwner).lifecycle) {
+            foreground = ResumedActivityGate((activity as LifecycleOwner).lifecycle, onResumed = {
                 if (!activity.isFinishing && !activity.isDestroyed) {
+                    ArrivalScheduler.visible(activity, this, true)
                     runCatching { TransferScheduler.startVisible(activity, QueueStore.of(activity).all()) }
                 }
-            }
+            }, onPaused = { ArrivalScheduler.visible(activity, this, false) })
         }
     }
 
@@ -67,8 +68,10 @@ class HouseholdPlugin(private val activity: Activity) : app.tauri.plugin.Plugin(
                 }
                 when (command) {
                     "native_get_config", "native_configure" -> {
+                        if (command == "native_configure") { ArrivalProcessor.stop(); ArrivalClicks.clear(activity) }
                         val c = if (command == "native_configure") ConfigStore(activity).set(args) else ConfigStore(activity).current()
-                        resolve(JSONObject().put("baseUrl", c.baseUrl).put("sourceDevice", c.sourceDevice).put("connected", c.connected))
+                        if (command == "native_configure") ArrivalScheduler.reconcile(activity)
+                        resolve(c.redacted())
                     }
                     "native_disconnect" -> { TransferScheduler.disconnect(activity); invoke.resolve() }
                     "native_list_transfers" -> resolve(JSONArray(store.all().map { it.json(false) }))
@@ -89,13 +92,23 @@ class HouseholdPlugin(private val activity: Activity) : app.tauri.plugin.Plugin(
                             }
                         }
                     }
+                    "native_get_arrival_settings" -> resolve(ArrivalStore.settings(activity))
+                    "native_take_arrival_target" -> resolve(ArrivalClicks.take(activity))
+                    "native_set_arrival_enabled" -> activity.runOnUiThread {
+                        runCatching {
+                            val enabled = args.getBoolean("enabled")
+                            ArrivalPolicy.control(enabled, { requireVisible("Open Zing to enable arrivals") }) {
+                                ArrivalPermission.set(activity, enabled, ::resolve)
+                            }
+                        }.onFailure { invoke.reject(it.message) }
+                    }
                     "native_copy_text" -> {
                         val text = args.getString("text")
                         require(text.toByteArray(Charsets.UTF_8).size <= TransferPolicy.COPY_LIMIT) { "Clipboard limit is 8 MiB; download the full text instead" }
                         activity.runOnUiThread {
                             runCatching {
                                 requireVisible("Open the app to copy")
-                                activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Household text", text))
+                                activity.getSystemService(ClipboardManager::class.java).setPrimaryClip(ClipData.newPlainText("Zing text", text))
                                 resolve(JSONObject().put("ok", true))
                             }.onFailure { invoke.reject(it.message) }
                         }

@@ -1,0 +1,51 @@
+{
+  "status": "passed",
+  "scope": "Actual final Linux compilation/package inspection. No new installed GUI, OS alert or 20 GB test.",
+  "buildLog": ".tools/desktop-build-zing.log",
+  "baseImage": "household-desktop:source-check",
+  "buildUsesFrozenDistWithoutFrontendBuild": true,
+  "packageControl": "Package: household-share\nVersion: 0.1.2\nArchitecture: amd64\nInstalled-Size: 23953\nMaintainer: household\nPriority: optional\nDepends: libayatana-appindicator3-1, libwebkit2gtk-4.1-0, libgtk-3-0\nDescription: (none)\n (none)\n",
+  "desktopFile": "usr/share/applications/Household Share.desktop",
+  "desktopEntry": "[Desktop Entry]\nType=Application\nName=Zing\nComment=Share files and text with your household\nExec=household-share\nIcon=household-share\nTerminal=false\n\n",
+  "embeddedAssetNames": [
+    "index-DByv_fP3.js",
+    "index-DkZQpJMh.css"
+  ],
+  "packages": [
+    {
+      "path": "artifacts/linux-desktop/0.1.2/Household Share_0.1.2_amd64.deb",
+      "bytes": 7586172,
+      "sha256": "dfbb7d9405d72af32d9575cbc19a1a3b08db386d9d2b5613f51319e2b605a6c1"
+    },
+    {
+      "path": "artifacts/linux-desktop/0.1.2/household-share-cli",
+      "bytes": 5523824,
+      "sha256": "8dc4c398e8c35a668d24e98de2dcdd2672b04721ffefaa31dcd3f18e504c487e"
+    }
+  ],
+  "candidateOnly": true,
+  "frontendAcceptance": "Replacement frontend needed: installed Android text menu clipping under bottom tabs.",
+  "runtime": {
+    "status": "passed",
+    "package": "artifacts/linux-desktop/0.1.2/Household Share_0.1.2_amd64.deb",
+    "isolation": "nonroot existing SDK container, network none, private cookie-authenticated Xvfb, empty XDG state, no host install or sandbox disable",
+    "checks": [
+      "actual Zing window rendered",
+      "WM_DELETE_WINDOW hides while process remains alive",
+      "Ctrl+Shift+H reopens same resident window"
+    ],
+    "limits": [
+      "unpaired and network disabled",
+      "no real OS notification presentation",
+      "no clipboard, transfer, physical desktop or 20 GB acceptance"
+    ]
+  },
+  "runtimeScreenshot": {
+    "path": ".tools/validation/zing-linux-runtime/zing-linux-setup.png",
+    "sha256": "8a9ef13b2377a39a274396ffef4d921963411e6e0007a312f4cb36e2a2be7bed"
+  },
+  "recipeCheck": {
+    "command": "docker build --check --file Dockerfile.desktop .",
+    "result": "Check complete, no warnings found."
+  }
+}

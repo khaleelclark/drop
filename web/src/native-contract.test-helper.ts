@@ -1,8 +1,10 @@
+import type { ArrivalPage, ArrivalSettings, Device, SendRouting } from './types'
 import { readFileSync } from 'node:fs'
 
-interface FixtureConfig { baseUrl: string; sourceDevice: string; connected: boolean }
+interface FixtureConfig { baseUrl: string; sourceDevice: string; connected: boolean;deviceId?: string;platform?: 'macos'|'linux'|'android' }
 interface FixtureResponse { status: number; body: string; headers: Record<string,string> }
 interface NativeContractFixture {
+  device: Device;sendRouting: SendRouting;arrivalSettings: ArrivalSettings;arrivalPage: ArrivalPage;arrivalTarget:{baseUrl:string;itemId:string};
   config: FixtureConfig;
   unpairedConfig: FixtureConfig;
   apiRequest: { method: string; path: string; requestId: string };

@@ -1,15 +1,20 @@
 import { BrowserTransfers, type TransferStore } from './transfers'
+import type { ArrivalSettings, DevicePlatform } from './types'
 export interface DownloadRequest { url: string; name: string; itemId: string }
 export interface PlatformAdapter {
   kind: 'browser' | 'native';
   requiresConnection?: boolean;
   defaultDeviceName?: string;
+  deviceIdentity?: {id: string; platform: DevicePlatform};
+  getArrivalSettings?(): Promise<ArrivalSettings>;
+  setArrivalEnabled?(enabled: boolean): Promise<ArrivalSettings>;
+  takeArrivalTarget?(): Promise<{baseUrl:string;itemId:string}|null>;
   disconnect?(): Promise<void>;
   copyText(text: string): Promise<void>;
   download(request: DownloadRequest): Promise<void>;
   transfers: TransferStore;
   /** Native pickers must enqueue into transfers without reading a whole file into JS. */
-  chooseFiles?(kind: 'file' | 'text', sourceDevice: string): Promise<void>;
+  chooseFiles?(kind: 'file' | 'text', sourceDevice: string, targetDeviceIds?: string[]): Promise<void>;
   /** Native runtime may supply an authenticated streaming fetch bridge. */
   request?: typeof fetch;
   baseURL?: string;

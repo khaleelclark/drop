@@ -1,6 +1,6 @@
-# Household browser client
+# Zing browser client
 
-React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to four bottom navigation tabs on phones. Each item has one primary Copy or Download action; secondary text downloads, expansion and management live in a keyboard-accessible menu. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
+React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to five bottom navigation tabs on phones. Each text entry has a visible Copy action, and every file has Download. Text downloads and management live in a keyboard-accessible menu; long text has an inline Expand/Collapse control. Routine actions use light icon/label controls with no filled blocks. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
 
 Client for `docs/api-contract.md`. All items come from
 the connected API; the product interface has no demo feed or synthetic storage
@@ -31,8 +31,7 @@ documentation describes private Tailscale HTTPS hosting.
 
 The browser build deliberately uses its own origin. Open the private server's
 HTTPS address to connect; it does not send household tokens to an arbitrary
-cross-origin server. Connection setup exchanges the configured token for the
-server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
+cross-origin server. A successful protected feed fetch through configured Tailscale Serve opens the inbox directly, without a login form. Installed apps save the HTTPS origin once and configure an empty token through the existing native bridge. Optional token entry is behind Advanced; token servers exchange it for the server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
 queue records, or the service-worker cache. Native adapters can configure a
 remote HTTPS origin and supply a bearer-authenticated HTTP bridge.
 
@@ -62,14 +61,16 @@ Go server or any physical device.
   up to 64 KiB prepares automatically. Larger bodies use Prepare copy, followed
   by a fresh Copy text gesture. Success follows the fulfilled clipboard write.
   Preparation is cancellable. Expanded previews render at most 256 KiB. Loading is capped at 8 MiB for browser memory; larger stored UTF-8 text is
-  still downloadable as `.txt`. OS clipboards can reject smaller bodies too.
+  still downloadable as `.txt` or `.md`. File metadata classification matches the root-owned `clients/shared/text-file-fixture.json` allowlists/cases. Eligible files up to 8 MiB show Prepare copy until the server has validated the full immutable UTF-8 body with no NUL/binary controls and the client has completed its bounded fatal-UTF-8 read; only then is Copy available. Explicit non-UTF-8 charsets and larger/unsupported candidates keep ordinary Download. Metadata alone is not proof of textual content. OS clipboards can reject smaller bodies too.
 - File downloads navigate to the authenticated attachment URL. They never
   fetch an entire file into a JavaScript Blob. Browser/download-manager support
   determines range-based download resume.
 - Files use tus with 8 MiB chunks, cookie credentials, two concurrent queue
-  slots, retry delays, and explicit queued/checking/uploading/paused/failed/
+  slots, retry delays for resumable requests, and explicit queued/checking/uploading/paused/failed/
   needs-file/complete states. Upload completion means bytes sent; the feed's
-  server-validated `ready` status controls download availability.
+  server-validated `ready` status controls download availability. Ambiguous tus
+  creation POSTs are not retried automatically; existing upload retries still use
+  saved URLs and HEAD offsets.
 - A streaming SHA-256 reads each source in bounded slices before sending it.
   This adds one source read and can take time for a 20 GB file. The saved hash,
   original name, size and modified time prevent a changed reselected source
@@ -99,11 +100,15 @@ shell can set `window.householdPlatform`:
 interface PlatformAdapter {
   kind: 'browser' | 'native'
   requiresConnection?: boolean
+  deviceIdentity?: { id: string; platform: 'macos'|'linux'|'android'|'browser' }
+  getArrivalSettings?(): Promise<ArrivalSettings>
+  setArrivalEnabled?(enabled: boolean): Promise<ArrivalSettings>
+  takeArrivalTarget?(): Promise<{ baseUrl: string; itemId: string }|null>
   disconnect?(): Promise<void>
   copyText(text: string): Promise<void>
   download(request: { url: string; name: string; itemId: string }): Promise<void>
   transfers: TransferStore
-  chooseFiles?(kind: 'file' | 'text', sourceDevice: string): Promise<void>
+  chooseFiles?(kind: 'file' | 'text', sourceDevice: string, targetDeviceIds?: string[]): Promise<void>
   request?: typeof fetch
   baseURL?: string
   configureConnection?(origin: string, token: string, sourceDevice?: string): Promise<void>
@@ -127,179 +132,144 @@ never fall back to browser API or transfer behavior.
 
 ## Design and responsive behavior
 
-The redesign follows the supplied *Hands-On UX Design for Developers* by Elvis
-Canziba: proximity/common regions (printed pp. 70–81), typography and readable
-measure (153–156), alignment/hierarchy/contrast/repetition/balance/space
-(160–168), task clarity (217–220), and coherent palette/type/grid/components
-(241–249). The source PDF and extracted textbook text are not part of this
-client or its deliverables.
+The chosen display name is **Zing**. Existing API, native command/bridge,
+pairing/config and queue identifiers remain stable; the visible rename applies in the brand, setup/help/startup text, page title and PWA name. The
+public-shell cache revision advances to v8 so cached PWA metadata can refresh;
+its existing cache namespace and PWA id/start URL/scope are preserved.
 
-Item content has stronger type and contrast than source/time metadata. Shared
-spacing, aligned edges, restrained surfaces and repeated action styles group
-each item with its action. File name, readiness and Download sit together;
-text previews keep whitespace intact and put Copy below the content. Text too
-large for safe copy offers Download .txt directly. Setup, empty/filter/search,
-server error and transfer recovery states each expose a next action.
+The user’s compact-utility direction (2026-10-23) replaces boxed feed cards with
+content-first rows, one quiet source/size/time line, adjacent Copy or Download,
+and a secondary action menu. Thin separators replace card frames and duplicate
+file tiles. The live [Blip app demo](https://blip.net/) was read and viewed on
+2026-10-23 for its short rows, plain search and focused panel; no Blip assets are
+used. The supplied UX brief still guides readable hierarchy and grouping.
 
-The live [Blip website](https://blip.net/) was read as a design reference on
-2026-10-22. Its focused send flow, clear transfer identity and visible recovery
-informed the final small refinement: transfer filenames and progress use readable
-14/12 px type, and every row says “To household” or “To this device”, including
-paused and source-reselection states. The approved composer and feed retain
-their spacing and single primary actions. This app still uses its private
-persistent server feed and configured limits. Completed uploads say “Upload sent”;
-the feed's server-controlled readiness determines when Download is enabled.
+Short notes show their full content rather than a two-line clamp. Collapsed long text has a six-line visual limit and obvious Expand; rendered expanded text remains capped at 256 KiB. Filenames wrap across the recovered row width. Metadata and subtle Copy/Download actions share one footer; all actions remain at least 44×44 px.
+The resting composer is 100 px; entering a draft expands its textarea from 44
+to 80 px. It stays expanded while a draft exists, avoiding blur-induced layout
+movement during clicks. Long filenames, errors, progress, deletion confirmation
+and expanded text can grow. Collapsed text is limited to two lines; Expand,
+full exact Copy, the 256 KiB rendered-text budget and 8 MiB preparation budget
+are unchanged. Oversized stored text offers Download .txt.
 
-The viewport uses device-width, initial scale 1, viewport-fit=cover, and
-interactive-widget=resizes-content. All mobile text inputs use at least 16 CSS
-px. Safe-area padding, bottom-bar clearance and a normal-flow composer let the
-document reflow when available height changes. Browser accessibility zoom is unrestricted. Installed
-Android WebView page zoom is configured by the native owner; web CSS never
-scales the page or disables browser touch zoom. Actual keyboard, safe-area and
-physical-phone behavior require device validation.
+The smaller page title, composer and desktop header remove repeated type,
+readiness, newest-first, caught-up and privacy boilerplate. Browser transfer
+lifetime guidance remains beside sending; full transfer help and storage limits
+remain available. Transfers retain filename, direction, real progress and
+pause/resume/reselect/cancel recovery.
 
-Packaged Android marks the document with `data-native-android` before app or
-startup-error rendering, only when `window.__HOUSEHOLD_NATIVE__?.platform` is
-`'android'`. Its native shell already bounds the WebView inside the system bars,
-so all four CSS safe-area variables become zero there. Browsers and desktop
-clients retain `env(safe-area-inset-*, 0px)` values. Regular spacing, zoom and
-editing/Done/Back behavior are unchanged; this adds no keyboard detector.
+The existing single mobile bottom navigation, page-end reserve and notification
+clearance remain. Composer/search focus moves the same navigation into the
+scrollable sticky editing position; Done editing, selecting a filter or handled
+Escape redocks it with selected-filter focus, preserving draft and search.
+Composition and menu/dialog Escape handling remain intact. No viewport-based
+keyboard detection was added. Browser zoom and 16 px mobile fields remain.
 
-The 2026-10-23 mobile follow-up moves the existing All shares / Text / Files /
-Pinned filters into a single bottom navigation bar at widths up to 800 CSS px.
-Icons, labels, selected state, visible keyboard focus and 44 px targets remain
-available at 320 px. The page reserves the bar height plus the bottom safe area;
-notifications appear above the bar. Desktop navigation and item/transfer actions
-use the approved composition.
-
-Root's installed Android API36 evidence showed that the IME could cover the
-screen below 577.9 CSS px while both `innerHeight` and `visualViewport.height`
-stayed 915 px. This frontend therefore makes no keyboard-visibility inference
-from viewport dimensions. Focusing the mobile composer or search moves the same
-navigation into document flow below the composer, with an explicit **Done
-editing** action. It sticks below the top safe area when scrolling past a tall
-transfer queue to search. Selecting a section, Done editing, or Escape returns it to the
-bottom and focuses the selected section. Draft/search values are preserved.
-The navigation remains rendered if Android Back dismisses the keyboard but
-retains field focus; it never hides waiting for a blur event. This uses ordinary
-focus/click events without pointer interception, transforms, inline style or a
-native bridge change. Actual installed IME behavior still needs root's check.
+Only packaged `window.__HOUSEHOLD_NATIVE__?.platform === 'android'` sets
+`data-native-android` before rendering, including startup failures. Its native
+shell owns system-bar bounds, so the four CSS safe-area aliases become zero.
+Browser and desktop retain `env(safe-area-inset-*, 0px)`. This safe-area ownership boundary is unchanged; the additive device/arrival
+contracts are described below.
 
 ## Validation scope
 
-Android duplicate-inset fix (2026-10-23): **47 unit/component tests in 8 files
-passed** (1.71 s), including Android startup failure and browser/desktop/native
-adapter marker boundaries. **Six focused Chromium 1243 checks passed** (15.9 s).
-The two new CDP `Emulation.setSafeAreaInsetsOverride` checks inject top/right/
-bottom/left insets of 36/28/48/24 px at 412×806. The packaged Android JS fixture
-retains a 64 px header and 72 px bar, while the browser retains 100/120 px; both
-keep four uncovered targets of at least 44 px. They check side padding, main and
-scroll clearance, toast/modal spacing, editing navigation and preserved draft.
-Existing narrow, phone/dialog, native-bridge and unchanged-viewport occlusion
-checks also passed. Two desktop/pairing fixtures passed (7.0 s), retaining exact
-copy/paste, authenticated HTTP download and the seven review screenshots.
-`pnpm build` passed TypeScript checking and the Vite production build.
-These are browser-engine tests with JS native doubles,
-not an installed WebView, OS keyboard or physical-phone check. Root owns the
-Android rebuild and installed acceptance; no other platform rebuild is needed
-for this Android-only marker behavior.
+The final combined review is recorded below. All browser API routes use isolated
+contract fixtures, and native cases use JavaScript bridge doubles. These checks
+exercise actual Chromium DOM, clipboard and authenticated HTTP downloads, but do
+not prove a real Tailscale deployment or installed-device behavior. CDP safe-area
+injection and the unchanged-viewport occlusion stand-in verify browser layout,
+not a device IME, native Back, OS notifications or background transfer.
 
-Mobile-bottom-navigation candidate (2026-10-23): all **42 unit/component tests
-in 8 files passed** (1.77 s); five affected Chromium1243 fixtures passed
-(13.7 s), followed by four desktop/mobile/overlay/pairing checks (11.9 s) after
-adding notification clearance and empty-width assertions. The browser assertions
-cover a single bottom navigation with icons/selection/44 px targets at
-320/360/390/412 px, eight long shares plus pagination, uncovered final-menu and
-recovery controls, preserved failed drafts and reachable Share at each width
-with 420 px available height. Enter/Space select sections; Done editing and
-Escape restore focus to the selected section. Pairing keeps full Connect
-visibility and internal-scroll recovery. A new browser-only occlusion fixture
-covers the page below 577.9 px in a 360×915 viewport, verifies neither viewport
-height changes and hit-tests Share, all four tabs and Done editing above it.
-Removing the stand-in overlay retains textarea focus and leaves navigation
-reachable. The QA follow-up passed two focused browser checks (9.7 s), covering
-a ten-row transfer queue with focused search, sticky navigation reachability,
-maximum 180 px textarea height plus a failed draft, Tab access to the same nav
-DOM, preserved search/draft, and composition/menu Escape handling. Enlarged
-composer/error content can require scrolling; the fixture verifies that the
-actions can be reached, without claiming unconditional IME clearance. This fixture is **not an actual IME/device check**. The desktop test
-also retains exact text/paste, pin/search/delete and a direct HTTP download.
-TypeScript checking, production build and `git diff --check -- web` passed.
-That candidate's assets were `index-CS6EIQOV.js` and `index-DVPjc1UT.css`.
-The final QA correction also passed all 42 unit/component tests (1.84 s), then
-three phone/native-fixture/pairing browser checks (9.2 s), and the production
-build. This is a review candidate; root owns coordinated freeze and installed packages.
+Root owns visual acceptance, integration, packaging and installed-device checks.
+No 20 GB transfer, actual PWA installation, native package, physical device,
+CI, deployment, system installation or Git operation was performed here.
 
-Current redesign validation: **42 unit/component tests in 8 files passed**.
-**7 Chromium fixture tests passed** (33.2 seconds) using Chromium 1243.
-The final compact pairing follow-up passed the two native interface tests and
-four affected Chromium fixtures (two runs of two tests: 10.1 s and 6.2 s).
-The 360×740 token-error state keeps the entire Connect button in view without
-scrolling; 360×420 checks usable internal scroll and a fully reachable action.
-The reviewer's disabled-first-menu-action issue is fixed in the shared menu;
-the regression checks enabled initial focus, wrap, Home and Escape. Two affected
-Chromium menu/responsive fixtures passed again (4.5 seconds). An initial
-`pnpm exec playwright` invocation selected a mismatched runner and failed before
-collecting tests; the configured local `@playwright/test` CLI passed.
-The Blip-reference follow-up passed all 42 unit/component tests again (the pnpm
-test invocation ran the complete suite), plus four affected Chromium fixtures
-in 19.2 seconds: bounded upload, native bridge/transfer presentation, narrow
-recovery layout, and pairing/error states. Their assertions distinguish upload,
-server validation and download progress; native data remains a JS bridge fixture.
-The native bridge fixture passed once more in 3.0 seconds after dismissing its
-copy notification for the transfer screenshot and asserting the paused-download
-Resume target is fully visible, at least 44 px and uncovered at 360×740.
-The final QA wording follow-up passed the two native interface tests (3.53 s)
-and the bounded 9 MiB Chromium upload fixture (8.0 s), including scoped
-direction-labelled completion and enabled Download assertions. Native validation
-phases and indeterminate progress remain intact; completed uploads no longer
-claim that the server is still finalizing indefinitely.
-The prior TypeScript/Vite production build passed. Root accepted compact pairing
-and the Blip refinement. The mobile navigation change reopens that frontend
-freeze; root reviews the new exact source/dist before another packaging freeze. Native adapter tests load
-`../clients/shared/native-contract-fixture.json` at test runtime, including
-pairing/disconnect, queue controls/reselection, exact text, headers, and empty
-HTTP responses. Run tests from `web/` in the complete checkout; production
-web-only builds do not need the fixture. Native bridge tests use JavaScript
-command doubles; no native binary has run in frontend validation.
+## Registered destinations and arrivals
 
-The Chromium fixture suite uses the existing Chromium 1243 executable through
-`PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH`. It verifies exact Unicode/whitespace
-clipboard copy and paste, pin/search/delete, authenticated HTTP attachment
-download with exact bytes, and a 9 MiB tus upload in 8 MiB + 1 MiB chunks with
-matching SHA256. It also checks phone 44 px primary/menu targets, dialog and
-item-menu keyboard focus, native bridge detection with zero browser API
-requests, persisted-source recovery, no horizontal overflow at 320/360/390/412
-CSS px, 16 px mobile inputs, uncovered item actions, filtering, a focused
-normal-flow composer, and reflow at a 320×420 viewport. The short viewport
-approximates available layout height; it does not simulate an OS keyboard.
-Setup rejection, empty inbox, no pins/search results and recoverable server
-errors are exercised separately. These tests use isolated contract fixture
-content; the product never inserts demo shares.
+The Zing device extension uses the root-owned API/native contracts. All shares
+is the full household feed; For you queries durable server arrivals independently
+of ACK. Search and opaque pagination keep the same device filter. Recipient
+selection routes attention, not access: every authenticated household client can
+still retrieve every share. Everyone targets other devices registered at ready
+time. Old content does not generate registration-time notifications.
 
-Screenshots are `test-results/household-desktop.png`,
-`household-mobile.png`, `household-pairing.png`, `household-empty.png`, and
-`household-narrow-keyboard-layout.png`. The reference follow-up also provides
-`household-transfers.png` with upload, validation and paused-download rows.
-The mobile follow-up refreshes these images and adds
-`household-editing-overlay-layout.png` (360×915, browser-only occlusion stand-in). They
-are review evidence using test
-content, not screenshots of a household's real private data.
+Browser identity is a cryptographic 32-hex ID, stored per origin in IndexedDB.
+Atomic read/write transactions make simultaneous tabs share one identity. Native
+identity/platform come only from redacted native config; configure refreshes it.
+Startup/reconnect registration uses atomic preserveExisting=true after authentication, so an older configured/queued name cannot undo a current rename. Explicit naming alone uses normal upsert; UI labels reflect the returned registry metadata. Settings list/forget stale
+registrations; forgetting a device does not revoke the household credential.
+Text and tus sends snapshot source ID, targets and destination before creation,
+file picker or enqueue. Saved browser queues retain those exact targets across
+reload/reselection; old rows retain legacy Everyone semantics. Native picker
+arguments pass a copied flat targetDeviceIds array to the native intake owner.
 
-CSP remains stylesheet-only: storage uses a native `<meter>`, transfer bars
-use `<progress>`, and dialog scroll locking uses a body class. No inline style
-attribute is required. The earlier release's real Go-server probe passed with
-`style-src 'self'` and zero policy violations; that prior probe is not claimed
-as a new redesign test.
+Notifications start off. Explicit Enable requests permission and keeps For you
+usable after denial. Browser arrivals use serviceWorker.showNotification only
+while a page runs, elect a single processor with Web Locks (atomic IndexedDB
+lease fallback), use stable per-sequence tags, persist string cursors before
+ACK and retry ACK without reposting completed progress. OS display/persistence
+are not atomic; this is best-effort dedupe and at-least-once processing, not an
+exactly-once or visible-delivery promise. Titles/body are generic: Zing / New
+share available, without names, text or filenames. Native clients own their
+arrival processor and never post a second notification from shared JavaScript.
 
-Regressions retain cancellation on manual text-preparation unmount/item
-replacement, late-response suppression, active tus termination 404/410
-cleanup, retained 409/500 cancellation failures, and a native bootstrap failure
-screen without browser transport fallback. Native validation/retry/completion/
-reselection controls are tested at the rendered boundary.
+The service worker validates internal item IDs and opens only the same-origin
+/?item= target, or focuses a same-origin Zing page and passes the internal ID.
+The UI authenticates/refetches ready metadata, selects For you, clears search,
+reveals/highlights the item and offers offline/deleted recovery. Native persisted
+click targets are consumed after bootstrap, on focus and by a bounded five-second native-only check (including clicks while already focused), and checked against the paired origin.
+Neither click path copies, downloads nor follows a supplied remote URL.
 
-No 20 GB/GiB transfer, Tailscale deployment, actual PWA installation, native
-background transfer, Mac/Android clipboard, or physical-device validation has
-been performed by this frontend owner. Root integration checks cover the
-actual server and installed emulator separately. Native packaging and live
-host publication belong to their assigned owners.
+Desktop Close leaves its resident checks running; Quit/sleep/process exit stops
+them. Android background checks run no more often than the 15-minute OS periodic
+minimum and can be delayed further by Doze/OEM/Tailscale; reboot and force-stop both require reopening Zing. No reboot-persistent job or 15-minute delivery deadline is implied.
+Browser Close stops checks; there is no Web Push or closed-browser delivery.
+Permission status never proves OS presentation. These limits appear in settings.
+
+LocalSend reference review: pinned revision
+6e37efd5fe750299758b6778d2b150b31af3b95d, app/lib/pages/send_page.dart,
+app/lib/pages/receive_page.dart and app/lib/widget/list_tile/device_list_tile.dart.
+The named platform-icon rows and separated sending/receiving tasks informed this
+interaction. No LocalSend code/assets were copied or adapted; the reference is
+Apache-2.0. Zing retains its existing React components, native platform adapter,
+private server transport and resumable queues.
+
+## Shared board editing and text exports
+
+Ready text entries support inline editing and explicit Save/Cancel; all ready
+entries support name edits. File bodies and text above 8 MiB are not loaded into
+an editor. The opening updatedAt is captured before fetching full text and is
+kept through feed refreshes, failure and conflict. PATCH carries that exact
+expectedUpdatedAt; no autosave, resend, automatic retry or new arrival is created.
+Conflicts/failures keep the draft and offer an explicit Reload latest entry
+(replace draft) action. Reload fetches current metadata before body bytes. Native
+and browser editors use the existing 8 MiB text budget and reject encoded JSON
+above 40 MiB. Existing textarea helpers preserve Unicode, whitespace, BOM, CRLF
+and pasted code. Save can be ambiguous after a connection failure: the UI keeps
+the draft and directs the user to reload before retrying.
+
+Text downloads offer TXT/MD as filename choices without conversion or rendering. Suggested names replace the final non-leading extension, preserve dotfiles, and truncate only the UTF-8 stem to remain within 255 bytes. File entries never offer TXT/MD format selectors.
+Browser downloads navigate to /download?format=txt|md and stream outside JS;
+native downloads pass the original itemId and matching suggested extension to
+the existing native command. Uploaded textual files have explicit bounded Copy
+and retain Download, but only rename (no binary body editor).
+
+Tailscale sign-in requires a successful protected fetch, rather than a VPN flag
+or the public health route. Offline/server failure shows recovery; 401 offers
+Advanced / Use app token. Tokens never enter browser persistence or URL secrets.
+Disconnect clears local application state; it cannot revoke Tailscale access.
+
+## Final combined verification
+
+Final unit/component suite: **90 tests in 11 files passed** (2.24 s).
+The full **29-test Chromium 1243 suite passed** (runner summary 1.1 m), clean exit; final metadata is `test-results/zing-final-menu-placement/.last-run.json`, passed with no failed tests. The last five-action text menu now opens upward when needed, stays above fixed bottom tabs and scrolls within the visual viewport on very short screens. Short/long feeds at 412×839, 320×420 and 320×240 cover every action’s reachability, 44 px targets and keyboard navigation. Shell cache is v9.
+TypeScript + Vite build passed (Vite 1.75 s). No dependencies or browsers were
+installed. Final two-line note/file rows measure 107/85 CSS px at each phone
+width; resting composer stays 100 px and action targets remain at least 44 px.
+
+The exact changed paths, 29 screenshot paths, checks, limitations and nine frozen
+asset SHA256 values are in [FINAL-REVIEW.md](./FINAL-REVIEW.md). The final screenshots
+include desktop/phone compact feed, device picker, For you, arrival settings,
+conflict editor, long text/filename, Tailscale settings and recovery states.
+No real Serve, installed-client, OS alert, IME/Back or 20 GB evidence is claimed
+by the web fixtures.
