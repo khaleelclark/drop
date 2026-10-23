@@ -1,5 +1,51 @@
 # Build and validation evidence
 
+## Interface update and private release, 2026-10-23
+
+The reviewed Blip-inspired interface is frozen at source commit `d600445`
+(`index-BRmFLqLf.js` / `index-BJCLriK5.css`). Root verified all 21 named web
+deliverables and exact asset hashes, reviewed final pairing and transfer
+screens, and passed the real Go-server/Chrome round trip again with exact
+clipboard/text downloads, a 1,048,713-byte file integrity check, second-client
+visibility and a fitting phone layout. The frontend owner's focused test/build
+results are recorded in `web/README.md`; root evidence is in
+`docs/evidence/ui-redesign.json`.
+
+Android 0.1.1 retains the prior signer and package IDs; Tauri code 1001 updates
+the prior code 1000. All nine frozen web files match all three APKs. Root
+installed the exact x86_64 APK `c7d35a61839a861b031acca3d5ab2318099502e928fb905c9eb0d6264a56e5f0`
+and passed cold launch, native text send and exact Copy/Android Paste with no
+browser API traffic. It starts at scale 1 with no horizontal overflow and 16 px
+inputs. The actual OS keyboard overlays the edge-to-edge WebView; the full Share
+action remains above its inspected IME boundary. CDP synthetic pinch/double-tap
+retained scale 1, but the previous emulator baseline also measured scale 1, so
+the physical-phone report was not reproduced here. A native 33,555,133-byte
+download and SAF export matched the source SHA256. The first-use notification
+prompt initially stalled the harness; root accepted its inspected Allow control
+and verified the same original transfer without restarting it. Separate final
+evidence is in `docs/evidence/android-ui-update.json`.
+
+The Linux desktop package rebuilt in the existing isolated Docker build and
+contains the frozen JS/CSS names; SHA256
+`b9545e099fe2c4a8ca515b797fa8f62b0b48e3bf7b9ba375e7f00ed9f19385aa`.
+No new Linux GUI/lifecycle check follows from that rebuild.
+
+Under the user's separate hosting authorization, root atomically switched the
+existing private release to the reviewed interface and audited ARM64 APK
+`2f604eebec1e4ff747d971a5ffd906030a0a55825ddac21486eb4169db916719`.
+Actual Tailscale HTTPS responses matched the index and streamed APK hashes;
+the protected feed stayed unchanged, anonymous access remained 401 and health
+was OK. The backend bytes, service process, persistent data and Serve settings
+were retained. See `docs/evidence/ui-publication.json`.
+
+Final Mac installer acceptance and package refresh remain pending. The
+historical release evidence below describes earlier packages and tests; its
+no-deployment and unavailable-Mac-build statements apply to that earlier stage.
+No new 20 GB transfer, physical phone, Mac GUI/Gatekeeper installation or
+background/screen-lock acceptance is established by this update.
+
+## Earlier release evidence
+
 Recorded 2026-10-22. These are observed build/runtime results, separated from source implementation and unperformed device checks. No service has been deployed and no public listener or Tailscale configuration was created.
 
 ## Environment and packages

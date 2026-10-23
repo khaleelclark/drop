@@ -47,6 +47,7 @@ class MainActivity : Activity() {
             mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_NEVER_ALLOW
             setSupportMultipleWindows(false); javaScriptCanOpenWindowsAutomatically = false
         }
+        AppWebViewPolicy.apply(web)
         WebView.setWebContentsDebuggingEnabled(false)
         web.addJavascriptInterface(Bridge(), "HouseholdBridge")
         val loader = WebViewAssetLoader.Builder().addPathHandler("/", WebViewAssetLoader.PathHandler { raw ->

@@ -21,6 +21,7 @@ class HouseholdPlugin(private val activity: Activity) : app.tauri.plugin.Plugin(
 
     override fun load(webView: WebView) {
         activity.runOnUiThread {
+            AppWebViewPolicy.apply(webView)
             foreground?.close()
             // Tauri can load a plugin after Activity.onResume. Lifecycle observers catch up
             // immediately and currentState remains authoritative for each later UI operation.

@@ -19,7 +19,8 @@ async function connect() {
 }
 async function main() {
   if (!serial.startsWith('emulator-')) throw new Error('This harness requires a disposable emulator.');
-  const upload = JSON.parse(await fs.readFile(path.join(root, '.tools/validation/android-upload.json'), 'utf8'));
+  shell('shell', 'pm', 'grant', 'net.household.share.mobile', 'android.permission.POST_NOTIFICATIONS');
+  const upload = JSON.parse(await fs.readFile(process.env.HOUSEHOLD_ANDROID_UPLOAD_REPORT || path.join(root, '.tools/validation/android-upload.json'), 'utf8'));
   const source = path.join(root, '.tools/validation/android-source.bin');
   const digest = createHash('sha256');
   for await (const block of createReadStream(source)) digest.update(block);

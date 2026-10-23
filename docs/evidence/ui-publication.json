@@ -1,0 +1,18 @@
+{
+  "published": true,
+  "indexSHA256": "cae49b93fd6e129763426826d06b0a01400aff3d0081c1dcc02bfbf99b004b12",
+  "apkSHA256": "2f604eebec1e4ff747d971a5ffd906030a0a55825ddac21486eb4169db916719",
+  "apkBytes": 29751811,
+  "checks": [
+    "actual private Tailscale HTTPS index matches frozen interface",
+    "actual private HTTPS APK streaming hash matches audited ARM64 package",
+    "existing authenticated feed unchanged",
+    "anonymous feed remains401",
+    "health remains ok",
+    "backend executable unchanged; no service restart or Serve configuration change"
+  ],
+  "macDownloads": "pending final native CI artifacts",
+  "recordedAt": "2026-10-23",
+  "entrypoint": "existing private Tailscale HTTPS origin",
+  "frontendSourceCommit": "d600445d2996b9d49e685ab716237ae3ad4ff3f7"
+}

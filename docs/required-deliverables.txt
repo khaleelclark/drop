@@ -160,3 +160,17 @@ docs/evidence/android-download.json
 docs/evidence/android-upload.json
 docs/evidence/android-package-audit.json
 clients/android/validation/api36-emulator.json
+.github/workflows/macos-dmg.yml
+.agents/skills/ponytail/SKILL.md
+.agents/skills/ponytail/SOURCE.md
+.agents/skills/ponytail/LICENSE
+integrations/macos/versions.env
+integrations/macos/build-dmg.sh
+integrations/macos/verify-dmg.sh
+integrations/macos/INSTALL.txt
+quality/macos-packaging-review.md
+clients/android/app/src/main/java/household/share/android/AppWebViewPolicy.kt
+docs/evidence/ui-redesign.json
+docs/evidence/android-ui-update.json
+docs/evidence/ui-publication.json
+clients/android/validation/api36-ui-0.1.1.json
