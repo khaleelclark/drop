@@ -1,0 +1,55 @@
+{
+  "sourceCommit": "13198e14f3bc5cace5927196e6e2f4b5f9f00920",
+  "serverSha256": "0831a97f8de9e0cc7ccdda951e5bb7cf3479fe480182adb49b61bbc2c5a19f2e",
+  "stagedAssetCount": 9,
+  "stagedAssets": {
+    "assets/index-Bn7PZLMa.js": "4b4c5a4b1f78ce5f887cce213fc10f40121f7dad403cedb69901cd247732895d",
+    "assets/index-Bn7PZLMa.js.map": "bcec0b53aa4730f022fb702f220ccd63347461905bac48f6815643917507d0f8",
+    "assets/index-CeynTtsM.css": "866083b32f69558eb09ce93f3f4ae31217b0ccb85a98f10a2e8ba556510b01cc",
+    "icon-192.png": "26418045ba5cc927416d455f6e1f56fc7ea0f9d6f6ce2b8a843a943b3bead594",
+    "icon-512.png": "504726f443008617b8e9aa5bdbf4b8f671de095695df5327f653e7f7252df128",
+    "icon.svg": "8f90ee82fcc9b982325a501f44a0e339dbfc581073130780ee24bc61c95bb546",
+    "index.html": "f220506595fc3b3eb1fb209e4f0121505856c90b2c735cf2e7ce7ff34aa31e4c",
+    "manifest.webmanifest": "acd23a7869d887a9f2a249af9a1ca1215137d50452e2f870a3fdebd0c3661095",
+    "sw.js": "20ba0fdc9d7ff2f3f7152aae2d58af629edf8a6c596b184155a8a7267bad2f73"
+  },
+  "downloadSha256": {
+    "household-share-android.apk": "52343d163f8e02791352183d36f998cbebd3ab839adaa5cad00f49bbdbd1d7e8",
+    "household-share-android-x86_64.apk": "0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0",
+    "household-share-linux-amd64.deb": "b7138e6668870df8078fbbc5d4d20247981a8a56ec9baa8a7d4ee337e7ed443a",
+    "INSTALL-macos.txt": "33d72a856597fc064faa44fa8b4a02c54a3244d95d204d22036d020e04deef84"
+  },
+  "status": "passed",
+  "funnelTargetDisabled": true,
+  "configTokenRetained": true,
+  "backupVerified": true,
+  "oldSchema": 1,
+  "existingItemCount": 2,
+  "newSchema": 3,
+  "serviceActive": true,
+  "actualProcessBinarySha256Matched": true,
+  "existingMetadataPreserved": true,
+  "existingBlobFilesPreserved": 2,
+  "readyDownloadsCheckedThroughServe": 2,
+  "realServeTokenlessFeed": 200,
+  "loopbackAnonymous": 401,
+  "fallbackToken": 200,
+  "foreignOrigin": 403,
+  "exactIndexThroughServe": true,
+  "allStagedDownloadsThroughServe": true,
+  "selectedServeRouteUnchanged": true,
+  "completedAt": "2026-10-23T16:27:25.518636+00:00",
+  "limitations": [
+    "No new 20 GB/native-device transfer proof",
+    "Mac packages will be added only after their separate exact-build checks"
+  ],
+  "scope": "User-approved actual private service upgrade, consistent stopped whole-data/config/old-release backup, schema migration, real Tailscale HTTPS and exact download checks. No grants/ACL/Funnel/Serve route change.",
+  "browser": {
+    "session": "Clean temporary actual Chromium session through the real Serve origin",
+    "result": "Opened shared inbox directly, then header reported Connected; no token, session exchange or setup form required.",
+    "dataWrites": "Automatic browser device registration only; no existing share edited or deleted, no test share created.",
+    "capture": "No user-content screenshot published."
+  },
+  "rollback": "Full verified stopped backup and unchanged prior release retained privately on host. Restore requires stopping service and restoring the matching whole data directory, configuration and prior executable; post-backup changes would be lost.",
+  "decision": "User approved private deployment and existing public-source/Mac-build workflow before changes."
+}

@@ -2,6 +2,88 @@
 
 Checked 2026-10-22–23 in the shared Linux build workspace. This record distinguishes standalone Gradle packaging, Tauri Android packaging and actual device evidence.
 
+## 0.1.5 navy Ribbon Z recolor — source checks only
+
+Checked 2026-10-23 with existing JDK17/SDK36 and offline caches. The user approved the navy/soft-white/signal-red preview after removing Sea Glass/teal. The selected launcher uses white Ribbon Z on navy `#244C6A`, without red details. This supersedes the historical Iris palette below. Sea Glass preparation was cancelled before PNG generation or validation; no final Sea Glass source report exists. The original navy source report remains unchanged; its earlier pending-review wording is historical. [The approval addendum](validation/icons-navy-0.1.5-approval.json) records current branding/document hashes and verifies the source, assets and earlier evidence remain unchanged. No generation, build, pixel check or test was repeated for this documentation-only approval update.
+
+Only the generator accent, standalone launcher background, Tauri adaptive background, eleven colored PNGs and these two documents changed relative to the focused baseline. The five transparent foreground PNGs, notification vector, adaptive foreground vector, SmallIcon callers, manifests/resource names, IDs/version0.1.5/codes1005+6, signing/insets/config/identity/queue logic, tests and immutable reports remain unchanged. The generator rewrote 16 PNGs deterministically; five monochrome outputs retained their hashes. No JVM/startup suite, geometry/caller audit, lint or package audit was repeated.
+
+Commands from repository root:
+
+```sh
+python3 clients/android/generate-icons.py
+python3 clients/android/build/zing-icons-navy-0.1.5-check.py
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android --offline --console=plain \
+  :app:processDebugResources -x :app:bundleWeb
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  --offline --console=plain :app:processUniversalDebugResources \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb
+```
+
+All passed: independent PNG CRC/RGBA/dimension/alpha/navy checks for 16 assets, exact background-only vector substitutions against the archived Iris bytes, focused baseline preservation and standalone/shared-plugin/generated-host resource compilation. A read-only web-source check verified the current navy SVG and both PNGs' CRC/RGBA/dimension/alpha/color/glyph samples; exact source hashes are in `build/zing-icons-navy-0.1.5-web-match.json`. No frontend build/freeze is claimed. The offline `build/zing-icons-navy-0.1.5-preview.png` shows actual launcher/round/foreground bytes and was viewed locally; it is not a device screenshot. Logs are `build/zing-icons-navy-0.1.5-{check,standalone-resources,tauri-resources}.log`. [The new source report](validation/icons-navy-0.1.5-source.json) lists exact current paths/hashes, evidence and limits; earlier reports retain historical hashes and scopes.
+
+No APK/frontend/Rust build, device/ADB/install, new dependency/toolchain/SDK/system installation, Agent creation, Git/CI, service/deployment, import/publication or web/root edit occurred. Launcher masks/themed icons/notification presentation, real Tailscale/first-run/upgrade/Disconnect, background/recovery/memory/20 GB acceptance remain unperformed for these sources. Root retains final frontend freeze, package assembly and installed acceptance.
+
+## Historical 0.1.5 Iris Ribbon Z icons — original source snapshot
+
+The following evidence describes the earlier Iris sources, not the current navy palette. Its immutable JSON and archived source bytes retain their original scope.
+
+Checked 2026-10-23 using the existing JDK17/SDK36 and offline caches. Root selected Iris + Cloud as a reversible working preview; the user palette preference remains open. This is not a claim of user-approved final styling. The root SVG's exact Ribbon Z path/stroke/caps/joins now appear in standalone's existing `ic_household` vector, the centered adaptive foreground and a separate white/transparent notification vector. All four public/private arrival/transfer SmallIcon callers use that shared resource. Tauri's existing icon resource names remain; its manifest adds the matching round resource. The adaptive background is solid Iris `#5B4BDA`, without the Android grid/robot. All 15 existing launcher/round/foreground PNG fallbacks plus `src-tauri/icons/icon.png` were replaced. Legacy density sizes are 48/72/96/144/192; foreground sizes are 108/162/216/324/432. This corrects the old 49×49 `hdpi` launcher/round assets.
+
+The new standard-library `generate-icons.py` reuses the existing web PNG/chunk/distance approach, asserts the canonical root geometry and writes antialiased rounded/round launcher and transparent foreground PNGs. The independent `build/zing-icons-0.1.5-check.py` decodes all 16 PNGs, verifies CRCs, RGBA layout, exact density sizes, alpha, Iris/white pixels and positive/negative glyph samples, and confirms every PNG differs from its old hash. It checks vector geometry, all four SmallIcon callers, both manifest icon references, adaptive references and geometric containment within the 66dp safe circle. These source/pixel calculations do not establish Android launcher mask or notification behavior. `build/zing-icons-0.1.5-preview.png` is an offline composite of actual launcher/round/foreground PNGs on a background, viewed locally, not a device screenshot.
+
+Commands from repository root:
+
+```sh
+python3 clients/android/generate-icons.py
+python3 clients/android/build/zing-icons-0.1.5-check.py
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android --offline --console=plain \
+  :app:compileDebugKotlin :app:lintDebug -x :app:bundleWeb
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  --offline --console=plain :tauri-plugin-household:compileDebugKotlin \
+  :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb -Pkotlin.incremental=false
+```
+
+All checks passed. Standalone/plugin/generated-host Kotlin and Android resource compilation pass. Lint has **zero errors**, with **6/23/25 warnings** respectively and **one host hint**; existing generated/dependency diagnostics remain. Final command logs are `build/zing-icons-0.1.5-{standalone,tauri,check}.log`; the earlier monochrome-only compile logs retain their narrower scope. The new `validation/icons-0.1.5-source.json` records the exact current files/evidence, source baseline and limitations without regenerating any older JSON.
+
+Version0.1.5/codes1005+6, IDs, signing configuration, inset policy, startup/config/identity/queue logic and all tests remain unchanged. No JVM tests or package audit were repeated. `validation/no-setup-0.1.5-source.json` remains `e2f5efb5a1c8a2cd25d176bac3fe78d48b969b5f01f26698a0c5bca9f141c53e`; both 0.1.4 package audits retain the hashes below and their historical package scope. No APK/frontend/Rust build, ADB/device/emulator/install, new dependency/toolchain/SDK/system installation, Agent creation, Git/CI, service, import/publication or web edit occurred. Actual launcher masks/themed icons, notification rendering, physical phones, background/recovery, Tailscale and 20 GB/memory acceptance remain unperformed for this source handoff. Root retains the final frontend freeze, package assembly and installed validation.
+
+## 0.1.5 household first run — source checks only
+
+Checked 2026-10-23 in `clients/android/` only, using the existing JDK17, SDK36 and offline Gradle dependency caches. No 0.1.5 APK, Rust build or frontend build ran. The 0.1.4 APKs and both package-audit JSONs remain unchanged; the earlier build-time and root installed records retain their original scope.
+
+Both standalone and shared Tauri-plugin Gradle configurations now obtain `HOUSEHOLD_DEFAULT_ORIGIN` through the environment provider and generate the same `household_default_origin` string resource, empty by default. Shared `ConfigStore` reads it before returning configuration, uses the existing HTTPS-only validation and `set`/identity commits, and persists the automatic Android name with an empty token. No network is required. Any saved base URL, token, device name or connected flag prevents initialization, including an explicit Disconnect before any prior configuration. Existing configuration and queues are never migrated or cleared. Identity-only state after a failed connection commit can retry with the same ID. An invalid default rejects the call without saving new state; manual Settings remains the recovery path. No authentication mode, application ID, signing configuration or native inset change was introduced. Version metadata is 0.1.5, Tauri1005/standalone6, including the retained generated version properties and own Cargo lock entry.
+
+`ConfigStoreTest.kt` was added before the behavior. With only the injectable preferences constructor seam, the focused command compiled and executed 11 tests: five failed for missing default initialization/validation/write-failure behavior (`build/no-setup-red.log`). After implementation, all 11 pass. Coverage includes first run without a default, HTTPS default persistence and redaction, invalid defaults, relaunch with absent/changed/invalid build defaults, preservation of an existing manual origin/token/name/identity and partial empty settings, Disconnect after initialization and before any configuration, explicit reconnect, and failed identity/config commits with stable-identity recovery. Tests exercise the real `ConfigStore` against an in-memory `SharedPreferences` implementation; they do not simulate Android disk/power-loss semantics or run networking.
+
+Actual final source commands from repository root:
+
+```sh
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android --offline --console=plain \
+  :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug -x :app:bundleWeb
+HOUSEHOLD_DEFAULT_ORIGIN=https://household.example \
+  ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  --offline --console=plain :tauri-plugin-household:compileDebugKotlin \
+  :tauri-plugin-household:testDebugUnitTest :tauri-plugin-household:lintDebug \
+  :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb -Pkotlin.incremental=false
+```
+
+Both passed: **73 JVM tests**, 67 standalone including the 11 new cases, plus six plugin lifecycle cases; zero failures/errors/skips. Kotlin compilation passes in standalone, shared plugin and generated host. Lint retains zero errors, with 6/23/37 warnings respectively and one host hint. Existing generated/dependency deprecation warnings remain. Logs are `build/no-setup-standalone-check.log` and `build/no-setup-tauri-check.log`. An initial Tauri check command could not open its incorrectly relative log path before Gradle started; the corrected root-relative invocation above succeeded. No runtime/build-source workaround or dependency installation was needed.
+
+The standalone full check generated an empty default resource; the plugin/host full check generated `https://household.example`. Additional resource-generation-only commands used the same existing wrappers/offline flags: standalone `:app:generateDebugResValues` with that synthetic environment variable, and plugin `:tauri-plugin-household:generateDebugResValues` with `env -u HOUSEHOLD_DEFAULT_ORIGIN`. Both passed. All four resulting XML values were parsed and checked, proving that each shell accepts the input and clears it when absent; exact XML snapshots and resource command logs use `build/no-setup-{generic,household}-{standalone,plugin}-res.xml` and `build/no-setup-{standalone-default,plugin-generic}-resource.log`. No real household hostname or token was used in these checks.
+
+The new `validation/no-setup-0.1.5-source.json` records exact changed files, commands, test/lint counts, input snapshots, evidence hashes, retained package hashes and the `build/no-setup-pre-change.json` source/history baseline. Historical `validation/package-0.1.4.json` remains SHA-256 `406845e338f2d4607badd064efff96d748191a3f4af27e281c707269a83776eb`, and `validation/package-0.1.4-menu.json` remains `613d7fa7212910023ba87c141c119e3fac059df43de901ff4750afe77485180c`. No package/signing/alignment audit was repeated.
+
+No APK assembly/install, Rust/frontend build, ADB/device/emulator, host service/deployment, Git/CI, dependency/toolchain/SDK/system installation, new Agent or import/publication operation occurred. Root retains shared-UI integration, actual private build input, final APK assembly and installed first-run/upgrade/Disconnect/Tailscale checks. Background/notification/storage/source-grant/recovery/phone/20 GB/memory acceptance is not established by these source tests.
+
 ## Replacement 0.1.4 text-menu packaging — installed acceptance pending root
 
 Checked 2026-10-23 under root/native lead's narrow replacement authorization. `web/FINAL-REVIEW.md` was read in full and matched SHA-256 `65a1689f644d1ba0b1ecf02f8feab1c94d5d3bdc651ea5a7fe2e4a788d051600` before and after packaging. Its exact nine hashes matched `web/dist`; shell cache is v9. The final raw index SHA-256 is `f220506595fc3b3eb1fb209e4f0121505856c90b2c735cf2e7ce7ff34aa31e4c`, JS `index-Bn7PZLMa.js` is `4b4c5a4b1f78ce5f887cce213fc10f40121f7dad403cedb69901cd247732895d`, and CSS `index-CeynTtsM.css` is `866083b32f69558eb09ce93f3f4ae31217b0ccb85a98f10a2e8ba556510b01cc`. No web build or frozen-source change occurred.

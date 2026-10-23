@@ -7,8 +7,9 @@ android {
         applicationId = "household.share.android"
         minSdk = 26
         targetSdk = 36
-        versionCode = 5
-        versionName = "0.1.4"
+        versionCode = 6
+        versionName = "0.1.5"
+        resValue("string", "household_default_origin", providers.environmentVariable("HOUSEHOLD_DEFAULT_ORIGIN").getOrElse(""))
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }

@@ -1,6 +1,6 @@
 # Zing browser client
 
-React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to five bottom navigation tabs on phones. Each text entry has a visible Copy action, and every file has Download. Text downloads and management live in a keyboard-accessible menu; long text has an inline Expand/Collapse control. Routine actions use light icon/label controls with no filled blocks. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
+React + TypeScript + Vite client with a shared inbox, neutral white surfaces, navy typography/actions, and a restrained red wordmark detail. The original Ribbon Z replaces the house in the interface and install icons using root’s `branding/zing-mark.svg` geometry; the user approved the final navy, soft-white and signal-red preview after removing teal. A compact desktop sidebar gives way to three bottom scope tabs (All shares, For you, Pinned) on phones. Each text entry has a visible Copy action, and every file has Download. Text downloads and management live in a keyboard-accessible menu; long text has an inline Expand/Collapse control. Routine actions use light icon/label controls with no filled blocks. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
 
 Client for `docs/api-contract.md`. All items come from
 the connected API; the product interface has no demo feed or synthetic storage
@@ -31,7 +31,7 @@ documentation describes private Tailscale HTTPS hosting.
 
 The browser build deliberately uses its own origin. Open the private server's
 HTTPS address to connect; it does not send household tokens to an arbitrary
-cross-origin server. A successful protected feed fetch through configured Tailscale Serve opens the inbox directly, without a login form. Installed apps save the HTTPS origin once and configure an empty token through the existing native bridge. Optional token entry is behind Advanced; token servers exchange it for the server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
+cross-origin server. A successful protected feed fetch through configured Tailscale Serve opens the inbox directly, without a login form. Installed apps use saved configuration supplied by the native bridge before rendering; a preconfigured client opens the feed directly. Network failures and access denials on configured installed clients keep the feed visible with Retry and Settings, without automatically opening setup. Manual settings, unconfigured clients and explicit disconnect retain the connection form. The web interface supplies no default server or configuration migration. Optional token entry is behind Advanced; token servers exchange it for the server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
 queue records, or the service-worker cache. Native adapters can configure a
 remote HTTPS origin and supply a bearer-authenticated HTTP bridge.
 
@@ -51,7 +51,7 @@ Go server or any physical device.
 ## Browser behavior and limits
 
 - Shared newest-first feed, cursor pagination, debounced metadata/preview search,
-  text/file filters, pins, explicit shared deletion, SSE reconnect refresh,
+  independent All types/Text/Files content filtering within All shares/For you/Pinned, explicit shared deletion, SSE reconnect refresh,
   storage usage, disk free space, and the server's configured file-size limit.
   Filters and pin counts cover loaded items. Load older items to include them.
 - Plain text is inert. Paste preserves spaces, tabs, Unicode, CRLF and trailing
@@ -134,7 +134,7 @@ never fall back to browser API or transfer behavior.
 
 The chosen display name is **Zing**. Existing API, native command/bridge,
 pairing/config and queue identifiers remain stable; the visible rename applies in the brand, setup/help/startup text, page title and PWA name. The
-public-shell cache revision advances to v8 so cached PWA metadata can refresh;
+public-shell cache revision advances to v13 so cached PWA metadata can refresh;
 its existing cache namespace and PWA id/start URL/scope are preserved.
 
 The user’s compact-utility direction (2026-10-23) replaces boxed feed cards with
@@ -148,7 +148,7 @@ Short notes show their full content rather than a two-line clamp. Collapsed long
 The resting composer is 100 px; entering a draft expands its textarea from 44
 to 80 px. It stays expanded while a draft exists, avoiding blur-induced layout
 movement during clicks. Long filenames, errors, progress, deletion confirmation
-and expanded text can grow. Collapsed text is limited to two lines; Expand,
+and expanded text can grow. Expand,
 full exact Copy, the 256 KiB rendered-text budget and 8 MiB preparation budget
 are unchanged. Oversized stored text offers Download .txt.
 
@@ -158,12 +158,22 @@ lifetime guidance remains beside sending; full transfer help and storage limits
 remain available. Transfers retain filename, direction, real progress and
 pause/resume/reselect/cancel recovery.
 
-The existing single mobile bottom navigation, page-end reserve and notification
-clearance remain. Composer/search focus moves the same navigation into the
-scrollable sticky editing position; Done editing, selecting a filter or handled
-Escape redocks it with selected-filter focus, preserving draft and search.
-Composition and menu/dialog Escape handling remain intact. No viewport-based
-keyboard detection was added. Browser zoom and 16 px mobile fields remain.
+The single mobile bottom navigation contains only All shares, For you and Pinned.
+Content kind is an independent All types/Text/Files selector beside the Recent
+shares heading. Search fills its own row below the heading/filter. Kind and
+scope intersect over loaded items; search and opaque pagination keep their
+existing server semantics. Load older items remains available even when no
+loaded item matches the local kind/pin filter. A notification selection resets
+the content kind so its addressed item can be seen.
+
+Focusing a text field inside the workspace hides the browsing tabs, including
+composer, feed/device search and inline editors. A separate sticky Done editing
+control stays reachable by scrolling above an occluding keyboard. Done or a
+handled Escape restores the existing navigation node and focuses its selected
+scope, preserving draft, recipients, kind and search. Menu Escape is consumed by
+the menu, and IME composition Escape leaves editing intact. The mobile feed tabs
+never move under the composer. No viewport-based keyboard detection was added.
+Browser zoom, safe areas and 16 px mobile fields remain.
 
 Only packaged `window.__HOUSEHOLD_NATIVE__?.platform === 'android'` sets
 `data-native-android` before rendering, including startup failures. Its native
@@ -261,15 +271,27 @@ Disconnect clears local application state; it cannot revoke Tailscale access.
 
 ## Final combined verification
 
-Final unit/component suite: **90 tests in 11 files passed** (2.24 s).
-The full **29-test Chromium 1243 suite passed** (runner summary 1.1 m), clean exit; final metadata is `test-results/zing-final-menu-placement/.last-run.json`, passed with no failed tests. The last five-action text menu now opens upward when needed, stays above fixed bottom tabs and scrolls within the visual viewport on very short screens. Short/long feeds at 412×839, 320×420 and 320×240 cover every action’s reachability, 44 px targets and keyboard navigation. Shell cache is v9.
-TypeScript + Vite build passed (Vite 1.75 s). No dependencies or browsers were
-installed. Final two-line note/file rows measure 107/85 CSS px at each phone
-width; resting composer stays 100 px and action targets remain at least 44 px.
+The user-approved navy direction supersedes the unfinished teal revision and the
+earlier Iris preview. Canvas `#F7F8FA`, ink `#18334A`, muted/placeholders `#5E6B78`,
+actions/progress/focus `#244C6A`, hover `#18334A`, soft `#EAF0F5`, separator
+`#DCE3EA` and essential input boundary `#788795` match `branding/README.md`.
+Success uses `#23764A` on `#EAF7EE`; errors use `#B42336` on `#FFF0F1`.
+A small aria-hidden red line beneath Zing adds the requested brand detail.
+Routine Copy/Download/send and progress remain navy. Launchers use the canonical
+white Ribbon Z on navy without a red overlay. PWA metadata matches the neutral
+canvas; shell cache v13 retains the existing shell-only caching boundary.
 
-The exact changed paths, 29 screenshot paths, checks, limitations and nine frozen
-asset SHA256 values are in [FINAL-REVIEW.md](./FINAL-REVIEW.md). The final screenshots
-include desktop/phone compact feed, device picker, For you, arrival settings,
-conflict editor, long text/filename, Tailscale settings and recovery states.
-No real Serve, installed-client, OS alert, IME/Back or 20 GB evidence is claimed
-by the web fixtures.
+The current feed UX separates All shares/For you/Pinned scope from content kind
+and hides browsing tabs while workspace text fields are focused. Done editing
+or handled Escape restores selected-scope focus with draft, recipients, kind,
+search and identity retained. Existing configured startup/recovery, bounded
+text/copy/editing/downloads, menus, arrivals and transfer behavior are preserved.
+
+Final current-source validation passes 94/94 unit/component tests (11 files,
+5.34 s), 36/36 Chromium tests (1.6 m), TypeScript and the Vite production build
+(4.94 s). Screenshots, exact changed paths, all nine
+production asset hashes and remaining checks are recorded in
+[FINAL-REVIEW.md](./FINAL-REVIEW.md). Rendered role checks cover text/action
+contrast, essential input boundaries and 3 px focus; they are not a complete
+accessibility audit. API/native/keyboard fixtures are not installed-device
+acceptance. Root owns final rendered/device acceptance and matching packages.

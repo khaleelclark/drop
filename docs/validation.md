@@ -1,12 +1,178 @@
 # Build and validation evidence
 
-## Zing shared-board update — local acceptance, 2026-10-23
+## Latest nautical direction: navy, white and red — 2026-10-23
+
+The user removed Sea Glass/teal and approved the rendered navy/white/red preview
+("there we go. much better"). `branding/README.md` records
+navy `#244C6A` actions/launcher, navy `#18334A` ink, neutral `#F7F8FA` canvas
+and a restrained red brand detail. Iris and teal colored source handoffs below
+are historical. The final web contrast fixes, Linux/Android local builds and
+scoped Android emulator acceptance below are complete; current Mac builds and
+household-device acceptance remain outstanding. No new deployment occurred.
+Root rendered and inspected the standalone design preview;
+13 primary source-color contrast checks pass. This is not an app/package test.
+
+### Desktop navy source handoff
+
+Root directly verified all six desktop brand deliverables present/nonempty and
+matching the native owner's final navy hashes: `clients/desktop/README.md`,
+`clients/desktop/VALIDATION.md`, `clients/desktop/src-tauri/src/main.rs`, and
+`generate-tray.py`, `tray-template.png`, `icon.png` beneath
+`clients/desktop/src-tauri/icons/`. The desktop launcher and the handed-off
+`web/public/icon-512.png` match SHA-256
+`c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641`.
+Root read back the updated desktop validation evidence. The previously checked
+tray/generator/lifecycle source hashes remain unchanged. This accepts source
+assets only, with no new native package or installed-device claim.
+
+### Android navy source handoff
+
+Root read both `clients/android/validation/icons-navy-0.1.5-source.json` and
+`icons-navy-0.1.5-approval.json` in that directory. Both report hashes match the
+owner's handoff. Root directly checked all 72 unique original input receipts,
+using the addendum's updated README/VALIDATION receipts for the two approval-only
+changes. All current files are present/nonempty and match those receipts; the
+original report and historical no-setup/package reports remain unchanged.
+The addendum hash is
+`5f68212628f11566df67593a9501abd3d69d68d5df9cb071baceed3fbb073876`.
+This accepts source assets and prior recorded resource checks only. Root did
+not repeat compilation or establish APK/installed launcher/notification/device
+or 20 GB acceptance. The tracked navy Request has now completed with the owner's
+canonical result, confirming the verified files required no further edits.
+
+### Web navy integration readback
+
+Root directly checked all 65 named source/assets/docs/captures in the final
+navy review, generated TypeScript state, all nine frozen dist hashes and their
+public copies, and all 19 application source-map contents against current
+source. Recorded final browser metadata is passed with no failed tests. Root
+visually inspected the navy desktop and phone captures and Android keyboard
+fixture: selected scope/content filter, full-width search, red brand detail,
+and composing without feed tabs are present. This is fixture/source evidence,
+not native OS/installed acceptance; no tests/builds were repeated. The owner
+recovered the final canonical navy handoff and initially confirmed two source
+contrast defects: the toast dismiss focus ring against its dark background
+(1.438:1), and the small navigation count on an unselected hovered row
+(4.212:1). The tracked correction resolved both: white-on-navy focus is now
+13.033:1, and muted count on the soft hover surface is 4.748:1. Five focused
+rendered/keyboard/menu cases, TypeScript and one production build passed. The
+prior 36-case full browser suite and 94 units retain their pre-fix scope.
+Root checked all 65 named files, the replacement nine hashes, both recorded
+browser results and all 19 application source-map contents. Current assets are
+`index-BWwY4mOY.js` / `index-BP1qYeCi.css`; native icon bytes are unchanged.
+This accepts the tested cases, not complete accessibility conformance.
+
+Root also removed the specifically reported accidental 114-byte empty root
+lockfile after checking its exact contents and the root wrapper package's lack
+of dependencies. The real `web/pnpm-lock.yaml` remains intact.
+
+### Local candidate packages and installed Android checks
+
+Root built Linux desktop **0.1.3**, Android Tauri **0.1.5/code1005** for ARM64
+and x86_64, standalone **0.1.5/code6**, and the Linux server using existing
+toolchains/caches. No OS SDK/toolchain was installed. Both app/helper and
+Android resources contain the intended private HTTPS connection default; no
+token was embedded. Root checked that origin against the exact existing
+loopback Serve route with Funnel disabled for this app. No route/service was
+changed.
+
+All three APK signatures, IDs/versions, 16 KiB ZIP/ELF alignment, manifests,
+native classes, exact nine web assets and embedded native assets passed
+inspection. Linux package identity, navy icon, private app/helper defaults and
+all nine actual executable asset blobs passed inspection. See
+`docs/evidence/zing-navy-android-packages.json` and
+`docs/evidence/zing-navy-linux-package.json`.
+
+Root installed only the x86_64 Tauri candidate on the existing disposable API36
+emulator. Its installed APK bytes match the candidate, and saved connection,
+token and identity XML survived upgrade byte-for-byte. Actual native text
+send/Copy/Android Paste, three docked scope tabs, independent content kind,
+full-width search, IME/Back/Done with hidden composing tabs, draft/filter
+preservation, last-item menu, shared editing/conflict and For you after ACK
+passed against disposable Go servers. A foreground Android notification and
+actual SystemUI tap opened the exact item without automatic Copy/Download.
+The notification-only rerun used a fresh server origin after the initial test
+reused an old durable cursor against a newly created database. Original emulator
+configuration was restored. See `docs/evidence/zing-navy-android-installed.json`.
+
+A fresh standalone installation with no active default network opened the
+inbox without a setup dialog, persisted the compiled default and retained the
+same identity/configuration after force-stop/relaunch. The app was stopped
+before network restoration; airplane/Wi-Fi settings were restored. This is
+standalone first-launch evidence, not fresh Tauri or Mac first-launch evidence.
+See `docs/evidence/zing-navy-android-first-launch.json`.
+
+Mac **0.1.3** installers remain absent because this host has no Apple SDK/native
+Mac runner. No new host Linux GUI, physical-phone/Tailscale, initial OS
+notification permission, periodic scheduling, lock/reboot/Doze, background
+recovery or 20 GB/memory acceptance is claimed. Earlier evidence below retains
+its historical scope. Local packages are candidates; no new release is deployed.
+
+## Historical Sea Glass direction — 2026-10-23
+
+The user initially selected Sea Glass with navy/red nautical accents after the
+Iris source handoff below. Teal assets were pending at that checkpoint; the
+approved navy direction above supersedes it. No package or installed acceptance
+was established by this intermediate direction.
+
+## Historical Iris desktop branding source handoff — 2026-10-23
+
+Root directly checked all six named desktop branding deliverables present and
+nonempty, and their SHA-256 values match the native owner's final handoff:
+`clients/desktop/src-tauri/src/main.rs`, `icons/generate-tray.py`,
+`icons/tray-template.png`, `icons/icon.png` (the three icon paths are beneath
+`clients/desktop/src-tauri/`), `clients/desktop/README.md`, and
+`clients/desktop/VALIDATION.md`. The desktop launcher and
+`web/public/icon-512.png` are byte-identical at SHA-256
+`c4df074c7f9c07e20540e9593c6652c90eca1f483868a9a371997e0b96f44159`.
+Root read back the validation record and runtime selection: macOS embeds the
+monochrome template with template mode; Linux embeds the colored app icon.
+
+This accepts the desktop branding source handoff only. Iris + Cloud remains
+root's reversible preview choice, not recorded user theme approval. The final
+web integration handoff is still outstanding. No new native package, installed
+Mac rendering/tray/helper check or 20 GB acceptance is established by this
+handoff; the release evidence below retains its historical scope.
+
+## Zing shared-board update — acceptance and private deployment, 2026-10-23
 
 The new source adds registered recipients/For you, opt-in arrivals, lighter
 controls, readable notes, shared versioned editing, exact TXT/MD exports and
 optional Tailscale Serve sign-in. Android 0.1.4 and Linux 0.1.2 packages are built
-and checked. Current Mac installers and the live schema-3 upgrade remain
+and checked. The approved private service upgrade is live with verified existing
+shares and URL-only Tailscale access. Current Mac installer acceptance remains
 pending; the older release evidence below remains historical.
+
+Release readback confirmed all 286 named required files are nonempty and the
+current live Android ARM64/x86_64, Linux installer and Mac INSTALL downloads
+match their recorded SHA256. Mac workflow `39986005986` has completed its
+Apple Silicon job successfully. Root accepted its retained original ZIP, all
+13 payload files, 29 passing native tests, native app/helper build,
+UserNotifications linkage, ad-hoc signatures and read-only DMG checks. All
+nine frontend hashes and current INSTALL match. The ARM64 installer is now
+served privately and its full HTTPS download matches SHA256
+`87733253a8cb034ce7434e525c860e3e779d86c802f04838b702ebf1efd7b01e`.
+No service restart/data/configuration change occurred. Native execution
+conclusions rely on Mac CI logs; no household GUI/OS behavior was tested.
+See `docs/evidence/zing-macos-package.json`. Intel was still compiling at
+the last inspection. A recovered tracked acceptance
+request covers the remaining work; no older Mac package is substituted.
+
+After explicit user approval, root published reviewed build commit
+`13198e14f3bc5cace5927196e6e2f4b5f9f00920` and started the existing native Mac
+workflow. Root staged the checked static server, all nine frozen web assets and
+current Android/Linux downloads, stopped the existing private user service and
+verified a complete matching data/configuration/old-release backup before its
+first new start. The actual schema-1 to schema-3 upgrade preserved both existing
+items, their original metadata and stored bytes. The running executable matched
+the checked binary hash. Actual private HTTPS checks passed tokenless feed and
+both original downloads, exact frontend and installer hashes; anonymous direct
+backend access returned 401, the retained token fallback returned 200, and a
+foreign-Origin write returned 403. The selected Serve route remained unchanged
+and private. A clean actual browser opened directly and reached Connected
+without token/setup. No live share was edited/deleted or test share created.
+Backup paths and user content remain private; sanitized evidence is in
+`docs/evidence/zing-live-upgrade.json`.
 
 The initial combined candidate was built as Android 0.1.4/code1004 and Linux
 0.1.2. Root installed the exact x86_64 APK over the prior emulator app and passed
@@ -88,14 +254,13 @@ passed signature, manifest, alignment, native-class and nine-asset audits;
 `clients/android/validation/package-0.1.4-menu.json` is the immutable build-time
 snapshot. Source/Android documentation may subsequently link the runtime result.
 
-The current source/server archives and seven available package checksums are
+The current source/server archives and available package checksums are
 created with `scripts/package.py --allow-missing-macos`. The manifest explicitly
-lists both missing Mac 0.1.2 installers; it never substitutes older DMGs.
+lists any missing Mac 0.1.2 installer; it never substitutes older DMGs.
 The extracted server bundle starts using documented relative paths, serves the
 exact frozen index, rejects anonymous data access and accepts authenticated
 access (`docs/evidence/zing-server-bundle.json`). The package-source review found
-no concrete credential or compiled-output inclusion regression. Current Mac
-compilation/installation, the live upgrade, physical phones, new background and
+no concrete credential or compiled-output inclusion regression. Intel Mac compilation and household Mac installation, physical phones, new background and
 20 GB acceptance remain pending.
 
 ## Android full-height correction, 2026-10-23

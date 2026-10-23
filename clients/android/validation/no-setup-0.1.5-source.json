@@ -1,0 +1,358 @@
+{
+  "schemaVersion": 1,
+  "dateUTC": "2026-10-23",
+  "status": "source-checks-pass; final-APK-and-installed-validation-not-performed",
+  "version": {
+    "name": "0.1.5",
+    "tauriCode": 1005,
+    "standaloneCode": 6
+  },
+  "scope": "clients/android only; first-run optional private build default, no UI/network/authentication-mode change",
+  "behavior": {
+    "buildInput": "HOUSEHOLD_DEFAULT_ORIGIN",
+    "storage": "Generated local household_default_origin string resource in both Gradle modules, blank for generic builds. No actual household hostname/token is in the changed source.",
+    "initialization": "Before current()/native_get_config returns, use existing HTTPS-only set() and identity persistence with empty token and existing Android automatic label; offline.",
+    "precedence": "Any persisted baseUrl/token/sourceDevice/connected field blocks initialization, including explicit Disconnect and partial/empty manual settings. No migration, credential/name/origin/identity/queue replacement.",
+    "failure": "Invalid origins reject before saving new state. Failed commits reject the call; a connection-commit retry reuses the already persisted identity.",
+    "authentication": "Unchanged: empty Authorization omitted; Tailscale Serve authentication must be explicitly configured at server. Existing manual token settings remain."
+  },
+  "changedExistingFiles": {
+    "clients/android/README.md": {
+      "bytes": 43326,
+      "sha256": "47015e99a3955e895d83bd90c61e59de974b5de48845ee4f25db4dbc964df00c"
+    },
+    "clients/android/VALIDATION.md": {
+      "bytes": 89562,
+      "sha256": "20483f233aee526daff6f385cdc3272cbb9b918cd5098d0aacdc76752bcf53c8"
+    },
+    "clients/android/app/build.gradle.kts": {
+      "bytes": 1293,
+      "sha256": "67499cad05fe8bc13d32c0fd985faecf6597e6d5a6cf17dc362cd83769154448"
+    },
+    "clients/android/app/src/main/java/household/share/android/QueueStore.kt": {
+      "bytes": 8090,
+      "sha256": "0aaef7d91aaa7b7bbe11e9fc96a4998966f188bfbac07cb506ec1eebf7cfb0a0"
+    },
+    "clients/android/src-tauri/Cargo.toml": {
+      "bytes": 432,
+      "sha256": "03eb7fbab1b8642dcb05dd2bd7bb6e016d5b4b87d35538c10d728cef930cda3c"
+    },
+    "clients/android/src-tauri/Cargo.lock": {
+      "bytes": 104444,
+      "sha256": "916a55aadc6babe991f7ed9ba2a695dad8633ff56c2867cbf24fda48073cb203"
+    },
+    "clients/android/src-tauri/tauri.conf.json": {
+      "bytes": 585,
+      "sha256": "02705c7308a27acca4bd03413f5d85d0f38517a55cd9fbbd122e953c9ecb670f"
+    },
+    "clients/android/src-tauri/gen/android/app/build.gradle.kts": {
+      "bytes": 2246,
+      "sha256": "59ea1299f5f171abb76b98d4e3a30f06534f0650fa413a131705bb3fcc16941b"
+    },
+    "clients/android/src-tauri/gen/android/app/tauri.properties": {
+      "bytes": 129,
+      "sha256": "32cc6e0535c609d9a563c657a21fc104af0d9d56ac0ab45841f4c9764e78fd88"
+    },
+    "clients/android/tauri-plugin/android/build.gradle.kts": {
+      "bytes": 1314,
+      "sha256": "bff57ad9d5e36505260abfa80dc6489955d392844d549f0a3d56c4aa10ff9ff5"
+    }
+  },
+  "addedSourceFiles": {
+    "clients/android/app/src/test/java/household/share/android/ConfigStoreTest.kt": {
+      "bytes": 8208,
+      "sha256": "8c16db3f3629e299b364e1f1258718536adeb851fcf2cfed95d7a3974e40570d"
+    }
+  },
+  "newValidationReport": "clients/android/validation/no-setup-0.1.5-source.json",
+  "testFirst": {
+    "newTests": 11,
+    "redFailures": 5,
+    "redLog": "clients/android/build/no-setup-red.log",
+    "seamOnly": "Injectable SharedPreferences/defaultOrigin constructor added to run production ConfigStore with in-memory test storage before behavior implementation."
+  },
+  "checks": [
+    {
+      "type": "jvm",
+      "scope": "standalone",
+      "tests": 67,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reports": [
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ApiCallsTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.AppWebViewPolicyTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ArrivalPolicyTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ConfigStoreTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.DeviceRoutingTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.NativeHttpTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.TransferPolicyTest.xml",
+        "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.UploadCompletionTest.xml"
+      ]
+    },
+    {
+      "type": "jvm",
+      "scope": "plugin",
+      "tests": 6,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0,
+      "reports": [
+        "clients/android/tauri-plugin/android/build/test-results/testDebugUnitTest/TEST-household.share.android.ResumedActivityGateTest.xml"
+      ]
+    },
+    {
+      "type": "lint",
+      "scope": "standalone",
+      "issuesBySeverity": {
+        "Warning": 6
+      },
+      "report": "clients/android/app/build/reports/lint-results-debug.xml"
+    },
+    {
+      "type": "lint",
+      "scope": "plugin",
+      "issuesBySeverity": {
+        "Warning": 23
+      },
+      "report": "clients/android/tauri-plugin/android/build/reports/lint-results-debug.xml"
+    },
+    {
+      "type": "lint",
+      "scope": "host",
+      "issuesBySeverity": {
+        "Warning": 37,
+        "Hint": 1
+      },
+      "report": "clients/android/src-tauri/gen/android/app/build/reports/lint-results-universalDebug.xml"
+    },
+    {
+      "type": "generatedResource",
+      "scope": "standalone",
+      "buildInput": "generic",
+      "value": "",
+      "snapshot": "clients/android/build/no-setup-generic-standalone-res.xml"
+    },
+    {
+      "type": "generatedResource",
+      "scope": "standalone",
+      "buildInput": "household",
+      "value": "https://household.example",
+      "snapshot": "clients/android/build/no-setup-household-standalone-res.xml"
+    },
+    {
+      "type": "generatedResource",
+      "scope": "plugin",
+      "buildInput": "generic",
+      "value": "",
+      "snapshot": "clients/android/build/no-setup-generic-plugin-res.xml"
+    },
+    {
+      "type": "generatedResource",
+      "scope": "plugin",
+      "buildInput": "household",
+      "value": "https://household.example",
+      "snapshot": "clients/android/build/no-setup-household-plugin-res.xml"
+    },
+    {
+      "type": "mergedSourceManifest",
+      "scope": "standalone",
+      "version": "0.1.5",
+      "versionCode": 6,
+      "package": "household.share.android",
+      "path": "clients/android/app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml",
+      "limit": "Generated by source checks; no 0.1.5 APK was assembled."
+    },
+    {
+      "type": "mergedSourceManifest",
+      "scope": "host",
+      "version": "0.1.5",
+      "versionCode": 1005,
+      "package": "net.household.share.mobile",
+      "path": "clients/android/src-tauri/gen/android/app/build/intermediates/merged_manifests/universalDebug/processUniversalDebugManifest/AndroidManifest.xml",
+      "limit": "Generated by source checks; no 0.1.5 APK was assembled."
+    }
+  ],
+  "commands": [
+    {
+      "cwd": "clients/android",
+      "command": "ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --offline --console=plain :app:testDebugUnitTest --tests household.share.android.ConfigStoreTest -x :app:bundleWeb > build/no-setup-red.log 2>&1",
+      "exitCode": 1,
+      "result": "Expected red phase: all 11 tests compiled and ran; five failed before implementation."
+    },
+    {
+      "cwd": "clients/android",
+      "command": "ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 ./gradlew --offline --console=plain :app:compileDebugKotlin :app:testDebugUnitTest :app:lintDebug -x :app:bundleWeb > build/no-setup-standalone-check.log 2>&1",
+      "exitCode": 0,
+      "result": "67 JVM tests and standalone compile/lint pass; generated default is empty."
+    },
+    {
+      "cwd": ".",
+      "command": "HOUSEHOLD_DEFAULT_ORIGIN=https://household.example ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android --offline --console=plain :tauri-plugin-household:compileDebugKotlin :tauri-plugin-household:testDebugUnitTest :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb -Pkotlin.incremental=false > clients/android/build/no-setup-tauri-check.log 2>&1",
+      "exitCode": 0,
+      "result": "6 plugin JVM tests and plugin/host compile/lint pass; generated default is the synthetic origin."
+    },
+    {
+      "cwd": ".",
+      "command": "HOUSEHOLD_DEFAULT_ORIGIN=https://household.example ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 clients/android/gradlew -p clients/android --offline --console=plain :app:generateDebugResValues -x :app:bundleWeb > clients/android/build/no-setup-standalone-default-resource.log 2>&1",
+      "exitCode": 0,
+      "result": "Standalone resource generation honors synthetic default."
+    },
+    {
+      "cwd": ".",
+      "command": "env -u HOUSEHOLD_DEFAULT_ORIGIN ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android --offline --console=plain :tauri-plugin-household:generateDebugResValues -x :tauri-plugin-household:bundleWeb > clients/android/build/no-setup-plugin-generic-resource.log 2>&1",
+      "exitCode": 0,
+      "result": "Plugin resource generation clears the prior synthetic default when absent."
+    }
+  ],
+  "setupFailure": "Initial Tauri command used a wrong relative log path and exited before Gradle began; corrected root-relative command above passed. No check/build-source workaround was needed.",
+  "preservedPackagesAndHistoricalReports": {
+    "clients/android/validation/package-0.1.4.json": {
+      "bytes": 65137,
+      "sha256": "406845e338f2d4607badd064efff96d748191a3f4af27e281c707269a83776eb"
+    },
+    "clients/android/validation/package-0.1.4-menu.json": {
+      "bytes": 77147,
+      "sha256": "613d7fa7212910023ba87c141c119e3fac059df43de901ff4750afe77485180c"
+    },
+    "clients/android/build/outputs/household-share-tauri-aarch64-debug.apk": {
+      "bytes": 29870791,
+      "sha256": "52343d163f8e02791352183d36f998cbebd3ab839adaa5cad00f49bbdbd1d7e8"
+    },
+    "clients/android/build/outputs/household-share-tauri-x86_64-debug.apk": {
+      "bytes": 29546764,
+      "sha256": "0e64f820bfad008bae98214a475a91ab9de4cfd803418ededfeb2057de8be7e0"
+    },
+    "clients/android/app/build/outputs/apk/debug/app-debug.apk": {
+      "bytes": 2682116,
+      "sha256": "a1ffb3a88c1e9927ae85f999d8645b8d249bc1299fcf49cc5bc2d3f788767c0e"
+    }
+  },
+  "baseline": {
+    "path": "clients/android/build/no-setup-pre-change.json",
+    "checkedFileCount": 165,
+    "missing": [],
+    "changedWithinAndroid": [
+      "clients/android/README.md",
+      "clients/android/VALIDATION.md",
+      "clients/android/app/build.gradle.kts",
+      "clients/android/app/src/main/java/household/share/android/QueueStore.kt",
+      "clients/android/src-tauri/Cargo.lock",
+      "clients/android/src-tauri/Cargo.toml",
+      "clients/android/src-tauri/gen/android/app/build.gradle.kts",
+      "clients/android/src-tauri/gen/android/app/tauri.properties",
+      "clients/android/src-tauri/tauri.conf.json",
+      "clients/android/tauri-plugin/android/build.gradle.kts"
+    ],
+    "outsideScopeConcurrentChangesObserved": [
+      "web/FINAL-REVIEW.md"
+    ],
+    "outsideScopeNote": "Outside Android changes were only observed in this shared checkout; this assignment did not edit web files."
+  },
+  "evidenceFiles": {
+    "clients/android/app/build/intermediates/merged_manifests/debug/processDebugManifest/AndroidManifest.xml": {
+      "bytes": 3155,
+      "sha256": "b90732b93ca7aeaa58fbd9377de9fb85952882d699e9f0a731958d533a5009d4"
+    },
+    "clients/android/app/build/reports/lint-results-debug.xml": {
+      "bytes": 9630,
+      "sha256": "acaf2a373816cbd206292949b685544ceea8e86ab0b43ce31c821965295ab7ea"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ApiCallsTest.xml": {
+      "bytes": 851,
+      "sha256": "4b6f5d4d872eae9eb234792bdf0462177becc7418e6c07fc48efebe9fc08ba05"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.AppWebViewPolicyTest.xml": {
+      "bytes": 878,
+      "sha256": "e8a9d4b9099f251637d43aace8ffc6f5b29590fc21cecccee28ffde6c788877a"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ArrivalPolicyTest.xml": {
+      "bytes": 2456,
+      "sha256": "2f57fbb99f3f40c1f130d53ddfa20cf91e453c941b49151723aff7e8555a83fa"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.ConfigStoreTest.xml": {
+      "bytes": 1878,
+      "sha256": "66b23a3d234ded0ebf1f0c6da0e1b4365f0a3fb9a25846de53dca8053a0a32e1"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.DeviceRoutingTest.xml": {
+      "bytes": 1598,
+      "sha256": "84eebb5764763cd62eff34b7ba1846b8d735abfe756c14c890a8c03a7fb9d0c4"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.NativeHttpTest.xml": {
+      "bytes": 736,
+      "sha256": "2a7bebad2fa49cd90a5ea25af49f6a6afa0bd619180380fbbd2822ec994ddb9a"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.TransferPolicyTest.xml": {
+      "bytes": 1814,
+      "sha256": "fd13e9ecf86420c4ed28a8883ebc172c146fe3f17da9c6985fe0e0a2ac0a7a05"
+    },
+    "clients/android/app/build/test-results/testDebugUnitTest/TEST-household.share.android.UploadCompletionTest.xml": {
+      "bytes": 1815,
+      "sha256": "af10a5732c36518ef264b0cf88aa2f4f4077e5e598bf3d4220ca5a597d9f067f"
+    },
+    "clients/android/build/no-setup-generic-plugin-res.xml": {
+      "bytes": 239,
+      "sha256": "9bf41190d6617028d7703c4feeea53ea110b2f2e70adf5e51dec4dc7612d3ce9"
+    },
+    "clients/android/build/no-setup-generic-standalone-res.xml": {
+      "bytes": 239,
+      "sha256": "9bf41190d6617028d7703c4feeea53ea110b2f2e70adf5e51dec4dc7612d3ce9"
+    },
+    "clients/android/build/no-setup-household-plugin-res.xml": {
+      "bytes": 264,
+      "sha256": "297ca124031008d3ff84de28c3624d428500d84506965ab42425e7ffc22b43fe"
+    },
+    "clients/android/build/no-setup-household-standalone-res.xml": {
+      "bytes": 264,
+      "sha256": "297ca124031008d3ff84de28c3624d428500d84506965ab42425e7ffc22b43fe"
+    },
+    "clients/android/build/no-setup-plugin-generic-resource.log": {
+      "bytes": 546,
+      "sha256": "b7670001202d66b9e0ca9e51add78b21ca6dc998b7883b1740d1a77d06b9f1a5"
+    },
+    "clients/android/build/no-setup-pre-change.json": {
+      "bytes": 30402,
+      "sha256": "952638c2e126793d5b230968e4268c0b983b210e3e575f7c8eff77e03c479adf"
+    },
+    "clients/android/build/no-setup-red.log": {
+      "bytes": 2636,
+      "sha256": "f3d11d3adc53e3e3399fbe0763df911fbb64adf05626fbc141a031a83a4f7012"
+    },
+    "clients/android/build/no-setup-standalone-check.log": {
+      "bytes": 2086,
+      "sha256": "43d9810fead9ff7777d420ec2630a2c525b742e4cc405c05b80bbbbcb947afce"
+    },
+    "clients/android/build/no-setup-standalone-default-resource.log": {
+      "bytes": 136,
+      "sha256": "bb316743500844309070e6e58de985159fc7101a0eab4d9254aeb83ad0fd1725"
+    },
+    "clients/android/build/no-setup-tauri-check.log": {
+      "bytes": 12049,
+      "sha256": "3ed7256681c5f7b8de3b7312637689229e5a4aa91351468140888e2ae75c57f3"
+    },
+    "clients/android/src-tauri/gen/android/app/build/intermediates/merged_manifests/universalDebug/processUniversalDebugManifest/AndroidManifest.xml": {
+      "bytes": 5797,
+      "sha256": "242b6f6a46ab2061866e9b6ac82345dd236e8f86d6ec097f6212a98dad60c72a"
+    },
+    "clients/android/src-tauri/gen/android/app/build/reports/lint-results-universalDebug.xml": {
+      "bytes": 43496,
+      "sha256": "276a2b0101a0bd219142ff51bb62bd522349223bc65dd5bc4344217e0c47ddaf"
+    },
+    "clients/android/tauri-plugin/android/build/reports/lint-results-debug.xml": {
+      "bytes": 25136,
+      "sha256": "6d53831b8d1f500041c1ad1525c85ab17663860e91ca119341eb0dee59a87c1f"
+    },
+    "clients/android/tauri-plugin/android/build/test-results/testDebugUnitTest/TEST-household.share.android.ResumedActivityGateTest.xml": {
+      "bytes": 1197,
+      "sha256": "ea2deaa48f3f6e39e9ed93f6bf14466d43d63e91a825fbb9d12c5acf4d749a94"
+    }
+  },
+  "limits": [
+    "JVM tests use an in-memory SharedPreferences implementation, not Android disk/power-loss instrumentation.",
+    "No 0.1.5 APK/Rust/frontend assembly, signing or alignment audit; retained APKs still contain 0.1.4 bytes.",
+    "No ADB/device/emulator, installed first-run/upgrade/Disconnect, actual private origin, Tailscale Serve or server integration acceptance.",
+    "No new notification/background/reboot/force-stop/phone/storage/source-grant/recovery/20GB/memory evidence.",
+    "No dependency/toolchain/SDK/system installation, Agent creation, Git/CI, host-service/deployment, import/publication operation.",
+    "Root owns shared UI, actual private build input, final packages and installed validation."
+  ]
+}

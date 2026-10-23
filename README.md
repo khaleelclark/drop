@@ -1,5 +1,12 @@
 # Zing
 
+The approved navy/white/red update has locally verified Linux **0.1.3** and
+Android **0.1.5** candidate packages. Android emulator checks include the new
+filters, real keyboard, Copy/Paste, editing and notification click; a fresh
+standalone offline launch opens the inbox without setup. Mac **0.1.3** builds
+and household-device acceptance remain pending. Nothing in this update has
+been deployed. See [current validation](docs/validation.md).
+
 Zing is a private shared inbox for household text and files, designed for Linux hosting behind Tailscale and Mac, Linux, Android, and browser clients.
 
 Source repository: [khaleelclark/household-share](https://github.com/khaleelclark/household-share). The source is public; a running household instance uses private Tailscale access and its explicitly configured authentication mode.
@@ -81,7 +88,7 @@ see the hosting guide for the local proxy trust boundary.
 
 The intended production layout is a server binary, built web assets, and a persistent data directory. Downloads are streamed; feed updates contain metadata; incomplete uploads remain unavailable until validated. Storage budgets count unfinished transfers.
 
-`bash scripts/test.sh` runs frontend and Go tests. Component-specific checks are in their READMEs. The real-server browser smoke is `node scripts/browser-smoke.cjs`; it requires a disposable configured loopback test server and token file, as described in [validation](docs/validation.md). No service has been deployed by this repository.
+`bash scripts/test.sh` runs frontend and Go tests. Component-specific checks are in their READMEs. The real-server browser smoke is `node scripts/browser-smoke.cjs`; it requires a disposable configured loopback test server and token file, as described in [validation](docs/validation.md). The separately approved private deployment and its validation are recorded in [validation](docs/validation.md).
 
 After the final source and web/server build, `python3 scripts/package.py` creates a source archive, a Linux x86_64 server bundle, and their SHA256 manifest under `artifacts/`. The server bundle contains `bin/household-server`, `web/dist`, configuration example and hosting instructions; unpack it and run from its `household/` directory. The source archive excludes local toolchains, queues, credentials, signing keys, dependencies and build outputs. Native packages are built separately using the platform instructions above.
 

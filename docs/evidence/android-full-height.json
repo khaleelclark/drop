@@ -403,7 +403,7 @@
     "recordedAt": "2026-10-23",
     "published": true,
     "version": "0.1.3/code1003",
-    "origin": "https://pine.tail8187ff.ts.net:47443",
+    "origin": "https://household.example",
     "apk": {
       "status": 200,
       "sha256": "fbc4681f00a1903ce48b819f080f7142c4aeb0f25905c4d0580116fc1bd7f1fc",
@@ -429,5 +429,9 @@
     },
     "scope": "Only Android download replaced; browser/Mac/Linux/backend/process/data/Serve retained",
     "physicalPhoneConfirmation": "unperformed"
+  },
+  "publicationRedaction": {
+    "scope": "Only the household origin is replaced with an example in this shareable copy; validation results are unchanged. The original bytes are retained privately.",
+    "originalSHA256": "147856adc19b72ea9bea20a9505de7cb4563848bfa114a4beea194569cfe0331"
   }
 }

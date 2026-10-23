@@ -3,7 +3,10 @@ plugins { id("com.android.library"); id("org.jetbrains.kotlin.android") }
 android {
     namespace = "household.share.android"
     compileSdk = 36
-    defaultConfig { minSdk = 26 }
+    defaultConfig {
+        minSdk = 26
+        resValue("string", "household_default_origin", providers.environmentVariable("HOUSEHOLD_DEFAULT_ORIGIN").getOrElse(""))
+    }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlinOptions { jvmTarget = "17" }
     sourceSets["main"].java.srcDir("../../app/src/main/java")

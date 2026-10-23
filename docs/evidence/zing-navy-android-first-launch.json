@@ -1,0 +1,16 @@
+{
+  "passed": true,
+  "scope": "Fresh standalone Android 0.1.5/code6 on API36 x86_64 emulator with no active default network",
+  "checks": [
+    "No prior standalone package or configuration",
+    "Compiled private HTTPS default automatically persisted without token/name/URL input",
+    "Shared inbox and three scope tabs visible without setup dialog while server unavailable",
+    "Redacted empty-token configuration and stable device identity across actual force-stop/relaunch"
+  ],
+  "limits": [
+    "Standalone shell only; fresh Tauri and household Mac first launch not measured",
+    "Native HTTP expected to fail while offline; no real household/Tailscale request validation",
+    "No physical phone, background job, reboot, 20 GB or memory acceptance"
+  ],
+  "capture": ".tools/validation/zing-navy-android/standalone-first-launch-native.png"
+}

@@ -100,8 +100,64 @@ describe('shared native fixture at the interface boundary', () => {
 })
 
 describe('URL-only installed connection',()=>{
+  it.each(['ready','offline',401,403] as const)('uses saved native configuration at startup (%s), with explicit recovery and settings',async startup=>{
+    let failure:typeof startup|'ready'=startup
+    const browserFetch=vi.fn().mockRejectedValue(new Error('No browser transport'))
+    vi.stubGlobal('fetch',browserFetch)
+    const invoke=vi.fn<NativeInvoke>(async(command,args)=>{
+      if(command==='native_get_config')return fixture.config
+      if(command==='native_list_transfers')return []
+      if(command==='native_take_arrival_target')return null
+      if(command==='native_get_arrival_settings')return fixture.arrivalSettings
+      if(command==='native_api'){
+        const path=String(args?.path)
+        if(path.startsWith('/api/items?')){
+          if(failure==='offline')throw new Error('Network unavailable')
+          if(failure!=='ready')return {status:failure,body:'{"error":{"message":"Access denied"}}'}
+          return {status:200,body:'{"items":[],"nextCursor":null}'}
+        }
+        if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
+        if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
+        if(path==='/api/storage')return {status:200,body:'{"usedBytes":0,"freeBytes":1000,"maxFileBytes":21474836480,"maxTextBytes":33554432,"maxStorageBytes":null}'}
+        return {status:200,body:'{}'}
+      }
+      throw new Error(`Unexpected command ${command}`)
+    })
+    window.householdPlatform=await nativePlatform(invoke);render(<App/>)
+    if(startup!=='ready'){
+      const alert=await screen.findByRole('alert')
+      expect(alert).toHaveTextContent(startup==='offline'?'Check Tailscale':'Access was not accepted')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeDisabled()
+      fireEvent.click(within(alert).getByRole('button',{name:'Settings'}))
+      const dialog=screen.getByRole('dialog',{name:'Connection settings'})
+      expect(within(dialog).getByLabelText('Household server')).toHaveValue(fixture.config.baseUrl)
+      expect(within(dialog).getByRole('button',{name:'Advanced · Use app token'})).toBeEnabled()
+      fireEvent.click(within(dialog).getByRole('button',{name:'Close connection settings'}))
+      failure='ready'
+      fireEvent.click(screen.getByRole('button',{name:'Retry'}))
+    }
+    await waitFor(()=>expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeEnabled())
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument()
+    if(startup==='ready'){
+      failure=403
+      await waitFor(()=>expect(screen.getByRole('button',{name:'Refresh feed'})).toBeEnabled())
+      fireEvent.click(screen.getByRole('button',{name:'Refresh feed'}))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Access was not accepted')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      failure='ready';fireEvent.click(screen.getByRole('button',{name:'Retry'}))
+      await waitFor(()=>expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeEnabled())
+    }
+    fireEvent.click(screen.getByRole('button',{name:'Connection and device settings'}))
+    expect(screen.getByRole('dialog',{name:'Connection settings'})).toBeInTheDocument()
+    expect(invoke.mock.calls.some(([command])=>command==='native_configure')).toBe(false)
+    expect(browserFetch).not.toHaveBeenCalled()
+  })
+
   it.each([false,true])('verifies a protected native fetch before connected (failed=%s), without browser fallback',async fail=>{
     let configured=false
+    let denied=fail
     const browserFetch=vi.fn().mockRejectedValue(new Error('No browser transport'))
     vi.stubGlobal('fetch',browserFetch)
     const invoke=vi.fn<NativeInvoke>(async(command,args)=>{
@@ -110,8 +166,8 @@ describe('URL-only installed connection',()=>{
       if(command==='native_list_transfers')return []
       if(command==='native_take_arrival_target')return null
       if(command==='native_api'){
-        if(!configured||fail)return {status:401,body:'{"error":{"message":"Access denied"}}'}
         const path=String(args?.path)
+        if(!configured||(denied&&path.startsWith('/api/items?')))return {status:401,body:'{"error":{"message":"Access denied"}}'}
         if(path.startsWith('/api/items?'))return {status:200,body:'{"items":[],"nextCursor":null}'}
         if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
         if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
@@ -133,6 +189,13 @@ describe('URL-only installed connection',()=>{
       await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
       await waitFor(()=>expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeEnabled())
       expect(invoke.mock.calls.some(([command,args])=>command==='native_api'&&args?.path==='/api/devices/register'&&JSON.parse(String(args.body)).preserveExisting===true)).toBe(true)
+      denied=true
+      await waitFor(()=>expect(screen.getByRole('button',{name:'Refresh feed'})).toBeEnabled())
+      fireEvent.click(screen.getByRole('button',{name:'Refresh feed'}))
+      expect(await screen.findByRole('alert')).toHaveTextContent('Access was not accepted')
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+      denied=false;fireEvent.click(screen.getByRole('button',{name:'Retry'}))
+      await waitFor(()=>expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeEnabled())
     }
     expect(browserFetch).not.toHaveBeenCalled();expect(JSON.stringify(localStorage)).not.toContain('token')
   })

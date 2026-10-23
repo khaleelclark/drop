@@ -73,9 +73,9 @@ object ArrivalNotifications {
         val intent = Intent(context, ArrivalOpenActivity::class.java).setData(Uri.parse("zing-arrival:$key"))
             .putExtra("baseUrl", DevicePolicy.origin(c.baseUrl)).putExtra("itemId", row.itemId)
         val open = PendingIntent.getActivity(context, 0, intent, PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
-        val public = Notification.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_notify_more)
+        val public = Notification.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_zing_notification)
             .setContentTitle("Zing").setContentText("New share available").build()
-        val notification = Notification.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_notify_more)
+        val notification = Notification.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_zing_notification)
             .setContentTitle("Zing").setContentText("New share available").setContentIntent(open)
             .setAutoCancel(true).setOnlyAlertOnce(true).setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(public).build()
         post({ ArrivalPermission.status(context) }) {

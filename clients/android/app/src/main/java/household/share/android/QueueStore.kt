@@ -2,6 +2,7 @@ package household.share.android
 
 import android.content.ContentValues
 import android.content.Context
+import android.content.SharedPreferences
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteOpenHelper
 import org.json.JSONObject
@@ -89,8 +90,8 @@ class QueueStore private constructor(context: Context) : SQLiteOpenHelper(contex
     }
 }
 
-class ConfigStore(context: Context) {
-    private val prefs = context.getSharedPreferences("connection", Context.MODE_PRIVATE)
+class ConfigStore internal constructor(private val prefs: SharedPreferences, private val defaultOrigin: String) {
+    constructor(context: Context) : this(context.getSharedPreferences("connection", Context.MODE_PRIVATE), context.getString(R.string.household_default_origin))
     private val identities = DeviceIdentity({ prefs.getString(it, null) }, { key, value ->
         check(prefs.edit().putString(key, value).commit()) { "Could not save device identity" }
     })
@@ -99,6 +100,10 @@ class ConfigStore(context: Context) {
             .put("deviceId", deviceId).put("platform", "android")
     }
     fun current(): Config = synchronized(lock) {
+        // A saved Disconnect or partial manual configuration must never trigger automatic pairing.
+        if (defaultOrigin.isNotBlank() && listOf("baseUrl", "token", "sourceDevice", "connected").none(prefs::contains)) {
+            set(JSONObject().put("baseUrl", defaultOrigin).put("token", "").put("sourceDevice", "Android"))
+        }
         val base = prefs.getString("baseUrl", "")!!
         Config(base, prefs.getString("token", "")!!, prefs.getString("sourceDevice", "Android")!!,
             prefs.getBoolean("connected", true), if (base.isEmpty()) "" else identities.forServer(base))

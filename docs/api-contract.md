@@ -340,3 +340,31 @@ This mode follows Tailscale's documented identity headers:
 https://tailscale.com/docs/features/tailscale-serve#identity-headers . Test both
 modes and preserve actual anonymous/foreign-Origin denial. Real Serve and actual
 household-device checks must be recorded separately from mock-header tests.
+
+## Household installer startup (supersedes manual first-run pairing)
+
+The user explicitly rejected the connection form as the household startup
+experience. A household-specific installed build accepts an optional build-time
+`HOUSEHOLD_DEFAULT_ORIGIN`, containing only its HTTPS server origin. No token,
+Tailscale identity header or credential is embedded. Generic source and generic
+builds contain no real household hostname. Tailscale access remains required;
+this setting chooses a destination and does not authenticate a client.
+
+On an installation with no saved connection and no explicit disconnected state,
+persist that validated default using the existing native configuration and
+identity store before returning initial configuration to the interface. Use the
+existing automatic device label and an empty token. Show the shared feed
+directly; naming and server settings remain available through explicit settings.
+No network handshake or permission prompt is needed to save this configuration.
+
+Never overwrite an existing saved origin, token, name, identity, routing or
+transfer queue. Explicit Disconnect must survive relaunch and upgrades without
+automatic reconnection. No-default generic builds retain manual setup. Invalid
+defaults must fail safely before configuration is written. Accept only an HTTPS
+origin without userinfo, query, fragment or a non-root path. Token-mode/tagged
+client recovery remains explicit and must not weaken server authentication.
+
+A configured native client encountering offline or authorization errors shows
+recoverable status and explicitly accessible settings, rather than forcing the
+connection form open. A browser still uses its opened origin. Native platform,
+queue, upload, notification and authentication contracts are otherwise unchanged.

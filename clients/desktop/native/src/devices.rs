@@ -103,6 +103,7 @@ pub(crate) fn prepare_send(
     label: Option<String>,
     targets: Option<Vec<String>>,
 ) -> Result<SendContext> {
+    initialize_config(root, option_env!("HOUSEHOLD_DEFAULT_ORIGIN"))?;
     let mut config = read_config(root)?;
     if let Some(label) = label {
         config.source_device = label;

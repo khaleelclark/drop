@@ -274,6 +274,47 @@ fn atomic_json(path: &Path, value: &impl Serialize) -> Result<()> {
 fn read_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
     serde_json::from_reader(File::open(path).map_err(err)?).map_err(err)
 }
+fn config_lock(root: &Path) -> Result<File> {
+    private_dir(root)?;
+    let lock = OpenOptions::new()
+        .create(true)
+        .truncate(false)
+        .read(true)
+        .write(true)
+        .open(root.join("config.lock"))
+        .map_err(err)?;
+    lock.lock_exclusive().map_err(err)?;
+    Ok(lock)
+}
+fn initialize_config(root: &Path, default_origin: Option<&str>) -> Result<()> {
+    let Some(origin) = default_origin.filter(|s| !s.is_empty()) else {
+        return Ok(());
+    };
+    // Capture and GUI first use share this lock with explicit pairing and Disconnect.
+    let _lock = config_lock(root)?;
+    if root.join("config.json").try_exists().map_err(err)?
+        || root.join("disconnected").try_exists().map_err(err)?
+    {
+        return Ok(());
+    }
+    let authority = origin
+        .strip_prefix("https://")
+        .ok_or("HOUSEHOLD_DEFAULT_ORIGIN must be an HTTPS origin")?;
+    let authority = authority.strip_suffix('/').unwrap_or(authority);
+    if authority.contains(['/', '\\', '?', '#', '@'])
+        || origin.chars().any(|c| c.is_whitespace() || c.is_control())
+    {
+        return Err("HOUSEHOLD_DEFAULT_ORIGIN must contain only an HTTPS origin".into());
+    }
+    let config = Config {
+        base_url: origin.into(),
+        token: String::new(),
+        source_device: "Desktop".into(),
+    }
+    .validate()?;
+    devices::identity(root, &config.base_url)?;
+    atomic_json(&root.join("config.json"), &config)
+}
 fn read_config(root: &Path) -> Result<Config> {
     if root.join("disconnected").exists() {
         return Err("Configure the household server before sharing".into());
@@ -386,6 +427,9 @@ pub struct Queue {
 }
 impl Queue {
     pub fn open(root: PathBuf) -> Result<Arc<Self>> {
+        Self::open_with_default_origin(root, option_env!("HOUSEHOLD_DEFAULT_ORIGIN"))
+    }
+    fn open_with_default_origin(root: PathBuf, default_origin: Option<&str>) -> Result<Arc<Self>> {
         private_dir(&root)?;
         let root = root.canonicalize().map_err(err)?;
         private_dir(&root.join("inbox"))?;
@@ -426,6 +470,7 @@ impl Queue {
             arrival_started: AtomicBool::new(false),
             _lock: lock,
         });
+        initialize_config(&q.root, default_origin)?;
         q.save()?;
         Ok(q)
     }
@@ -464,6 +509,7 @@ impl Queue {
         let _pairing = self.pairing_lock.lock().map_err(err)?;
         self.ingest()?;
         self.clear_arrivals_on_disconnect()?;
+        let _config = config_lock(&self.root)?;
         if self.root.join("config.json").exists() {
             let mut config = read_config(&self.root)?;
             config.token.clear();
@@ -490,6 +536,7 @@ impl Queue {
     pub fn configure(&self, config: Config) -> Result<()> {
         let _pairing = self.pairing_lock.lock().map_err(err)?;
         let config = config.validate()?;
+        let _config = config_lock(&self.root)?;
         devices::identity(&self.root, &config.base_url)?;
         atomic_json(&self.root.join("config.json"), &config)?;
         if self.root.join("disconnected").exists() {
@@ -1404,6 +1451,225 @@ pub struct ConnectionView {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn compiled_default_is_used_by_native_open() {
+        let temp = tempfile::tempdir().unwrap();
+        let q = Queue::open(temp.path().into()).unwrap();
+        let supplied = option_env!("HOUSEHOLD_DEFAULT_ORIGIN").filter(|s| !s.is_empty());
+        assert_eq!(q.connection().unwrap().connected, supplied.is_some());
+        if let Some(origin) = supplied {
+            assert_eq!(
+                read_config(temp.path()).unwrap().base_url,
+                Url::parse(origin).unwrap().origin().ascii_serialization()
+            );
+        }
+    }
+    #[test]
+    fn compiled_default_is_used_by_capture_before_queue_or_gui() {
+        for text in [false, true] {
+            let temp = tempfile::tempdir().unwrap();
+            let root = temp.path().join("unopened");
+            let source = temp.path().join("file.txt");
+            fs::write(&source, b"exact file bytes").unwrap();
+            let result = if text {
+                spool_text(&root, &mut &b"  exact text\r\n\xef\xbb\xbf"[..])
+            } else {
+                spool_upload(&root, &source, "file")
+            };
+            let supplied = option_env!("HOUSEHOLD_DEFAULT_ORIGIN").filter(|s| !s.is_empty());
+            if let Some(origin) = supplied {
+                let id = result.unwrap();
+                let config = read_config(&root).unwrap();
+                assert_eq!(
+                    config.base_url,
+                    Url::parse(origin).unwrap().origin().ascii_serialization()
+                );
+                assert!(config.token.is_empty());
+                assert_eq!(config.source_device, "Desktop");
+                assert!(!root.join("queue.lock").exists());
+                assert!(!root.join("queue.json").exists());
+                let entry: serde_json::Value =
+                    read_json(&root.join("inbox").join(format!("{id}.json"))).unwrap();
+                let device = devices::identity(&root, &config.base_url).unwrap().id;
+                assert_eq!(entry["routing"]["sourceDeviceId"], device);
+                assert!(entry["config"]["token"].as_str().unwrap().is_empty());
+                let q = Queue::open(root).unwrap();
+                assert_eq!(q.connection().unwrap().device_id, Some(device));
+                q.consume_spool().unwrap();
+                assert_eq!(q.list().unwrap().len(), 1);
+            } else {
+                assert!(result.is_err());
+                assert!(!root.join("config.json").exists());
+                assert!(!root.join("devices.json").exists());
+            }
+        }
+    }
+    #[test]
+    fn default_initialization_cannot_overwrite_concurrent_pairing_or_disconnect() {
+        for disconnect in [false, true] {
+            let temp = tempfile::tempdir().unwrap();
+            let q = Queue::open_with_default_origin(temp.path().into(), None).unwrap();
+            let barrier = Arc::new(std::sync::Barrier::new(2));
+            let init_root = temp.path().to_owned();
+            let init_barrier = barrier.clone();
+            let init = thread::spawn(move || {
+                init_barrier.wait();
+                initialize_config(&init_root, Some("https://default.example")).unwrap();
+            });
+            barrier.wait();
+            if disconnect {
+                q.disconnect().unwrap();
+            } else {
+                q.configure(Config {
+                    base_url: "https://chosen.example".into(),
+                    token: "saved-secret".into(),
+                    source_device: "Chosen device".into(),
+                })
+                .unwrap();
+            }
+            init.join().unwrap();
+            if disconnect {
+                assert!(!q.connection().unwrap().connected);
+                assert!(spool_text(temp.path(), &mut &b"blocked"[..]).is_err());
+            } else {
+                let config = read_config(temp.path()).unwrap();
+                assert_eq!(config.base_url, "https://chosen.example");
+                assert_eq!(config.token, "saved-secret");
+                assert_eq!(config.source_device, "Chosen device");
+            }
+        }
+    }
+    #[test]
+    fn default_origin_first_run_and_relaunch_keep_config_and_identity() {
+        let temp = tempfile::tempdir().unwrap();
+        let q = Queue::open_with_default_origin(
+            temp.path().into(),
+            Some("https://HOUSEHOLD.example:443/"),
+        )
+        .unwrap();
+        let view = q.connection().unwrap();
+        assert!(view.connected);
+        assert_eq!(view.base_url, "https://household.example");
+        assert_eq!(view.source_device, "Desktop");
+        assert!(read_config(temp.path()).unwrap().token.is_empty());
+        let config = fs::read(temp.path().join("config.json")).unwrap();
+        #[cfg(unix)]
+        {
+            use std::os::unix::fs::PermissionsExt;
+            assert_eq!(
+                fs::metadata(temp.path().join("config.json"))
+                    .unwrap()
+                    .permissions()
+                    .mode()
+                    & 0o777,
+                0o600
+            );
+        }
+        drop(q);
+        let q = Queue::open_with_default_origin(temp.path().into(), Some("https://other.example"))
+            .unwrap();
+        let reopened = q.connection().unwrap();
+        assert!(reopened.connected);
+        assert_eq!(reopened.base_url, view.base_url);
+        assert_eq!(reopened.device_id, view.device_id);
+        assert_eq!(fs::read(temp.path().join("config.json")).unwrap(), config);
+    }
+    #[test]
+    fn missing_default_keeps_manual_setup() {
+        for default in [None, Some("")] {
+            let temp = tempfile::tempdir().unwrap();
+            let q = Queue::open_with_default_origin(temp.path().into(), default).unwrap();
+            let view = q.connection().unwrap();
+            assert!(!view.connected);
+            assert!(view.base_url.is_empty());
+            assert!(view.device_id.is_none());
+            assert!(!temp.path().join("config.json").exists());
+            assert!(!temp.path().join("devices.json").exists());
+        }
+    }
+    #[test]
+    fn invalid_default_never_writes_config_or_identity() {
+        for origin in [
+            "http://127.0.0.1:8080",
+            "http://public.example",
+            "file:///tmp/a",
+            "https://x.example/prefix",
+            "https://x.example/a/..",
+            "https://x.example//",
+            "https://u:p@x.example",
+            "https://@x.example",
+            "https://x.example?token=x",
+            "https://x.example/#fragment",
+            "https://x.example\\",
+            "https://x.example\n",
+            "https://",
+            "https:x.example",
+        ] {
+            let temp = tempfile::tempdir().unwrap();
+            assert!(
+                Queue::open_with_default_origin(temp.path().into(), Some(origin)).is_err(),
+                "{origin:?}"
+            );
+            assert!(!temp.path().join("config.json").exists());
+            assert!(!temp.path().join("devices.json").exists());
+        }
+    }
+    #[test]
+    fn default_preserves_existing_config_queue_and_routing() {
+        let temp = tempfile::tempdir().unwrap();
+        let q = Queue::open_with_default_origin(temp.path().into(), None).unwrap();
+        q.configure(Config {
+            base_url: "https://existing.example".into(),
+            token: "saved-secret".into(),
+            source_device: "My named Mac".into(),
+        })
+        .unwrap();
+        spool_text(temp.path(), &mut &b"saved share"[..]).unwrap();
+        q.consume_spool().unwrap();
+        let view = q.connection().unwrap();
+        let config = fs::read(temp.path().join("config.json")).unwrap();
+        let queue = fs::read(temp.path().join("queue.json")).unwrap();
+        drop(q);
+        // Even a malformed new build default cannot replace saved settings.
+        let q = Queue::open_with_default_origin(temp.path().into(), Some("invalid")).unwrap();
+        let reopened = q.connection().unwrap();
+        assert!(reopened.connected);
+        assert_eq!(reopened.base_url, view.base_url);
+        assert_eq!(reopened.source_device, view.source_device);
+        assert_eq!(reopened.device_id, view.device_id);
+        assert_eq!(read_config(temp.path()).unwrap().token, "saved-secret");
+        assert_eq!(fs::read(temp.path().join("config.json")).unwrap(), config);
+        assert_eq!(fs::read(temp.path().join("queue.json")).unwrap(), queue);
+    }
+    #[test]
+    fn default_respects_disconnect_with_or_without_saved_config() {
+        for saved_config in [true, false] {
+            let temp = tempfile::tempdir().unwrap();
+            let q = Queue::open_with_default_origin(
+                temp.path().into(),
+                if saved_config {
+                    Some("https://household.example")
+                } else {
+                    None
+                },
+            )
+            .unwrap();
+            let original_id = q.connection().unwrap().device_id;
+            q.disconnect().unwrap();
+            let config = fs::read(temp.path().join("config.json")).ok();
+            drop(q);
+            let q =
+                Queue::open_with_default_origin(temp.path().into(), Some("https://new.example"))
+                    .unwrap();
+            let view = q.connection().unwrap();
+            assert!(!view.connected);
+            assert_eq!(view.device_id, original_id);
+            assert!(read_config(temp.path()).is_err());
+            assert!(spool_text(temp.path(), &mut &b"blocked capture"[..]).is_err());
+            assert!(temp.path().join("disconnected").exists());
+            assert_eq!(fs::read(temp.path().join("config.json")).ok(), config);
+        }
+    }
     #[test]
     fn validates_private_transport() {
         for url in [

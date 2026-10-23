@@ -2,6 +2,17 @@
 
 This is the integration checklist. A source implementation does not establish device behavior; check items only with evidence.
 
+## Current Zing release (2026-10-23)
+
+The older platform and handoff checks below retain their original release scope.
+The current Android 0.1.4/Linux 0.1.2 builds and approved private schema-3
+service upgrade pass their recorded checks. Existing shares are preserved and
+Tailscale Serve opens without an app token. Apple Silicon Mac 0.1.2 CI has
+succeeded; root accepted and published its exact installer. Intel Mac 0.1.2 was still
+compiling at the last inspection. Intel acceptance and final aggregate
+release packaging remain pending; older DMGs do not satisfy this release.
+See [current validation](validation.md) for exact scope and remaining device checks.
+
 ## Required product behavior
 
 - [x] Connected shared feed works with real server data.

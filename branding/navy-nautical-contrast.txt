@@ -1,0 +1,17 @@
+Navy / nautical source-color checks
+
+ink/canvas: 12.27:1 (target 4.5)
+ink/surface: 13.03:1 (target 4.5)
+muted/canvas: 5.13:1 (target 4.5)
+muted/surface: 5.45:1 (target 4.5)
+accent/canvas: 8.53:1 (target 4.5)
+accent/surface: 9.06:1 (target 4.5)
+accent/soft: 7.89:1 (target 4.5)
+surface/accent: 9.06:1 (target 4.5)
+surface/hover: 13.03:1 (target 4.5)
+boundary/canvas: 3.47:1 (target 3)
+boundary/surface: 3.69:1 (target 3)
+red/canvas: 6.11:1 (target 4.5)
+red/surface: 6.49:1 (target 4.5)
+
+Opaque sRGB WCAG relative-luminance calculation; not a rendered-state audit.

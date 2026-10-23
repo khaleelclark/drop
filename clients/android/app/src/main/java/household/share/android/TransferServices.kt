@@ -38,9 +38,9 @@ object TransferNotifications {
             Intent(context, TransferControlReceiver::class.java).setAction(action).putExtra("id", t.id), PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT)
         val ongoing = t.status in setOf("queued", "running", "staging", "hashing", "exporting", "retry_wait", "validating", "cancelling")
         val text = if (t.error.isNotEmpty()) t.error else "${t.status}: ${t.offset.coerceAtLeast(0)} / ${t.size.coerceAtLeast(0)} bytes"
-        val public = Notification.Builder(context, CHANNEL).setSmallIcon(android.R.drawable.stat_sys_upload)
+        val public = Notification.Builder(context, CHANNEL).setSmallIcon(R.drawable.ic_zing_notification)
             .setContentTitle("Zing").setContentText("Transfer in progress").build()
-        val builder = Notification.Builder(context, CHANNEL).setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(public).setSmallIcon(android.R.drawable.stat_sys_upload)
+        val builder = Notification.Builder(context, CHANNEL).setVisibility(Notification.VISIBILITY_PRIVATE).setPublicVersion(public).setSmallIcon(R.drawable.ic_zing_notification)
             .setContentTitle(t.name).setContentText(text).setContentIntent(open).setOngoing(ongoing).setOnlyAlertOnce(true)
             .setProgress(1000, if (t.size > 0) (t.offset * 1000 / t.size).toInt() else 0, t.size < 0 || t.status in setOf("hashing", "staging", "exporting", "validating"))
         if (t.status !in setOf("completed", "cancelled")) {

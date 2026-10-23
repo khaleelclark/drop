@@ -24,6 +24,10 @@ export RUSTUP_TOOLCHAIN="$HOUSEHOLD_RUST_VERSION"
 xcrun --sdk macosx --show-sdk-path >/dev/null
 export MACOSX_DEPLOYMENT_TARGET=11.0
 export APPLE_SIGNING_IDENTITY=-
+# The same private build default must reach the native engine in both helper and app.
+if [[ -n "${HOUSEHOLD_DEFAULT_ORIGIN:-}" ]]; then
+  export HOUSEHOLD_DEFAULT_ORIGIN
+fi
 # Refuse credentials rather than accidentally notarizing with a developer's shell environment.
 for credential in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID APPLE_API_KEY APPLE_API_ISSUER APPLE_API_KEY_PATH; do
   [[ -z "${!credential:-}" ]] || die "Unset $credential: this installer uses only ad-hoc signing."
@@ -44,6 +48,11 @@ name="Zing_${version}_${arch}"
   printf 'Tracked working-tree changes (empty in a clean CI checkout):\n'
   git status --porcelain --untracked-files=no
   printf 'Target: %s\n' "$target"
+  if [[ -n "${HOUSEHOLD_DEFAULT_ORIGIN:-}" ]]; then
+    printf 'First-run pairing: embedded HTTPS origin (value omitted); empty token\n'
+  else
+    printf 'First-run pairing: manual settings (generic build)\n'
+  fi
   sw_vers
   # xcodebuild requires full Xcode; standalone Command Line Tools are sufficient.
   # Keep optional provenance reporting from blocking an otherwise usable SDK.

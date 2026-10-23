@@ -236,18 +236,14 @@ fn main() {
                 None::<&str>,
             )?;
             let menu = Menu::with_items(app, &[&show_item, &quit])?;
-            let mut pixels = vec![0u8; 32 * 32 * 4];
-            for y in 4..28 {
-                for x in 4..28 {
-                    let i = (y * 32 + x) * 4;
-                    pixels[i] = 40;
-                    pixels[i + 1] = 153;
-                    pixels[i + 2] = 129;
-                    pixels[i + 3] = 255;
-                }
-            }
+            let icon: &[u8] = if cfg!(target_os = "macos") {
+                include_bytes!("../icons/tray-template.png")
+            } else {
+                include_bytes!("../icons/icon.png")
+            };
             TrayIconBuilder::new()
-                .icon(tauri::image::Image::new_owned(pixels, 32, 32))
+                .icon(tauri::image::Image::from_bytes(icon)?)
+                .icon_as_template(cfg!(target_os = "macos"))
                 .tooltip("Zing")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {

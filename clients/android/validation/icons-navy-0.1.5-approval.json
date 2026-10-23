@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-10-23",
+  "scope": "Documentation-only approval addendum to completed Android navy icon source; no source/asset/evidence changes or repeated execution",
+  "approval": "User approved final navy/soft-white/signal-red preview; root branding brief records the selected palette. #244C6A launcher with unchanged white canonical Ribbon Z; notification stays white/transparent.",
+  "originalSourceSnapshot": {
+    "path": "clients/android/validation/icons-navy-0.1.5-source.json",
+    "bytes": 19368,
+    "sha256": "e23360f95c4176e8c7884a899b7c0e8c392d9faf0b2632b727221a11fdb7f439"
+  },
+  "canonicalBranding": {
+    "path": "branding/README.md",
+    "bytes": 2654,
+    "sha256": "8215f85d8ec00777ffc8f73ce1f735641b43a469b098b3a3f5e187ccfcda86a2"
+  },
+  "changedCurrentInputs": [
+    {
+      "path": "clients/android/README.md",
+      "bytes": 45573,
+      "sha256": "b2aff936eeb57f97e25a0bb0db856e5ad3b70fd2892d3652ba31c17685751966"
+    },
+    {
+      "path": "clients/android/VALIDATION.md",
+      "bytes": 97213,
+      "sha256": "84e98156805243b19b43f7f15440c58eb4d92589e61340cf1ecb28c0305ef342"
+    }
+  ],
+  "verification": {
+    "priorNamedInputsDirectlyRead": 72,
+    "unchangedInputs": 70,
+    "changedInputs": 2,
+    "missingFiles": [],
+    "details": "Only the two owned Android documents differ from the original snapshot. All source/asset/web-icon/check-script/log/preview/baseline/immutable-audit inputs match their original receipts. Root branding README already contained approval when its original receipt was captured. Original navy source report and historical Iris/no-setup/package reports remain unchanged."
+  },
+  "scopeOfEarlierEvidence": "Original 16 PNG checks and standalone/shared-plugin/generated-host resource compilation remain prior evidence for identical current source/assets. Approval does not establish installed rendering or native behavior. Original pending-review wording is retained as historical authored status; this addendum records the consumed approval steering.",
+  "notPerformed": "No icon regeneration, pixel checks, compile/lint/JVM/startup/package audit, APK/frontend/Rust build, device/ADB/install, dependency/toolchain/SDK/system installation, Agent creation, Git/CI, service/deployment, import/publication or web/root edit in this approval-only handoff. Root retains final freeze, packages and installed/Tailscale/background/recovery/memory/20GB checks.",
+  "reportPreparation": "An initial addendum assertion expected the root branding receipt to differ; inspection showed it was already current. The assertion stopped before writing a report; the expected documentation-only delta was corrected to two owned documents without source changes."
+}

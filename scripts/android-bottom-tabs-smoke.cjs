@@ -29,10 +29,12 @@ async function main() {
   page.on('request', request => { if (new URL(request.url()).pathname.startsWith('/api/')) browserApi.push(request.url()); });
   const composer = page.getByRole('textbox', { name: 'Text to share', exact: true });
   const search = page.getByRole('searchbox');
-  const tabs = page.getByRole('navigation', { name: 'Mobile feed filters' });
+  const tabs = page.getByRole('navigation', { name: 'Mobile feed filters', includeHidden: true });
+  const kind = page.getByRole('combobox', { name: 'Content type', exact: true });
   const done = page.getByRole('button', { name: 'Done editing', exact: true });
   const originalDraft = await composer.inputValue();
   const originalSearch = await search.inputValue();
+  const originalKind = await kind.inputValue();
   const navNode = await tabs.elementHandle();
   const draft = 'Bottom tabs preserve my draft: café 🏠\n  Spaces stay.';
   const measurements = [];
@@ -42,7 +44,7 @@ async function main() {
       return { label: button.textContent, top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right, height: rect.height,
         uncovered: button.contains(document.elementFromPoint(rect.x + rect.width / 2, rect.y + rect.height / 2)) };
     }));
-    expect(rows.map(row => row.label)).toEqual(['All shares', 'For you', 'Text', 'Files', 'Pinned']);
+    expect(rows.map(row => row.label)).toEqual(['All shares', 'For you', 'Pinned']);
     for (const row of rows) {
       expect(row.height).toBeGreaterThanOrEqual(44);
       expect(row.top).toBeGreaterThanOrEqual(0);
@@ -92,14 +94,19 @@ async function main() {
     if (!systemBar) throw new Error('Visible Android navigation-bar bounds unavailable');
     const safeBottom = (Number(systemBar[2]) - webViewBounds.top) / viewport.dpr;
     await checkTargets(safeBottom, 'docked above Android navigation area');
+    const heading = await page.locator('.feed-title').boundingBox();
+    const filter = await kind.boundingBox();
+    const searchRow = await page.locator('.search-field').boundingBox();
+    const toolbar = await page.locator('.feed-toolbar').boundingBox();
+    expect(searchRow.y).toBeGreaterThanOrEqual(Math.max(heading.y + heading.height, filter.y + filter.height));
+    expect(searchRow.width).toBeGreaterThanOrEqual(toolbar.width - 1);
     await screenshot('android-tabs-docked.png');
 
     await composer.fill(draft);
     await composer.click();
     await expect.poll(() => Boolean(inset('ime'))).toBe(true);
     const keyboardTop = (Number(inset('ime')[2]) - webViewBounds.top) / viewport.dpr;
-    await expect(tabs).toHaveClass(/is-editing/);
-    await checkTargets(keyboardTop, 'editing with actual OS keyboard');
+    await expect(tabs).toBeHidden();
     const doneBounds = await done.boundingBox();
     expect(doneBounds.y + doneBounds.height).toBeLessThanOrEqual(keyboardTop + 1);
     const shareBounds = await page.getByRole('button', { name: 'Share text', exact: true }).boundingBox();
@@ -107,31 +114,34 @@ async function main() {
     await screenshot('android-tabs-keyboard.png');
     shell('shell', 'input', 'keyevent', '4');
     await expect.poll(() => Boolean(inset('ime'))).toBe(false);
-    await expect(tabs).toBeVisible();
-    expect(await tabs.evaluate((node, original) => node === original, navNode)).toBe(true);
+    await expect(tabs).toBeHidden();
     await expect(composer).toHaveValue(draft);
     await done.click();
+    await expect(tabs).toBeVisible();
+    expect(await tabs.evaluate((node, original) => node === original, navNode)).toBe(true);
     await expect.poll(() => tabs.evaluate(node => getComputedStyle(node).position)).toBe('fixed');
     await checkTargets(safeBottom, 'redocked after Back and Done');
 
-    await tabs.getByRole('button', { name: 'Files', exact: true }).click();
-    await expect(tabs.getByRole('button', { name: 'Files', exact: true })).toHaveAttribute('aria-current', 'page');
+    await kind.selectOption('file');
+    await tabs.getByRole('button', { name: 'For you', exact: true }).click();
+    await expect(tabs.getByRole('button', { name: 'For you', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(kind).toHaveValue('file');
     await expect(composer).toHaveValue(draft);
     await search.fill('Browser integration');
     await search.click();
-    await expect(tabs).toHaveClass(/is-editing/);
+    await expect(tabs).toBeHidden();
     await expect.poll(() => Boolean(inset('ime'))).toBe(true);
-    await tabs.scrollIntoViewIfNeeded();
     const searchKeyboardTop = (Number(inset('ime')[2]) - webViewBounds.top) / viewport.dpr;
-    await checkTargets(searchKeyboardTop, 'search with actual OS keyboard');
     const searchDone = await done.boundingBox();
     expect(searchDone.y + searchDone.height).toBeLessThanOrEqual(searchKeyboardTop + 1);
     await done.click();
     await expect(search).toHaveValue('Browser integration');
     await expect(composer).toHaveValue(draft);
+    await expect(kind).toHaveValue('file');
     await search.fill(originalSearch);
     await done.click();
     await tabs.getByRole('button', { name: 'All shares', exact: true }).click();
+    await kind.selectOption('all');
     const lastItem = page.getByRole('article').last();
     await expect(lastItem).toBeVisible();
     await lastItem.scrollIntoViewIfNeeded();
@@ -152,7 +162,7 @@ async function main() {
     expect(browserApi).toEqual([]);
     const apk = await fs.readFile(path.resolve(__dirname, '../clients/android/build/outputs/household-share-tauri-x86_64-debug.apk'));
     const report = { passed: true, version: `${version}/code${versionCode}`, apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, safeArea, webViewBounds, keyboardTop, safeBottom, measurements,
-      checks: ['native bootstrap and no browser API traffic', 'one accessible bottom tab bar above actual Android navigation area', 'all five tab targets at least 44px and uncovered', 'actual OS keyboard leaves Share/tabs/Done visible', 'Android Back dismisses keyboard without losing navigation/draft', 'Done redocks same nav DOM', 'Files selection preserves draft', 'search/Done preserves search and draft', 'final feed action and item menu remain above bottom tabs'],
+      checks: ['native bootstrap and no browser API traffic', 'three scope tabs above actual Android navigation area, at least 44px and uncovered', 'content-kind filter beside heading and full-width search below', 'actual OS keyboard hides feed tabs and leaves Share/Done visible', 'Android Back dismisses keyboard without losing draft', 'Done restores same nav DOM', 'content kind and For you scope preserve draft', 'search/Done preserves search, kind and draft', 'final feed action and item menu remain above bottom tabs'],
       limits: ['API36 x86_64 emulator only', 'not a physical phone or physical gesture check', 'not a background or20GB transfer check'] };
     await fs.writeFile(path.join(output, 'android-tabs.json'), JSON.stringify(report, null, 2) + '\n');
     console.log('PASS: installed bottom tabs, actual keyboard/Back, navigation safe area, focus and draft/search preservation');
@@ -161,6 +171,7 @@ async function main() {
     await composer.fill(originalDraft).catch(() => {});
     await search.fill(originalSearch).catch(() => {});
     if (await done.count()) await done.click().catch(() => {});
+    await kind.selectOption(originalKind).catch(() => {});
     await tabs.getByRole('button', { name: 'All shares', exact: true }).click().catch(() => {});
     await browser.close();
   }

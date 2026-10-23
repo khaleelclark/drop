@@ -2,6 +2,11 @@ name: macOS DMG
 
 on:
   workflow_dispatch:
+    inputs:
+      household_origin:
+        description: 'Optional HTTPS household origin for an installer that opens directly; never enter a token'
+        required: false
+        type: string
   push:
     branches: [main]
     paths:
@@ -37,6 +42,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '11.0'
       # No Apple account, certificate, token, or notarization credentials are used.
       APPLE_SIGNING_IDENTITY: '-'
+      HOUSEHOLD_DEFAULT_ORIGIN: ${{ inputs.household_origin || '' }}
     defaults:
       run:
         shell: bash

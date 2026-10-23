@@ -15,7 +15,7 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
       const tabs=document.querySelector<HTMLElement>('.mobile-tabs')
       const top=(viewport?.offsetTop??0)+8
       const bottom=Math.min((viewport?.offsetTop??0)+(viewport?.height??innerHeight),
-        tabs&&getComputedStyle(tabs).position==='fixed'?tabs.getBoundingClientRect().top:Infinity)-8
+        tabs&&!tabs.hidden&&getComputedStyle(tabs).position==='fixed'?tabs.getBoundingClientRect().top:Infinity)-8
       menu.current.style.maxHeight=`${Math.max(0,bottom-top)}px`
       const height=menu.current.getBoundingClientRect().height
       const below=anchor.bottom+4

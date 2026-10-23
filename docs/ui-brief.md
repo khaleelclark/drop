@@ -85,6 +85,28 @@ LocalSend's different device-to-device transport.
 
 ## Experience
 
+Latest user correction (2026-10-23): Recent shares needs a content-kind filter
+beside its heading, where the narrow search currently sits. On mobile, search
+must occupy its own full-width row below that heading/filter row. Separate
+content kind (All types, Text, Files) from feed scope (All shares, For you,
+Pinned), preserving their intersection and existing search/paging behavior.
+Do not invent unsupported content categories or change recipient permissions.
+
+The five feed tabs currently move under the composer when editing begins. The
+user explicitly rejected these as confusing send controls. While composing,
+keep draft text, files, recipient devices and Send together; hide feed navigation
+instead of relocating it beside the draft. An accessible Done/keyboard-close
+control may remain. Retain bottom scope tabs when browsing, and preserve drafts,
+selected scope/kind, search, focus, native safe areas and actual keyboard/Back
+behavior. Text and Files now belong in the feed filter, not duplicate scope tabs.
+
+The user rejected the current logos, including the generic house mark. Replace
+them with one original coherent Zing mark across the interface, PWA/install
+icons and native launcher/tray/notification assets. Use existing vector/icon
+tooling and preserve monochrome/small-size legibility. A separate visible design
+researcher is comparing themes and palettes with primary sources and measured
+contrast; research is not approval or evidence of a shipped new theme.
+
 Household is a quick shared inbox for plain text and files. The most common jobs take very few actions: paste/send; drop/send; copy; download. Make the shared feed the primary screen with an easy-to-reach composer and visible transfer status. On a phone, essential actions remain within thumb reach and do not depend on hover.
 
 ## Visual direction
@@ -100,7 +122,7 @@ Household is a quick shared inbox for plain text and files. The most common jobs
 - Light neutral iOS-inspired interface with a restrained blue accent, system typography, precise spacing, soft corners, subtle separators, and readable contrast.
 - Use deliberate hierarchy and whitespace, avoiding decorative dashboard metrics or a wall of equal-weight buttons.
 - Each card has one clear primary action: Copy for text or Download for files. Expand and secondary management actions are quieter.
-- The connection/setup state is a purposeful screen; show technical server settings only where users configure them.
+- The household installer opens the shared feed directly with its server already configured and an automatic device name. Keep connection/name settings behind an explicit settings action. Offline or authorization failures must not force the setup modal open. Generic unconfigured builds retain manual connection recovery; see the API contract's household installer startup requirements.
 - Transfer rows show filename, progress, pause/resume/cancel, and clear failure recovery. Never label a pending upload ready.
 - Motion should be short, subtle, and useful. Respect reduced-motion and avoid layout jumping while typing or copying.
 - Support keyboard navigation, visible focus, semantic controls, accessible labels, and at least 44 px primary touch targets.

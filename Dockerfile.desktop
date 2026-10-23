@@ -14,6 +14,7 @@ COPY clients/desktop/package.json clients/desktop/pnpm-lock.yaml /build/clients/
 RUN pnpm --dir clients/desktop install --frozen-lockfile
 COPY web/ /build/web/
 COPY clients/desktop/ /build/clients/desktop/
+ARG HOUSEHOLD_DEFAULT_ORIGIN=""
 RUN --mount=type=cache,id=household-cargo-registry,target=/usr/local/cargo/registry \
     --mount=type=cache,id=household-native-target,target=/build/clients/desktop/native/target \
     --mount=type=cache,id=household-tauri-target,target=/build/clients/desktop/src-tauri/target \

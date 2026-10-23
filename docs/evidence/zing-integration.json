@@ -1,6 +1,6 @@
 {
-  "recordedAt": "2026-10-23T16:07:10.567361+00:00",
-  "status": "Final web/server/Linux/Android builds and selected real runtime checks pass. Mac build and live publication remain pending.",
+  "recordedAt": "2026-10-23T16:28:44.785068+00:00",
+  "status": "Final web/server/Linux/Android checks pass; approved live schema-3 upgrade and real tokenless browser access pass. Mac build acceptance remains pending.",
   "browser": {
     "date": "2026-10-23T15:51:30.626Z",
     "scope": "Real Chromium and disposable loopback server, no API mocks. No OS alerts, installed native or 20 GB validation.",
@@ -51,10 +51,9 @@
   },
   "tailscaleEvidence": "docs/evidence/zing-tailscale-auth.json",
   "limitations": [
-    "Final Mac0.1.2 native compile/signing/DMGs still missing; older0.1.1 installers are separate history.",
+    "Intel Mac0.1.2 native compile/signing/DMG acceptance remains pending. Apple Silicon0.1.2 package accepted; household MacGUI/OS behavior is unperformed.",
     "No physical household-device or new20GB transfer/memory/background/reboot/legacy-Android acceptance.",
-    "Android foreground SystemUI posting/click and keyboard acceptance passed on API36x86_64 with previously granted notification permission; other OS permission/background cases remain distinct.",
-    "Live service, data, configuration and Serve settings unchanged."
+    "Android foreground SystemUI posting/click and keyboard acceptance passed on API36x86_64 with previously granted notification permission; other OS permission/background cases remain distinct."
   ],
   "rootStaticBinary": {
     "path": "bin/household-server",
@@ -94,5 +93,22 @@
       "clients/android/README.md": "7a4e5d7b645d49b96daed0c4aa5d410f8e00ab5268c5d1ac214a87e775ce9a80"
     },
     "scope": "Pairing documentation now uses URL/device name once, empty token for explicit Tailscale Serve mode, optional Advanced token fallback. Links root final emulator evidence. No runtime, frozen asset, binary, APK or build-time audit JSON changed."
-  }
+  },
+  "liveUpgradeEvidence": "docs/evidence/zing-live-upgrade.json",
+  "publication": {
+    "repository": "khaleelclark/household-share",
+    "buildCommit": "13198e14f3bc5cace5927196e6e2f4b5f9f00920",
+    "sourceBlobsVerified": 140,
+    "macWorkflowRun": 39986005986,
+    "macStatus": "Apple Silicon0.1.2 accepted and published with exact live HTTPS hash; Intel still compiling at16:34UTC read. Combined release acceptance remains pending."
+  },
+  "releaseReadback": {
+    "recordedAt": "2026-10-23T16:31:06.400809+00:00",
+    "requiredFilesVerified": 286,
+    "missingOrEmpty": [],
+    "liveDownloads": "ARM64 and x86_64 Android, Linux DEB and current Mac INSTALL streamed again through real Serve; all four SHA256 match zing-live-upgrade.json.",
+    "tokenlessFeed": 200,
+    "scope": "Read-only release recovery checks. No new deployment, service restart, build, or device test."
+  },
+  "macEvidence": "docs/evidence/zing-macos-package.json"
 }

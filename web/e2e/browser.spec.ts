@@ -12,6 +12,7 @@ async function fixture(page: Page, many = false, authenticatedStart = false) {
     ...items[n%2],id:`long-${n}`,name:`${n}-`+'unbroken'.repeat(12)+(n%2?'.zip':''),
     preview:n%2?'':'UnbrokenPreview'.repeat(36),sourceDevice:'Device'.repeat(13),pinned:n===5,
   })
+  let older: typeof items = []; let addressed = ['text-one']
   const devices=[{id:'22222222222222222222222222222222',label:'Kitchen Mac',platform:'macos',createdAt:now},{id:'33333333333333333333333333333333',label:'Pocket phone',platform:'android',createdAt:now}]
   const registrations: {id:string;label:string;platform:string}[]=[]; const routing: {sourceDeviceId?:string;targetDeviceIds?:string[]}[]=[]; const lists:string[]=[];const acknowledgements:string[]=[];const uploadMetadata:string[]=[]
   const posted: string[] = []; const chunks: number[] = []; const received: Buffer[] = []; let offset = 0; let length = 0
@@ -33,7 +34,7 @@ async function fixture(page: Page, many = false, authenticatedStart = false) {
     if (url.pathname === '/api/items') {
       lists.push(url.search)
       const q = (url.searchParams.get('q') || '').toLowerCase()
-      return json({items:url.searchParams.has('before')?[]:items.filter(item=>(!url.searchParams.has('forDevice')||item.id==='text-one')).filter(item => `${item.name} ${item.preview}`.toLowerCase().includes(q)),nextCursor:many&&!url.searchParams.has('before')?'older-fixture':null})
+      return json({items:(url.searchParams.has('before')?older:items).filter(item=>(!url.searchParams.has('forDevice')||addressed.includes(item.id))).filter(item => `${item.name} ${item.preview}`.toLowerCase().includes(q)),nextCursor:many&&!url.searchParams.has('before')?'older-fixture':null})
     }
     if (url.pathname === '/api/storage') return json({usedBytes:4096,freeBytes:128*1024**3,maxFileBytes:20*1024**3,maxTextBytes:32*1024**2,maxStorageBytes:null})
     if (url.pathname === '/api/events') return route.fulfill({status:200,contentType:'text/event-stream',body:': connected\n\n'})
@@ -73,7 +74,7 @@ async function fixture(page: Page, many = false, authenticatedStart = false) {
     if (method === 'DELETE') { items = items.filter(item => item.id !== id); return route.fulfill({status:204}) }
     return json({error:{message:'Unexpected fixture request'}},404)
   })
-  return {posted,chunks,received,registrations,routing,lists,acknowledgements,uploadMetadata,edits,sessions,bodies,replace:(id:string,changes:Partial<(typeof items)[number]>)=>{items=items.map(item=>item.id===id?{...item,...changes}:item)},add:(item:(typeof items)[number]&{mimeType?:string})=>items.push(item),clear:()=>{items=[]}}
+  return {posted,chunks,received,registrations,routing,lists,acknowledgements,uploadMetadata,edits,sessions,bodies,setOlder:(rows:typeof items)=>{older=rows},setAddressed:(ids:string[])=>{addressed=ids},replace:(id:string,changes:Partial<(typeof items)[number]>)=>{items=items.map(item=>item.id===id?{...item,...changes}:item)},add:(item:(typeof items)[number]&{mimeType?:string})=>items.push(item),clear:()=>{items=[]}}
 }
 async function connect(page: Page) {
   await page.goto('/')
@@ -97,7 +98,7 @@ async function uncovered(control: Locator) {
 test('connect, exact copy/paste, pins, search, direct download, and shared deletion', async ({page,context}) => {
   const {posted} = await fixture(page); await context.grantPermissions(['clipboard-read','clipboard-write']); await connect(page)
   await expect(page.getByRole('navigation',{name:'Feed filters',exact:true})).toBeVisible()
-  await expect(page.getByRole('navigation',{name:'Mobile feed filters'})).toBeHidden()
+  await expect(page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true})).toBeHidden()
   await page.screenshot({animations:'disabled',path:'test-results/household-desktop.png',fullPage:true})
   await page.getByRole('button',{name:'Copy text',exact:true}).first().click()
   await expect(page.getByRole('button',{name:'Copied',exact:true})).toBeVisible()
@@ -214,9 +215,9 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await page.screenshot({animations:'disabled',path:'test-results/household-mobile.png',fullPage:false})
   await page.getByRole('button',{name:'Copy text',exact:true}).click()
   const notice=page.locator('.toast');await expect(notice).toBeVisible()
-  const noticeBox=await notice.boundingBox();const tabBox=await page.getByRole('navigation',{name:'Mobile feed filters'}).boundingBox()
+  const noticeBox=await notice.boundingBox();const tabBox=await page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).boundingBox()
   expect(noticeBox!.y+noticeBox!.height).toBeLessThan(tabBox!.y)
-  await uncovered(page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'Files',exact:true}))
+  await uncovered(page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'Pinned',exact:true}))
   await notice.getByRole('button',{name:'Dismiss notification'}).click()
   for(const button of [page.getByRole('button',{name:'Copy text',exact:true}),page.getByRole('button',{name:'Download',exact:true}),page.getByRole('button',{name:'More actions for weekend.zip',exact:true})]) { const box=await button.boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44) }
   await page.getByRole('button',{name:'More actions for Kitchen note',exact:true}).click()
@@ -228,9 +229,11 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await expect(page.getByRole('button',{name:'Close connection settings'})).toBeFocused()
   await page.keyboard.press('Escape'); await expect(dialog).not.toBeVisible()
 })
-async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null) {
-  await page.addInitScript(({body,clickTarget}) => {
+async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null,startup:'ready'|'offline'|401|403='ready') {
+  await page.addInitScript(({body,clickTarget,startup}) => {
     let pendingTarget=clickTarget
+    let feedFailure=startup
+    ;(window as unknown as {setNativeFeedFailure:(failure:typeof startup)=>void}).setNativeFeedFailure=failure=>{feedFailure=failure}
     ;(window as unknown as {setNativeTarget:(target:typeof clickTarget)=>void}).setNativeTarget=target=>{pendingTarget=target}
     const calls: {command:string;args?:Record<string,unknown>}[] = []
     ;(window as unknown as {nativeCalls:unknown}).nativeCalls=calls
@@ -247,6 +250,10 @@ async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:stri
       ]
       if(command==='native_api') {
         const path=String(args?.path)
+        if(path.startsWith('/api/items?')){
+          if(feedFailure==='offline')throw new Error('Network unavailable')
+          if(feedFailure!=='ready')return {status:feedFailure,body:'{"error":{"message":"Access denied"}}'}
+        }
         if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[{id:'11111111111111111111111111111111',label:'Phone',platform:'android',createdAt:new Date().toISOString()},{id:'22222222222222222222222222222222',label:'Kitchen Mac',platform:'macos',createdAt:new Date().toISOString()}]})}
         if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:JSON.parse(String(args?.body))})}
         if(path.startsWith('/api/items?')) return {status:200,body:JSON.stringify({items:[{id:'native-note',kind:'text',name:'Native note',size:body.length,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:'ready',preview:'native preview',pinned:false}],nextCursor:null})}
@@ -256,12 +263,15 @@ async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:stri
         return {status:200,body:'{"status":"ok"}'}
       }
     }}
-  },{body:fullText,clickTarget})
+  },{body:fullText,clickTarget,startup})
 }
 test('packaged native bridge is detected before the app renders', async ({page}) => {
   await nativeFixture(page)
   const browserApiRequests:string[]=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))browserApiRequests.push(request.url())})
   await page.goto('/')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()
+  await page.screenshot({animations:'disabled',path:'test-results/zing-preconfigured-native-desktop.png',fullPage:true})
   await page.getByRole('button',{name:'Copy text',exact:true}).click()
   await expect(page.getByRole('button',{name:'Copied',exact:true})).toBeVisible()
   await page.getByRole('button',{name:'Dismiss notification'}).click()
@@ -293,6 +303,35 @@ test('packaged native bridge is detected before the app renders', async ({page})
     return node===hit||node.contains(hit)
   })).toBe(true)
   await page.screenshot({animations:'disabled',path:'test-results/household-transfers.png',fullPage:false})
+})
+
+for(const failure of ['offline',401,403] as const)test(`configured native startup ${failure} keeps the feed open with Retry and Settings`,async({page})=>{
+  await page.setViewportSize({width:412,height:839})
+  await nativeFixture(page,null,failure)
+  const browserApiRequests:string[]=[]
+  page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))browserApiRequests.push(request.url())})
+  await page.goto('/')
+  const alert=page.getByRole('alert')
+  await expect(alert).toContainText(failure==='offline'?'Check Tailscale':'Access was not accepted')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'Your household is unavailable'})).toBeVisible()
+  await expect(page.getByRole('textbox',{name:'Text to share'})).toBeDisabled()
+  await alert.scrollIntoViewIfNeeded()
+  await page.screenshot({animations:'disabled',path:`test-results/zing-configured-native-${failure}-phone.png`,fullPage:true})
+  await alert.getByRole('button',{name:'Settings',exact:true}).click()
+  const dialog=page.getByRole('dialog',{name:'Connection settings'})
+  await expect(dialog.getByLabel('Household server')).toHaveValue('https://household.example')
+  await expect(dialog.getByRole('button',{name:'Advanced · Use app token'})).toBeEnabled()
+  await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0)
+  await page.evaluate(()=>(window as unknown as {setNativeFeedFailure:(failure:'ready')=>void}).setNativeFeedFailure('ready'))
+  await alert.getByRole('button',{name:'Retry',exact:true}).click()
+  await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled()
+  await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(alert).toHaveCount(0)
+  const calls=await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string}[]}).nativeCalls)
+  expect(calls.some(call=>call.command==='native_configure')).toBe(false)
+  expect(browserApiRequests).toEqual([])
 })
 
 for (const runtime of ['browser', 'android'] as const) test(`${runtime} applies safe areas once with nonzero Chromium insets`, async ({page,context}) => {
@@ -333,8 +372,9 @@ for (const runtime of ['browser', 'android'] as const) test(`${runtime} applies 
   await page.getByRole('button',{name:'New share',exact:true}).click()
   const composer = page.getByRole('textbox',{name:'Text to share'})
   await composer.fill('Keep this draft')
-  expect(await tabs.evaluate(node=>getComputedStyle(node).top)).toBe(android ? '8px' : '36px')
-  await tabs.getByRole('button',{name:'Done editing',exact:true}).click()
+  await expect(tabs).toBeHidden()
+  expect(await page.locator('.editing-toolbar').evaluate(node=>getComputedStyle(node).top)).toBe(android ? '8px' : '36px')
+  await page.getByRole('button',{name:'Done editing',exact:true}).click()
   expect(await tabs.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
   await expect(tabs.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
   await expect(composer).toHaveValue('Keep this draft')
@@ -360,20 +400,21 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
     for (const control of [page.getByRole('textbox',{name:'Text to share'}),page.getByRole('searchbox')]) {
       expect(await control.evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16)
     }
-    const filters = page.getByRole('navigation',{name:'Mobile feed filters'})
+    const filters = page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true})
     await expect(page.getByRole('navigation')).toHaveCount(1)
     const bar = await filters.boundingBox()
     expect(bar!.y+bar!.height).toBe(740)
     expect(bar!.y).toBeGreaterThan(640)
     const tabs=filters.locator('.mobile-tab-list').getByRole('button')
-    await expect(tabs).toHaveCount(5)
+    await expect(tabs).toHaveCount(3)
     for (const tab of await tabs.all()) {
       const box=await tab.boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44)
       await expect(tab.locator('svg')).toBeVisible();await uncovered(tab)
     }
-    await filters.getByRole('button',{name:'Files',exact:true}).click()
+    await page.getByRole('combobox',{name:'Content type'}).selectOption('file')
     await expect(page.getByRole('article')).toHaveCount(4)
-    await expect(filters.getByRole('button',{name:'Files',exact:true})).toHaveAttribute('aria-current','page')
+    await expect(page.getByRole('combobox',{name:'Content type'})).toHaveValue('file')
+    await page.getByRole('combobox',{name:'Content type'}).selectOption('all')
     await filters.getByRole('button',{name:'All shares',exact:true}).click()
     await expect(page.getByRole('article')).toHaveCount(8)
     const recovery=page.getByRole('button',{name:'Reselect',exact:true})
@@ -407,7 +448,7 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
     const composer=page.getByRole('textbox',{name:'Text to share'})
     await expect(composer).toBeFocused()
     expect(await page.locator('.composer').evaluate(node => getComputedStyle(node).position)).toBe('static')
-    expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('sticky')
+    await expect(filters).toBeHidden()
     await composer.fill('A draft that must survive an error')
     await page.route('**/api/text',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":{"message":"Try sharing again"}}'}),{times:1})
     const share=page.getByRole('button',{name:'Share text',exact:true})
@@ -417,12 +458,12 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
     // Each width also has to work when the available layout height is short.
     await page.setViewportSize({width,height:420})
     await share.scrollIntoViewIfNeeded();await uncovered(share)
-    const done=filters.getByRole('button',{name:'Done editing',exact:true})
+    const done=page.getByRole('button',{name:'Done editing',exact:true})
     await done.scrollIntoViewIfNeeded();await uncovered(done);await done.click()
     await expect(filters.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
     expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
-    await filters.getByRole('button',{name:'Text',exact:true}).focus();await page.keyboard.press('Enter')
-    await expect(filters.getByRole('button',{name:'Text',exact:true})).toHaveAttribute('aria-current','page')
+    await filters.getByRole('button',{name:'Pinned',exact:true}).focus();await page.keyboard.press('Enter')
+    await expect(filters.getByRole('button',{name:'Pinned',exact:true})).toHaveAttribute('aria-current','page')
     await filters.getByRole('button',{name:'All shares',exact:true}).focus();await page.keyboard.press('Space')
   }
   // A shorter viewport approximates available layout after keyboard appearance.
@@ -444,69 +485,56 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
 })
 
 
-test('editing tabs stay reachable when an occluding keyboard does not resize either viewport', async ({page}) => {
-  await page.addInitScript(()=>localStorage.setItem('household.transfers.v1',JSON.stringify(Array.from({length:10},(_,n)=>({
+for(const runtime of ['browser','android'] as const)test(`${runtime} hides feed tabs while editing above a non-resizing keyboard fixture`,async({page})=>{
+  if(runtime==='browser')await page.addInitScript(()=>localStorage.setItem('household.transfers.v1',JSON.stringify(Array.from({length:10},(_,n)=>({
     id:`saved-${n}`,name:`Queued source ${n}.zip`,size:20_000_000_000,lastModified:1,kind:'file',sourceDevice:'Phone',
     destination:location.origin,state:'uploading',confirmed:8*1024**2,sent:8*1024**2,
   })))))
-  await page.setViewportSize({width:360,height:915});await fixture(page);await connect(page)
+  await page.setViewportSize({width:360,height:915})
+  if(runtime==='android'){await nativeFixture(page);await page.goto('/');await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()}
+  else{await fixture(page);await connect(page)}
   const initial=await page.evaluate(()=>({inner:innerHeight,visual:visualViewport!.height}))
   const composer=page.getByRole('textbox',{name:'Text to share'})
-  await composer.fill('Keep my draft while changing sections')
+  const tabs=page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true})
+  const sameNav=await tabs.elementHandle()
+  const kind=page.getByRole('combobox',{name:'Content type'})
+  await kind.selectOption('file');await tabs.getByRole('button',{name:'Pinned',exact:true}).click()
+  await page.getByRole('button',{name:'Send to Everyone',exact:true}).click()
+  const picker=page.getByRole('group',{name:'Send to devices'})
+  await picker.getByRole('searchbox',{name:'Find devices'}).fill('kitchen');await expect(tabs).toBeHidden()
+  await picker.getByRole('button',{name:/Kitchen Mac/}).click();await picker.getByRole('button',{name:'Done',exact:true}).click()
+  await composer.fill('Keep my draft, scope, kind, recipients and identity')
   await page.addStyleTag({content:'#keyboard-occlusion {position:fixed;inset:577.9px 0 0;background:#dce1d6;z-index:9999} '})
-  await page.evaluate(()=>{const overlay=document.createElement('div');overlay.id='keyboard-occlusion';document.body.append(overlay)})
+  const overlay=()=>page.evaluate(()=>{const node=document.createElement('div');node.id='keyboard-occlusion';document.body.append(node)})
+  await overlay()
   expect(await page.evaluate(()=>({inner:innerHeight,visual:visualViewport!.height}))).toEqual(initial)
-  await expect(composer).toBeFocused()
-  const filters=page.getByRole('navigation',{name:'Mobile feed filters'})
-  const share=page.getByRole('button',{name:'Share text',exact:true})
-  await uncovered(share)
-  for (const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
-  const done=filters.getByRole('button',{name:'Done editing',exact:true})
-  await uncovered(done)
-  await page.screenshot({animations:'disabled',path:'test-results/household-editing-overlay-layout.png',fullPage:false})
-  // Removing the stand-in overlay leaves focus retained, like Android Back can.
+  await expect(composer).toBeFocused();await expect(tabs).toBeHidden()
+  const share=page.getByRole('button',{name:'Share text',exact:true}),done=page.getByRole('button',{name:'Done editing',exact:true})
+  await uncovered(share);await uncovered(done)
+  expect(await tabs.evaluate(node=>node.contains(document.activeElement))).toBe(false)
+  await page.screenshot({animations:'disabled',path:`test-results/zing-editing-${runtime}-keyboard.png`,fullPage:false})
   await page.locator('#keyboard-occlusion').evaluate(node=>node.remove())
-  await expect(composer).toBeFocused();await uncovered(done)
-  // A tall composer and a failed draft remain scrollable above a non-resizing occlusion.
+  // Android Back may remove the keyboard while leaving field focus and draft intact.
+  await expect(composer).toBeFocused();await expect(tabs).toBeHidden()
   await page.addStyleTag({content:'.composer.has-draft textarea {height:180px}'})
-  expect((await composer.boundingBox())!.height).toBe(180)
-  await page.route('**/api/text',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":{"message":"Try sharing again"}}'}),{times:1})
-  await share.click();await expect(page.locator('.composer').getByRole('alert')).toBeVisible()
-  await page.evaluate(()=>{const overlay=document.createElement('div');overlay.id='keyboard-occlusion';document.body.append(overlay)})
-  await share.evaluate(node=>node.scrollIntoView({block:'center'}));await uncovered(share)
-  await filters.evaluate(node=>node.scrollIntoView({block:'start'}))
-  for(const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
-  await uncovered(done)
-  await page.locator('#keyboard-occlusion').evaluate(node=>node.remove())
-  await filters.getByRole('button',{name:'Files',exact:true}).click()
-  await expect(filters.getByRole('button',{name:'Files',exact:true})).toHaveAttribute('aria-current','page')
-  expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
-  await expect(composer).toHaveValue('Keep my draft while changing sections')
-  const search=page.getByRole('searchbox')
-  await search.fill('weekend')
-  expect(await search.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16)
-  expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('sticky')
-  expect(await page.locator('.transfer-panel').evaluate(node=>node.getBoundingClientRect().height)).toBeGreaterThan(915)
-  const docked=await filters.boundingBox();expect(docked!.y).toBeGreaterThanOrEqual(0);expect(docked!.y+docked!.height).toBeLessThan(200)
-  await uncovered(search)
-  const sameNav=await filters.elementHandle()
-  for(const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
-  await uncovered(done);await done.click()
+  await overlay();await share.evaluate(node=>node.scrollIntoView({block:'center'}));await uncovered(share)
+  await done.evaluate(node=>node.scrollIntoView({block:'start'}));await uncovered(done)
+  await page.locator('#keyboard-occlusion').evaluate(node=>node.remove());await done.click()
   expect(await sameNav!.evaluate(node=>node.isConnected)).toBe(true)
-  await expect(search).toHaveValue('weekend')
-  await expect(filters.getByRole('button',{name:'Files',exact:true})).toBeFocused()
-  await composer.focus()
-  await composer.dispatchEvent('keydown',{key:'Escape',isComposing:true,bubbles:true})
+  await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toBeFocused()
+  await expect(kind).toHaveValue('file');await expect(composer).toHaveValue('Keep my draft, scope, kind, recipients and identity')
+  await expect(page.getByRole('button',{name:'Send to Kitchen Mac',exact:true})).toBeVisible()
+  const search=page.getByRole('searchbox',{name:'Search names and text previews'})
+  await search.fill('weekend');await expect(tabs).toBeHidden();await uncovered(search);await uncovered(done)
+  await done.click();await expect(search).toHaveValue('weekend');await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toBeFocused()
+  await composer.focus();await composer.dispatchEvent('keydown',{key:'Escape',isComposing:true,bubbles:true})
   await expect(composer).toBeFocused();await expect(done).toBeVisible()
   await page.getByRole('button',{name:'More actions for sharing',exact:true}).click()
-  await page.keyboard.press('Escape')
-  await expect(page.getByRole('button',{name:'More actions for sharing',exact:true})).toBeFocused()
-  await expect(done).toBeVisible()
+  await uncovered(page.getByRole('menuitem',{name:'Upload text file',exact:true}))
+  await page.keyboard.press('Escape');await expect(page.getByRole('button',{name:'More actions for sharing',exact:true})).toBeFocused();await expect(done).toBeVisible()
   await composer.focus();await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab')
-  await expect(filters.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
-  await page.keyboard.press('Escape')
-  await expect(filters.getByRole('button',{name:'Files',exact:true})).toBeFocused()
-  await expect(page.getByRole('button',{name:'Done editing',exact:true})).toHaveCount(0)
+  await expect(done).toBeFocused();await page.keyboard.press('Escape')
+  await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toBeFocused();await expect(done).toHaveCount(0)
 })
 
 for (const many of [false,true]) test(`last five-action text menu stays above bottom tabs on a ${many?'long':'short'} feed`, async ({page}) => {
@@ -523,7 +551,7 @@ for (const many of [false,true]) test(`last five-action text menu stays above bo
     await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight))
     await more.scrollIntoViewIfNeeded();await uncovered(more);await more.click()
     const bounds=await menu.boundingBox()
-    const tabs=await page.getByRole('navigation',{name:'Mobile feed filters'}).boundingBox()
+    const tabs=await page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).boundingBox()
     expect(bounds!.y).toBeGreaterThanOrEqual(0)
     expect(bounds!.y+bounds!.height).toBeLessThanOrEqual(tabs!.y)
     expect(bounds!.x).toBeGreaterThanOrEqual(0)
@@ -598,7 +626,7 @@ test('pairing failures, empty inbox, and temporary server errors offer a usable 
   await expect(page.getByRole('heading',{name:'A fresh start'})).toBeVisible()
   for(const width of [320,360,390,412]) {
     await page.setViewportSize({width,height:740})
-    const bar=page.getByRole('navigation',{name:'Mobile feed filters'})
+    const bar=page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true})
     await expect(page.getByRole('navigation')).toHaveCount(1)
     expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
     const box=await bar.boundingBox();expect(box!.y+box!.height).toBe(740)
@@ -608,9 +636,10 @@ test('pairing failures, empty inbox, and temporary server errors offer a usable 
   await page.screenshot({animations:'disabled',path:'test-results/household-empty.png',fullPage:true})
   await page.getByRole('button',{name:'Share something',exact:true}).click()
   await expect(page.getByRole('textbox',{name:'Text to share'})).toBeFocused()
-  await page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'Pinned'}).click()
+  await page.getByRole('button',{name:'Done editing',exact:true}).click()
+  await page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'Pinned'}).click()
   await expect(page.getByRole('heading',{name:'No pinned items'})).toBeVisible()
-  await expect(page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'Pinned'})).toBeFocused()
+  await expect(page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'Pinned'})).toBeFocused()
   await page.getByRole('searchbox').fill('missing item')
   await expect(page.getByRole('heading',{name:'No matching shares'})).toBeVisible()
   await page.route('**/api/items?**', route => route.fulfill({status:503,contentType:'application/json',body:JSON.stringify({error:{code:'unavailable',message:'The household server is temporarily unavailable.'}})}), {times:1})
@@ -667,7 +696,7 @@ test('For you keeps device search and pagination while All shares retains the ho
   await expect(page.getByRole('heading',{name:'Sent to this device',exact:true})).toBeVisible()
   await page.screenshot({animations:'disabled',path:'test-results/zing-for-you-desktop.png',fullPage:false})
   await page.setViewportSize({width:390,height:844});await page.screenshot({animations:'disabled',path:'test-results/zing-for-you-phone.png',fullPage:false})
-  await page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'All shares',exact:true}).click()
+  await page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'All shares',exact:true}).click()
   await expect(page.getByRole('article')).toHaveCount(8)
 })
 
@@ -730,7 +759,7 @@ for(const election of ['locks','lease'])test(`browser tabs share identity, elect
   await expect(page.getByRole('dialog')).toHaveCount(0)
   await expect(page.locator('#share-text-one')).toHaveClass('arrival-highlight')
   await page.goto('/?item=text-one')
-  await expect(page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'For you',exact:true})).toHaveAttribute('aria-current','page')
+  await expect(page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'For you',exact:true})).toHaveAttribute('aria-current','page')
   await expect(page.locator('#share-text-one')).toHaveClass('arrival-highlight')
   await uncovered(page.getByRole('button',{name:'Copy text',exact:true}));expect(page.url()).not.toContain('?item=')
   const draft=page.getByRole('textbox',{name:'Text to share'});await draft.fill('Keep my focus and draft after opening an alert')
@@ -960,4 +989,130 @@ test('text-file metadata is only a candidate until validated preparation succeed
   await row.getByRole('button',{name:'More actions for code.md',exact:true}).click()
   await expect(row.getByRole('menuitem',{name:/Download \.(txt|md)/})).toHaveCount(0)
   await expect(row.getByRole('menuitem',{name:'Rename entry',exact:true})).toBeEnabled()
+})
+
+
+// These are real browser layout/focus checks; the API and keyboard occlusion remain fixtures.
+test('content kind sits beside Recent shares with full-width phone search and no composing feed tabs',async({page})=>{
+  const data=await fixture(page);await connect(page)
+  const identity=data.registrations[0].id
+  const tabs=page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true})
+  const kind=page.getByRole('combobox',{name:'Content type'})
+  const composer=page.getByRole('textbox',{name:'Text to share'})
+  const search=page.getByRole('searchbox',{name:'Search names and text previews'})
+  for(const width of [320,360,412]){
+    await page.setViewportSize({width,height:839})
+    await expect(tabs.getByRole('button')).toHaveCount(3)
+    await expect(tabs.getByRole('button',{name:'Text',exact:true})).toHaveCount(0)
+    await expect(tabs.getByRole('button',{name:'Files',exact:true})).toHaveCount(0)
+    await kind.selectOption('text');await expect(page.getByRole('article')).toHaveCount(1)
+    await kind.selectOption('file');await expect(page.getByRole('article',{name:'File: weekend.zip'})).toBeVisible()
+    const heading=(await page.locator('.feed-title').boundingBox())!,filter=(await kind.boundingBox())!,searchBox=(await page.locator('.search-field').boundingBox())!,feed=(await page.locator('.feed').boundingBox())!
+    expect(filter.x).toBeGreaterThanOrEqual(heading.x+heading.width)
+    expect(filter.height).toBeGreaterThanOrEqual(44)
+    expect(searchBox.y).toBeGreaterThanOrEqual(Math.max(heading.y+heading.height,filter.y+filter.height))
+    expect(searchBox.x).toBeCloseTo(feed.x,0);expect(searchBox.width).toBeCloseTo(feed.width,0)
+    expect(await kind.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16)
+    await page.screenshot({animations:'disabled',path:`test-results/zing-feed-controls-${width}.png`,fullPage:false})
+    await composer.fill('Keep the same draft and selection')
+    await expect(tabs).toBeHidden();expect(await tabs.evaluate(node=>node.contains(document.activeElement))).toBe(false)
+    await expect(page.getByRole('button',{name:'Add files',exact:true})).toBeVisible()
+    await expect(page.getByRole('button',{name:'Share text',exact:true})).toBeEnabled()
+    await page.getByRole('button',{name:'More actions for sharing',exact:true}).click()
+    await uncovered(page.getByRole('menuitem',{name:'Upload text file',exact:true}))
+    await page.keyboard.press('Escape')
+    await expect(page.getByRole('button',{name:'More actions for sharing',exact:true})).toBeFocused()
+    await expect(tabs).toBeHidden()
+    await page.getByRole('button',{name:'Done editing',exact:true}).click()
+    await expect(tabs.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
+    await expect(composer).toHaveValue('Keep the same draft and selection');await expect(kind).toHaveValue('file')
+    await search.fill('weekend');await expect(tabs).toBeHidden()
+    await page.getByRole('button',{name:'Done editing',exact:true}).click()
+    await expect(search).toHaveValue('weekend');await expect(kind).toHaveValue('file')
+    await search.fill('');await page.keyboard.press('Escape');await kind.selectOption('all')
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+  }
+  expect(data.registrations.at(-1)?.id).toBe(identity)
+})
+
+test('content kind intersects pinned and For you scopes across search and older pages',async({page})=>{
+  const data=await fixture(page,true)
+  data.replace('file-one',{pinned:true})
+  const now=new Date().toISOString()
+  const older=[
+    {id:'older-text',kind:'text',name:'Older recipe',size:12,createdAt:now,updatedAt:now,status:'ready',preview:'Older recipe',pinned:true,sourceDevice:'Kitchen Mac'},
+    {id:'older-file',kind:'file',name:'Older recipe.zip',size:12,createdAt:now,updatedAt:now,status:'ready',preview:'',pinned:false,sourceDevice:'Kitchen Mac'},
+  ]
+  data.setOlder(older);data.setAddressed(['text-one','file-one','older-text','older-file'])
+  await connect(page)
+  const kind=page.getByRole('combobox',{name:'Content type'})
+  const scope=page.getByRole('navigation',{name:'Feed filters',exact:true})
+  await kind.selectOption('text');await scope.getByRole('button',{name:'Pinned',exact:true}).click()
+  await expect(page.getByRole('article')).toHaveCount(0)
+  await expect(page.getByRole('heading',{name:'No text shares in this view'})).toBeVisible()
+  await page.getByRole('button',{name:'Load older items'}).click()
+  await expect(page.getByRole('article',{name:'Text: Older recipe'})).toBeVisible()
+  await kind.selectOption('file');await expect(page.getByRole('article')).toHaveCount(2)
+  await expect(page.getByRole('article',{name:'File: Older recipe.zip'})).toHaveCount(0)
+  await scope.getByRole('button',{name:'For you',exact:true}).click()
+  await expect(page.getByRole('article')).toHaveCount(1)
+  await page.getByRole('searchbox').fill('recipe')
+  await expect(page.getByRole('article')).toHaveCount(0)
+  await page.getByRole('button',{name:'Load older items'}).click()
+  await expect(page.getByRole('article',{name:'File: Older recipe.zip'})).toBeVisible()
+  const source=data.registrations[0].id
+  expect(data.lists.some(query=>{const params=new URLSearchParams(query);return params.get('q')==='recipe'&&params.get('forDevice')===source&&params.get('before')==='older-fixture'})).toBe(true)
+  await kind.selectOption('text');await expect(page.getByRole('article',{name:'Text: Older recipe'})).toBeVisible()
+  await page.screenshot({animations:'disabled',path:'test-results/zing-kind-scope-desktop.png',fullPage:false})
+})
+
+
+test('Navy nautical theme keeps shared branding, readable placeholders/statuses and visible focus',async({page,context})=>{
+  const data=await fixture(page);const now=new Date().toISOString()
+  data.add({id:'incoming',kind:'file',name:'Incoming.zip',size:100,createdAt:now,updatedAt:now,status:'uploading',preview:'',pinned:false,sourceDevice:'Kitchen Mac'})
+  await context.grantPermissions(['clipboard-read','clipboard-write'])
+  await connect(page)
+  const signal=page.locator('.brand-signal:visible');await expect(signal).toHaveCount(1);await expect(signal).toHaveAttribute('aria-hidden','true')
+  expect(await signal.evaluate(node=>getComputedStyle(node).backgroundColor)).toBe('rgb(180, 35, 54)')
+  const colors=await page.evaluate(()=>{
+    const root=getComputedStyle(document.documentElement)
+    const css=(selector:string,pseudo?:string)=>getComputedStyle(document.querySelector(selector)!,pseudo)
+    return {canvas:root.backgroundColor,ink:root.color,placeholder:css('.composer textarea','::placeholder').color,surface:css('.composer').backgroundColor,uploading:css('.item-status.status-uploading').color,download:css('.card-actions button[aria-label="Download"]').color,copy:css('.card-actions .action-button').color,metadata:css('.row-metadata').color,boundary:css('.composer').borderColor,searchBoundary:css('.search-field').borderColor}
+  })
+  expect(colors).toEqual({canvas:'rgb(247, 248, 250)',ink:'rgb(24, 51, 74)',placeholder:'rgb(94, 107, 120)',surface:'rgb(255, 255, 255)',uploading:'rgb(36, 76, 106)',download:'rgb(36, 76, 106)',copy:'rgb(36, 76, 106)',metadata:'rgb(94, 107, 120)',boundary:'rgb(120, 135, 149)',searchBoundary:'rgb(120, 135, 149)'})
+  const luminance=(color:string)=>color.match(/\d+/g)!.slice(0,3).map(n=>Number(n)/255).map(c=>c<=.04045?c/12.92:((c+.055)/1.055)**2.4).reduce((sum,c,index)=>sum+c*[.2126,.7152,.0722][index],0)
+  const contrast=(a:string,b:string)=>{const values=[luminance(a),luminance(b)].sort((a,b)=>b-a);return (values[0]+.05)/(values[1]+.05)}
+  for(const [foreground,background] of [[colors.ink,colors.canvas],[colors.placeholder,colors.surface],[colors.metadata,colors.canvas],[colors.uploading,colors.canvas],[colors.download,colors.canvas],[colors.copy,colors.canvas]])expect(contrast(foreground,background)).toBeGreaterThanOrEqual(4.5)
+  for(const boundary of [colors.boundary,colors.searchBoundary])expect(contrast(boundary,colors.surface)).toBeGreaterThanOrEqual(3)
+  const scope=page.getByRole('navigation',{name:'Feed filters',exact:true}),pinned=scope.getByRole('button',{name:'Pinned',exact:true})
+  await expect(pinned).not.toHaveClass(/selected/);await expect(pinned.locator('.nav-count')).toBeVisible()
+  await pinned.hover();await expect(pinned).toHaveCSS('background-color','rgb(234, 240, 245)')
+  const navColors=await pinned.evaluate(node=>({foreground:getComputedStyle(node.querySelector('.nav-count')!).color,background:getComputedStyle(node).backgroundColor}))
+  expect(contrast(navColors.foreground,navColors.background)).toBeGreaterThanOrEqual(4.5)
+  await expect(scope.getByRole('button',{name:'All shares',exact:true})).toHaveCSS('background-color',colors.surface)
+  await page.getByRole('button',{name:'Copy text',exact:true}).click()
+  const toast=page.locator('.toast'),dismiss=toast.getByRole('button',{name:'Dismiss notification'})
+  await expect(toast).toHaveText('Full text copied.')
+  await page.getByRole('article').last().getByRole('button').last().focus();await page.keyboard.press('Tab')
+  await expect(dismiss).toBeFocused();expect(await dismiss.evaluate(node=>node.matches(':focus-visible'))).toBe(true)
+  const toastFocus=await dismiss.evaluate(node=>{const css=getComputedStyle(node);return {color:css.outlineColor,width:css.outlineWidth,offset:css.outlineOffset,style:css.outlineStyle,background:getComputedStyle(node.parentElement!).backgroundColor}})
+  expect(toastFocus).toEqual({color:colors.surface,width:'3px',offset:'3px',style:'solid',background:colors.ink})
+  expect(contrast(toastFocus.color,toastFocus.background)).toBeGreaterThanOrEqual(3)
+  const dismissBox=(await dismiss.boundingBox())!;expect(dismissBox.width).toBeGreaterThanOrEqual(44);expect(dismissBox.height).toBeGreaterThanOrEqual(44)
+  await uncovered(dismiss);await page.keyboard.press('Enter');await expect(toast).toHaveCount(0)
+  await page.getByRole('searchbox').focus()
+  expect(await page.locator('.search-field').evaluate(node=>{const css=getComputedStyle(node);return [css.outlineWidth,css.outlineColor]})).toEqual(['3px','rgb(36, 76, 106)'])
+  await page.getByRole('combobox',{name:'Content type'}).focus()
+  expect(await page.getByRole('combobox',{name:'Content type'}).evaluate(node=>getComputedStyle(node).outlineWidth)).toBe('3px')
+  expect(await page.locator('.brand img').evaluate(node=>(node as HTMLImageElement).naturalWidth)).toBeGreaterThan(0)
+  const svg=await (await page.request.get('/icon.svg')).text();expect(svg).toContain('M6 6.5H18L6 17.5H18');expect(svg).toContain('#244c6a')
+  const manifest=await(await page.request.get('/manifest.webmanifest')).json();expect(manifest).toMatchObject({theme_color:'#f7f8fa',background_color:'#f7f8fa'})
+  await expect(page.locator('meta[name="theme-color"]')).toHaveAttribute('content','#f7f8fa')
+  await page.screenshot({animations:'disabled',path:'test-results/zing-navy-desktop.png',fullPage:true})
+  await page.setViewportSize({width:360,height:839});await page.getByRole('button',{name:'New share',exact:true}).click()
+  expect(await page.locator('.composer').evaluate(node=>getComputedStyle(node).outlineWidth)).toBe('3px')
+  await page.getByRole('button',{name:'Done editing',exact:true}).click()
+  await expect(page.locator('.brand-signal:visible')).toHaveCount(1)
+  expect(await page.getByRole('navigation',{name:'Mobile feed filters',includeHidden:true}).getByRole('button',{name:'All shares',exact:true}).evaluate(node=>getComputedStyle(node).color)).toBe('rgb(24, 51, 74)')
+  await page.screenshot({animations:'disabled',path:'test-results/zing-navy-phone.png',fullPage:false})
 })
