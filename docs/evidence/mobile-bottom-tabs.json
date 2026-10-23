@@ -1,0 +1,30 @@
+{
+  "recordedAt": "2026-10-23",
+  "status": "frozen frontend for mobile bottom-tab packaging; installed acceptance pending",
+  "requestedBehavior": "Bottom mobile navigation for All shares, Text, Files and Pinned; approved desktop retained",
+  "rootReview": [
+    "Viewed all4 affected screenshots and read mobile editing/focus/CSS implementation",
+    "Matched all11 owner-supplied source/build/screenshot hashes",
+    "Verified47 named required web deliverables present/nonempty",
+    "Actual final built UI against isolated Go API passed login,exact text send/copy/download,1048713-byte file SHA256 roundtrip,second client visibility,phone fit and zero runtime errors"
+  ],
+  "files": {
+    "web/src/App.tsx": "724b3f4edde42b387ee8029b1fd5ac4cceece8926deb5faab2a9428b0d1cd497",
+    "web/src/styles.css": "e40a2fd6fbf34847e9e6f33716531c9900a45e838f885eefe0cb077ce3a9b5c9",
+    "web/e2e/browser.spec.ts": "866502bee2f60473d6eb4308c8bdf1c220e97e1dbf32ca1d4e325b3eb714b6d1",
+    "web/README.md": "0f761fb9b07b5bb93a7d0b2c6ce50a33a70a95c48d809b835a6dc0fa2afa3da4",
+    "web/dist/index.html": "27c931d992feaad4a9f382b2a0d626aa11e3c210e63e6a58d805412cf9b44e63",
+    "web/dist/assets/index-CS6EIQOV.js": "653a022c708d981fac099cde2bb68a3f9c14e61658a0124fb090ace36f6024d1",
+    "web/dist/assets/index-DVPjc1UT.css": "c505382c94efdd9eadb756e72c60588247b82772e41142e66ee80b988a43ca11",
+    "web/test-results/household-mobile.png": "9e472dc80c33f6576d45a619ad6b85383455ad7d777977db535871aca0160548",
+    "web/test-results/household-transfers.png": "a30c93b8e31697aa8219d4a1865f32d35fa6b0bf903a64369227d479f11c50b1",
+    "web/test-results/household-narrow-keyboard-layout.png": "0c6db7a48a40937250d7bd0ee381d8e83767ab452e78a1fee59ce0c90eb45ad3",
+    "web/test-results/household-editing-overlay-layout.png": "7090427d751ffc1ee31d4721ef51c24c040f35818169218af8e358937c22820c"
+  },
+  "keyboardDesign": "One nav docks at bottom when browsing, stays in flow/sticky with Done editing when composer/search is focused; no inference of IME visibility from viewport resize",
+  "limits": [
+    "Installed API36 actual IME,Back and bottom safe-area acceptance still pending",
+    "No physical phone or physical gesture validation",
+    "Prior0.1.1 release and d600445Mac package remain separately recorded"
+  ]
+}

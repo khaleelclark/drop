@@ -25,6 +25,15 @@ Root reviews rendered desktop/phone screens, then checks the updated installed A
 
 User direction: “smooth modern ui, think clean ios type. intentional actions, thoughtfully placed. and clean and functional”.
 
+Latest mobile direction (2026-10-23): “for mobile i prefer a bottom tab design”.
+Move the existing four phone sections into a bottom navigation bar with clear
+icons, labels and active state. Keep the approved desktop layout and in-flow
+composer. Reserve room for the bar and safe area so it cannot cover the final
+item, menu, toast or transfer action; check actual keyboard behavior separately
+from browser viewport-height fixtures. This supersedes the previous frontend
+freeze for mobile navigation; root reviews the exact new build before updating
+the installed packages and live release.
+
 ## Blip reference
 
 The user also requested inspiration from [Blip](https://blip.net/). Its app demo uses a compact device list, plain search, short rows and a single-purpose panel. Apply that directness to the household feed: keep sending close at hand, make file identity and progress easy to scan, and give each item one obvious Copy or Download action. Preserve the approved shared inbox and its offline receiving behavior. Use the reference for interaction clarity and density; keep Household’s own assets and visual system.

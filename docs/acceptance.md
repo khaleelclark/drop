@@ -30,7 +30,9 @@ This is the integration checklist. A source implementation does not establish de
 - [x] Actual Tauri Android adapter invokes native API, clipboard/paste, SAF upload and download/export paths on the API36 emulator.
 - [x] Native engine queue persistence/restarts pass; actual Linux shell stays resident after normal window close in an unpaired isolated GUI test. In-progress transfer plus GUI-close remains unperformed.
 - [x] Queue Quit/checkpoint behavior passes Rust tests; the actual Linux tray Quit action exits cleanly and relaunch works in the isolated GUI test. These are separate checks.
-- [ ] Mac local ad-hoc package builds and capture Quick Action enqueues without opening the main UI.
+- [x] Final Apple Silicon Mac DMG builds on a native Mac runner; native tests, ad-hoc signatures, helper execution, read-only image mount and exact frozen frontend hashes pass. See `docs/evidence/macos-arm64.json`.
+- [ ] Final Intel Mac installer completes native build and package verification.
+- [ ] Mac installation/Gatekeeper approval, GUI lifecycle and capture Quick Action on a household Mac.
 - [x] Android Tauri ARM64/x86_64 and standalone APKs build with local signing; runtime-fix cold launch and native download/export pass on the emulator.
 - [ ] Android native share receiver acquires durable source access or stages content explicitly.
 - [x] API36 emulator native upload and unknown-size download UIDT jobs execute; physical-phone/stop/reschedule and notification UX remain unperformed.
@@ -40,7 +42,7 @@ This is the integration checklist. A source implementation does not establish de
 ## Handoff
 
 - [x] Linux run/deployment guide matches actual environment variables and extracted-server-bundle relative paths.
-- [x] Linux/Android paths match actual build outputs; Mac instructions describe a source build, which remains unperformed.
+- [x] Linux/Android paths match actual build outputs; final Apple Silicon Mac installer exists and is verified. Intel packaging remains pending.
 - [x] Source archive, Linux server/desktop packages and primary Android APKs imported into Project files; checksum manifest supplied.
 - [x] Reviewed source published to the user-approved public `khaleelclark/household-share` repository, with commits attributed to khaleelclark and remote file contents verified.
 - [x] Known limitations and unperformed checks recorded with the exact release evidence.

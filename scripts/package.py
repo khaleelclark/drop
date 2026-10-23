@@ -81,11 +81,13 @@ def main():
     server += sorted(p for p in (ROOT / 'web/dist').rglob('*') if p.is_file() and not p.is_symlink() and p.suffix != '.map')
     outputs = [archive('household-source.tar.gz', source), archive('household-server-linux-x86_64.tar.gz', server)]
     outputs += [ROOT / relative for relative in [
-        'artifacts/linux-desktop/Household Share_0.1.0_amd64.deb',
+        'artifacts/linux-desktop/Household Share_0.1.1_amd64.deb',
         'artifacts/linux-desktop/household-share-cli',
         'clients/android/build/outputs/household-share-tauri-aarch64-debug.apk',
         'clients/android/build/outputs/household-share-tauri-x86_64-debug.apk',
         'clients/android/app/build/outputs/apk/debug/app-debug.apk',
+        'artifacts/macos/aarch64-apple-darwin/Household-Share_0.1.1_arm64.dmg',
+        'artifacts/macos/x86_64-apple-darwin/Household-Share_0.1.1_x86_64.dmg',
     ]]
     rows = []
     for path in outputs:

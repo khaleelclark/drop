@@ -38,7 +38,20 @@ the protected feed stayed unchanged, anonymous access remained 401 and health
 was OK. The backend bytes, service process, persistent data and Serve settings
 were retained. See `docs/evidence/ui-publication.json`.
 
-Final Mac installer acceptance and package refresh remain pending. The
+The final Apple Silicon Mac installer passed native CI run `39875041794`, job
+`120158944970`, from the frozen `d600445` source. Its nine frontend hashes match
+the browser and Android build exactly. All 17 native tests passed on macOS;
+the app/helper architecture, Apple-system linkage, ad-hoc signatures, native
+helper usage execution, signed DMG checksum, read-only image mount and mounted
+bundle checks passed. Root verified the downloaded archive/DMG hashes and the
+native lead independently accepted the package evidence. The 9,063,055-byte
+installer has SHA256
+`010c86da84c78fd63d1a5337661f6da8a32e916e5c2b0b209d4624471b8c09fe`
+and is available through the existing private HTTPS downloads. See
+`docs/evidence/macos-arm64.json`. These Mac execution conclusions come from
+the actual downloaded CI logs, with separate Linux checksum/manifest review.
+
+The Intel Mac installer and aggregate package refresh remain pending. The
 historical release evidence below describes earlier packages and tests; its
 no-deployment and unavailable-Mac-build statements apply to that earlier stage.
 No new 20 GB transfer, physical phone, Mac GUI/Gatekeeper installation or

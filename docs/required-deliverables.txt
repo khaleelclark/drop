@@ -174,3 +174,6 @@ docs/evidence/ui-redesign.json
 docs/evidence/android-ui-update.json
 docs/evidence/ui-publication.json
 clients/android/validation/api36-ui-0.1.1.json
+docs/evidence/macos-arm64.json
+artifacts/macos/aarch64-apple-darwin/Household-Share_0.1.0_arm64.dmg
+docs/evidence/mobile-bottom-tabs.json

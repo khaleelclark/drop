@@ -79,7 +79,7 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
 .page-heading h1 { font-size: 36px; line-height: 1.16; font-weight: 650; letter-spacing: -1.5px; }
 .page-heading p { margin-top: 9px; color: var(--secondary); font-size: 14px; }
 .compose-jump { flex-shrink: 0; }
-.mobile-filters { display: none; }
+.mobile-tabs { display: none; }
 .button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; padding: 10px 15px; border: 1px solid transparent; border-radius: 10px; font-size: 13px; line-height: 20px; font-weight: 600; white-space: nowrap; }
 .button.primary { background: var(--blue); color: white; }
 .button.primary:hover:not(:disabled) { background: var(--blue-hover); }
@@ -238,18 +238,27 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
 .composer-tools .item-menu-popover { left: -100px; right: auto; }
 .drop-hint { display: none; } }
 @media (max-width: 800px) {
+  :root { --mobile-tabs-height: 72px; scroll-padding-bottom: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom) + 16px); }
   .sidebar { display: none; }
   .workspace { margin-left: 0; }
   .topbar { height: 72px; padding: env(safe-area-inset-top) max(24px, env(safe-area-inset-right)) 0 max(24px, env(safe-area-inset-left)); }
   .topbar-caption { display: none; }
   .mobile-brand { display: flex; font-size: 19px; }
-  main { max-width: 720px; padding: 24px 24px calc(24px + env(safe-area-inset-bottom)); }
+  main { max-width: 720px; padding: 24px 24px calc(24px + var(--mobile-tabs-height) + env(safe-area-inset-bottom)); }
   .page-heading { margin-bottom: 24px; }
   .page-heading h1 { font-size: 32px; }
-  .mobile-filters { display: flex; gap: 5px; border-bottom: 1px solid var(--line); margin: 0 0 24px; }
-  .mobile-filters>button { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 48px; padding: 8px 12px; margin-bottom: -1px; border-bottom: 2px solid transparent; font-size: 13px; color: var(--secondary); }
-  .mobile-filters>button[aria-current] { border-color: var(--blue); color: var(--blue); font-weight: 600; }
-  .toast { left: 50%; }
+  .mobile-tabs { display: block; position: fixed; inset: auto 0 0; height: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom)); padding: 8px max(12px, env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: var(--surface); border-top: 1px solid var(--line); box-shadow: 0 -4px 20px #28332106; z-index: 30; }
+  .mobile-tab-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); height: 100%; gap: 4px; }
+  .mobile-tab-list>button { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 44px; padding: 4px; border-radius: 12px; font-size: 12px; line-height: 18px; color: var(--secondary); }
+  .mobile-tab-list>button[aria-current] { background: var(--blue-soft); color: var(--blue); font-weight: 600; }
+  .mobile-tab-list>button:focus-visible { outline-offset: -3px; }
+  /* Android can overlay the IME without resizing either viewport. Keep one scrollable, sticky nav while editing. */
+  .mobile-tabs.is-editing { position: sticky; top: max(8px, env(safe-area-inset-top)); bottom: auto; height: auto; padding: 8px; margin: 12px 0 16px; border: 1px solid var(--line); border-radius: 14px; box-shadow: none; }
+  .mobile-tabs.is-editing .mobile-tab-list>button { min-height: 52px; }
+  .finish-editing { display: flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; padding: 8px 12px; margin: 4px 0 0 auto; border-radius: 10px; color: var(--blue); font-size: 12px; font-weight: 600; }
+  .finish-editing:hover { background: var(--blue-soft); }
+  .toast { left: 50%; bottom: calc(var(--mobile-tabs-height) + 16px + env(safe-area-inset-bottom)); }
+  .feed-card, .load-more, .transfer-row { scroll-margin-bottom: calc(var(--mobile-tabs-height) + env(safe-area-inset-bottom) + 16px); }
   .card-origin { flex-direction: column; align-items: flex-start; gap: 1px; }
   .search-field input { font-size: 16px; }
 }
@@ -259,15 +268,12 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
   .mobile-brand .brand-mark { width: 30px; height: 30px; border-radius: 9px; }
   .connection-badge { padding-inline: 4px; gap: 6px; font-size: 11px; }
   .connection-badge>svg { margin-left: 4px; }
-  main { padding: 14px max(16px, env(safe-area-inset-right)) calc(20px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
+  main { padding: 14px max(16px, env(safe-area-inset-right)) calc(20px + var(--mobile-tabs-height) + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left)); }
   .page-heading { gap: 10px; margin-bottom: 16px; }
   .page-heading h1 { font-size: 30px; letter-spacing: -1.2px; }
   .page-heading p { font-size: 13px; margin-top: 7px; }
   .compose-jump { min-width: 44px; width: 44px; padding: 10px; font-size: 0; gap: 0; border-radius: 50%; }
   .compose-jump svg { width: 20px; height: 20px; }
-  .mobile-filters { justify-content: space-between; gap: 0; margin-bottom: 20px; }
-  .mobile-filters>button { gap: 5px; padding: 8px 9px; font-size: 12px; }
-  .mobile-filters>button svg { width: 15px; }
   .composer { border-radius: 15px; }
   .composer-top { display: none; }
   .composer h2 { font-size: 11px; }
@@ -324,7 +330,7 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
   .workspace-footer button { font-size: 10px; }
   .banner { font-size: 12px; padding: 10px 12px; flex-wrap: wrap; }
   .banner>.text-button { margin-left: 0; }
-  .toast { bottom: calc(16px + env(safe-area-inset-bottom)); font-size: 12px; max-width: calc(100vw - 24px); padding-left: 12px; }
+  .toast { font-size: 12px; max-width: calc(100vw - 24px); padding-left: 12px; }
   .modal-backdrop { padding: max(12px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); }
   .modal { padding: 28px 24px; max-height: calc(100dvh - 24px); border-radius: 18px; }
   .modal h2 { font-size: 24px; }
@@ -334,8 +340,6 @@ main { max-width: 920px; padding: 24px 44px 32px; margin: auto; }
 @media (max-width: 359px) {
   .topbar { padding-inline: 14px; }
   main { padding-inline: 12px; }
-  .mobile-filters>button { padding-inline: 7px; }
-  .mobile-filters>button svg { display: none; }
   .search-field input { width: 96px; }
   .feed-title h2 { font-size: 13px; }
   .feed-card { padding-inline: 13px; }

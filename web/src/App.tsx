@@ -24,6 +24,7 @@ export function App() {
   const [items, setItems] = useState<Item[]>([]); const [cursor, setCursor] = useState<string | null>(null)
   const [storage, setStorage] = useState<StorageInfo>(); const [storageError, setStorageError] = useState('')
   const [query, setQuery] = useState(''); const [search, setSearch] = useState(''); const [view, setView] = useState<View>('all')
+  const [mobileEditing, setMobileEditing] = useState(false); const mobileNav = useRef<HTMLElement>(null)
   const [loading, setLoading] = useState(true); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState('')
   const [live, setLive] = useState(false); const [offline, setOffline] = useState(!navigator.onLine)
   const [toast, setToast] = useState(''); const [text, setText] = useState(''); const [sending, setSending] = useState(false)
@@ -31,6 +32,13 @@ export function App() {
   const input = useRef<HTMLInputElement>(null); const textFileInput = useRef<HTMLInputElement>(null); const composer = useRef<HTMLTextAreaElement>(null)
   const sequence = useRef(0); const dragDepth = useRef(0)
   const notify = useCallback((message: string) => setToast(message), [])
+  const startMobileEditing = () => { if (window.matchMedia('(max-width: 800px)').matches) setMobileEditing(true) }
+  const finishMobileEditing = useCallback(() => {
+    const active = document.activeElement
+    if (active instanceof HTMLElement && (active === composer.current || active.id === 'feed-search')) active.blur()
+    setMobileEditing(false)
+    requestAnimationFrame(() => mobileNav.current?.querySelector<HTMLButtonElement>('[aria-current]')?.focus({preventScroll:true}))
+  }, [])
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4000); return () => clearTimeout(timer) }, [toast])
   useEffect(() => { const timer = setTimeout(() => setSearch(query), 300); return () => clearTimeout(timer) }, [query])
   useEffect(() => {
@@ -70,12 +78,13 @@ export function App() {
   }, [api, connected, platform, refresh])
   useEffect(() => {
     const handler = (event: KeyboardEvent) => {
+      if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return
       const target = event.target as HTMLElement
       if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.isContentEditable) { event.preventDefault(); document.getElementById('feed-search')?.focus() }
-      if (event.key === 'Escape') { setConnectionOpen(false); setHelpOpen(false) }
+      if (event.key === 'Escape') { setConnectionOpen(false); setHelpOpen(false); if (mobileEditing && target.closest('.workspace')) finishMobileEditing() }
     }
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler)
-  }, [])
+  }, [mobileEditing, finishMobileEditing])
   useEffect(() => {
     if (!connectionOpen && !helpOpen) return
     const previous = document.activeElement as HTMLElement | null
@@ -154,20 +163,20 @@ export function App() {
       <header className="topbar"><a className="mobile-brand" href="/" aria-label="Household home"><span className="brand-mark"><House size={20}/></span>Household</a><span className="topbar-caption"><LockKeyhole size={13}/> Your private shared space</span><button className={`connection-badge ${connected && live && !offline ? 'is-live' : ''}`} onClick={() => setConnectionOpen(true)}><span className="status-dot" />{offline ? 'Offline' : !connected ? 'Connect household' : live ? 'Connected' : 'Reconnecting…'}<Settings2 size={15} /></button></header>
       <main id="main">
         <div className="page-heading"><div><h1>{view === 'all' ? 'Shared inbox' : nav.find(item=>item.id===view)?.label}</h1></div><button className="button secondary compose-jump" onClick={()=>{composer.current?.scrollIntoView({block:'center'});composer.current?.focus({preventScroll:true})}}><Plus size={18}/>New share</button></div>
-        <nav className="mobile-filters" aria-label="Mobile feed filters">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>setView(id)}><Icon size={16}/>{label}</button>)}</nav>
         {offline && <div className="banner" role="status"><WifiOff size={17} /> You’re offline. Your saved transfers can resume when you reconnect.</div>}
         {checked && !connected && !connectionOpen && <div className="banner"><Link2 size={17} /><span>Connect to your household to see and share items.</span><button className="text-button" onClick={() => setConnectionOpen(true)}>Connect <ArrowRight size={14} /></button></div>}
-        <section className="composer" aria-labelledby="composer-title"><div className="composer-top"><h2 id="composer-title">Send to your household</h2><span className="composer-shortcut">⌘ / Ctrl + Enter</span></div><textarea ref={composer} aria-label="Text to share" placeholder="Paste a note, a link, anything…" value={text} onChange={event => { const value = event.target.value; setText(previous => preserveTextareaEdit(previous, value)) }} onPaste={event => {
+        <section className="composer" aria-labelledby="composer-title"><div className="composer-top"><h2 id="composer-title">Send to your household</h2><span className="composer-shortcut">⌘ / Ctrl + Enter</span></div><textarea ref={composer} onFocus={startMobileEditing} aria-label="Text to share" placeholder="Paste a note, a link, anything…" value={text} onChange={event => { const value = event.target.value; setText(previous => preserveTextareaEdit(previous, value)) }} onPaste={event => {
           if (!event.clipboardData.types.includes('text/plain')) return
           event.preventDefault()
           const pasted = event.clipboardData.getData('text/plain'); const start = event.currentTarget.selectionStart; const end = event.currentTarget.selectionEnd
           setText(previous => insertPlainText(previous, start, end, pasted))
           requestAnimationFrame(() => { const caret = start + textareaText(pasted).length; composer.current?.setSelectionRange(caret, caret) })
         }} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void sendText() } }} disabled={!connected || sending} /><div className="composer-bottom"><div className="composer-tools"><button className="button secondary" onClick={() => choose('file')}><Paperclip size={16} /> Add files</button><ItemMenu name="sharing">{close => <button role="menuitem" onClick={() => { choose('text'); close() }}><FileText size={17}/>Upload text file</button>}</ItemMenu><span className="drop-hint">or drop them here</span></div><button className="button primary send-button" disabled={!connected || !text.length || sending} onClick={() => void sendText()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}<span>{sending ? 'Sharing…' : 'Share text'}</span></button></div>{text.length > 0 && <div className="composer-footnote"><span>{text.length.toLocaleString()} characters · whitespace preserved</span></div>}{composerError && <p role="alert" className="inline-error">{composerError}</p>}</section>
+        <nav ref={mobileNav} className={`mobile-tabs ${mobileEditing ? 'is-editing' : ''}`} aria-label="Mobile feed filters"><div className="mobile-tab-list">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} onClick={()=>{setView(id);if(mobileEditing)finishMobileEditing()}}><Icon size={21} aria-hidden="true"/><span>{label}</span></button>)}</div>{mobileEditing && <button className="finish-editing" onClick={finishMobileEditing}><Check size={16} aria-hidden="true"/>Done editing</button>}</nav>
         <input className="sr-only" type="file" multiple ref={input} aria-label="Choose files to upload" onChange={event => { enqueue(Array.from(event.currentTarget.files || []), 'file'); event.currentTarget.value = '' }} /><input className="sr-only" type="file" multiple accept="text/plain,.txt,.md,.csv,.json,.log" ref={textFileInput} aria-label="Choose plain text files to upload" onChange={event => { enqueue(Array.from(event.currentTarget.files || []), 'text'); event.currentTarget.value = '' }} />
         <div className="transfer-note"><span>{storage ? `Up to ${formatBytes(storage.maxFileBytes)} per file` : 'Resumable file transfers'}</span><button onClick={()=>setHelpOpen(true)}>{platform.kind==='browser'?'Keep this tab open while sending':'About transfers'}<CircleHelp size={13}/></button></div>
         <TransferQueue store={platform.transfers} onError={setError} />
-        <section className="feed" aria-labelledby="feed-title"><div className="feed-toolbar"><div className="feed-title"><h2 id="feed-title">{search ? 'Search results' : 'Recent shares'}</h2><span className="count-pill">{visible.length}</span></div><div className="feed-controls"><label className="search-field"><Search size={16} /><input id="feed-search" type="search" placeholder="Search shares" value={query} onChange={event => setQuery(event.target.value)} /><span className="search-shortcut">/</span><span className="sr-only">Search names and text previews</span></label><button className="icon-button refresh-button" onClick={refresh} disabled={loading} aria-label="Refresh feed"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button></div></div><div className="feed-subheading"><span>{search ? 'Matching names and text previews' : view === 'pinned' ? 'Pins from loaded shares' : 'Newest first'}</span></div>
+        <section className="feed" aria-labelledby="feed-title"><div className="feed-toolbar"><div className="feed-title"><h2 id="feed-title">{search ? 'Search results' : 'Recent shares'}</h2><span className="count-pill">{visible.length}</span></div><div className="feed-controls"><label className="search-field"><Search size={16} /><input id="feed-search" type="search" onFocus={startMobileEditing} placeholder="Search shares" value={query} onChange={event => setQuery(event.target.value)} /><span className="search-shortcut">/</span><span className="sr-only">Search names and text previews</span></label><button className="icon-button refresh-button" onClick={refresh} disabled={loading} aria-label="Refresh feed"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button></div></div><div className="feed-subheading"><span>{search ? 'Matching names and text previews' : view === 'pinned' ? 'Pins from loaded shares' : 'Newest first'}</span></div>
           {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button><button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
           {loading && !items.length ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Opening your household…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <FeedCard key={item.id} item={item} api={api} platform={platform} refresh={refresh} notify={notify} />)}</div> : <div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? 'Connect your household' : search ? 'No matching shares' : view === 'pinned' ? 'No pinned items' : 'A fresh start'}</h3><p>{!connected ? 'Connect to your private server to bring your devices together.' : search ? 'Try another name or a phrase from the text preview.' : view === 'pinned' ? 'Pin an item to find it here. Load more to include older pins.' : 'Paste something above or add a file. It’ll be here when you pick up your next device.'}</p>{!connected ? <button className="button primary" onClick={() => setConnectionOpen(true)}><Link2 size={16} /> Connect household</button> : !search && view !== 'pinned' && <button className="button secondary" onClick={() => composer.current?.focus()}><Plus size={16} /> Share something</button>}</div>}
           {cursor && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowDown size={15} />} Load older items</button>}

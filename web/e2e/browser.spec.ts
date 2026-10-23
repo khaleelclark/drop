@@ -1,12 +1,16 @@
-import { test, expect, type Page } from '@playwright/test'
+import { test, expect, type Page, type Locator } from '@playwright/test'
 import { createHash } from 'node:crypto'
 const fullText = '  From the kitchen\n\t🦊 café\n\n  '
-async function fixture(page: Page) {
+async function fixture(page: Page, many = false) {
   const now = new Date().toISOString(); let authenticated = false
   let items = [
     { id:'text-one',kind:'text',name:'Kitchen note',size:Buffer.byteLength(fullText),createdAt:now,updatedAt:now,status:'ready',preview:'From the kitchen…',pinned:false,sourceDevice:'Kitchen Mac' },
     { id:'file-one',kind:'file',name:'weekend.zip',size:4096,createdAt:now,updatedAt:now,status:'ready',preview:'',pinned:false,sourceDevice:'Linux' },
   ]
+  if (many) for (let n=0;n<6;n++) items.push({
+    ...items[n%2],id:`long-${n}`,name:`${n}-`+'unbroken'.repeat(12)+(n%2?'.zip':''),
+    preview:n%2?'':'UnbrokenPreview'.repeat(36),sourceDevice:'Device'.repeat(13),pinned:n===5,
+  })
   const posted: string[] = []; const chunks: number[] = []; const received: Buffer[] = []; let offset = 0; let length = 0
   await page.route('**/api/**', async route => {
     const request = route.request(); const url = new URL(request.url()); const method = request.method()
@@ -19,7 +23,7 @@ async function fixture(page: Page) {
     if (!authenticated) return json({error:{message:'Connect first'}},401)
     if (url.pathname === '/api/items') {
       const q = (url.searchParams.get('q') || '').toLowerCase()
-      return json({items:items.filter(item => `${item.name} ${item.preview}`.toLowerCase().includes(q)),nextCursor:null})
+      return json({items:url.searchParams.has('before')?[]:items.filter(item => `${item.name} ${item.preview}`.toLowerCase().includes(q)),nextCursor:many&&!url.searchParams.has('before')?'older-fixture':null})
     }
     if (url.pathname === '/api/storage') return json({usedBytes:4096,freeBytes:128*1024**3,maxFileBytes:20*1024**3,maxTextBytes:32*1024**2,maxStorageBytes:null})
     if (url.pathname === '/api/events') return route.fulfill({status:200,contentType:'text/event-stream',body:': connected\n\n'})
@@ -60,8 +64,17 @@ async function connect(page: Page) {
   await expect(page.getByRole('dialog')).not.toBeVisible()
   await expect(page.getByRole('button',{name:'Copy text',exact:true}).first()).toBeVisible()
 }
+async function uncovered(control: Locator) {
+  await expect(control).toBeInViewport({ratio:1})
+  expect(await control.evaluate(node => {
+    const r=node.getBoundingClientRect(); const hit=document.elementFromPoint(r.x+r.width/2,r.y+r.height/2)
+    return node===hit || node.contains(hit)
+  })).toBe(true)
+}
 test('connect, exact copy/paste, pins, search, direct download, and shared deletion', async ({page,context}) => {
   const {posted} = await fixture(page); await context.grantPermissions(['clipboard-read','clipboard-write']); await connect(page)
+  await expect(page.getByRole('navigation',{name:'Feed filters',exact:true})).toBeVisible()
+  await expect(page.getByRole('navigation',{name:'Mobile feed filters'})).toBeHidden()
   await page.screenshot({path:'test-results/household-desktop.png',fullPage:true})
   await page.getByRole('button',{name:'Copy text',exact:true}).first().click()
   await expect(page.getByRole('button',{name:'Copied',exact:true})).toBeVisible()
@@ -105,6 +118,12 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await page.setViewportSize({width:390,height:844}); await fixture(page); await connect(page)
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBe(true)
   await page.screenshot({path:'test-results/household-mobile.png',fullPage:false})
+  await page.getByRole('button',{name:'Copy text',exact:true}).click()
+  const notice=page.locator('.toast');await expect(notice).toBeVisible()
+  const noticeBox=await notice.boundingBox();const tabBox=await page.getByRole('navigation',{name:'Mobile feed filters'}).boundingBox()
+  expect(noticeBox!.y+noticeBox!.height).toBeLessThan(tabBox!.y)
+  await uncovered(page.getByRole('navigation',{name:'Mobile feed filters'}).getByRole('button',{name:'Files',exact:true}))
+  await notice.getByRole('button',{name:'Dismiss notification'}).click()
   for(const button of [page.getByRole('button',{name:'Copy text',exact:true}),page.getByRole('button',{name:'Download',exact:true}),page.getByRole('button',{name:'More actions for weekend.zip',exact:true})]) { const box=await button.boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44) }
   await page.getByRole('button',{name:'More actions for Kitchen note',exact:true}).click()
   for (const name of ['Expand text','Pin item','Delete item']) { const box=await page.getByRole('menuitem',{name,exact:true}).boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44) }
@@ -178,7 +197,7 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
       destination:location.origin,state:'uploading',confirmed:8*1024**2,sent:8*1024**2,
     }]))
   })
-  await fixture(page); await connect(page)
+  await fixture(page,true); await connect(page)
   for (const width of [320,360,390,412]) {
     await page.setViewportSize({width,height:740})
     expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),`${width}px page width`).toBe(true)
@@ -186,10 +205,23 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
       expect(await control.evaluate(node => parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16)
     }
     const filters = page.getByRole('navigation',{name:'Mobile feed filters'})
+    await expect(page.getByRole('navigation')).toHaveCount(1)
+    const bar = await filters.boundingBox()
+    expect(bar!.y+bar!.height).toBe(740)
+    expect(bar!.y).toBeGreaterThan(640)
+    const tabs=filters.locator('.mobile-tab-list').getByRole('button')
+    await expect(tabs).toHaveCount(4)
+    for (const tab of await tabs.all()) {
+      const box=await tab.boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44)
+      await expect(tab.locator('svg')).toBeVisible();await uncovered(tab)
+    }
     await filters.getByRole('button',{name:'Files',exact:true}).click()
-    await expect(page.getByRole('article')).toHaveCount(1)
+    await expect(page.getByRole('article')).toHaveCount(4)
+    await expect(filters.getByRole('button',{name:'Files',exact:true})).toHaveAttribute('aria-current','page')
     await filters.getByRole('button',{name:'All shares',exact:true}).click()
-    await expect(page.getByRole('article')).toHaveCount(2)
+    await expect(page.getByRole('article')).toHaveCount(8)
+    const recovery=page.getByRole('button',{name:'Reselect',exact:true})
+    await recovery.scrollIntoViewIfNeeded();await uncovered(recovery)
     await expect(page.getByRole('button',{name:'Reselect',exact:true})).toBeVisible()
     await page.getByRole('button',{name:'More actions for sharing',exact:true}).click()
     const menu = page.getByRole('menu',{name:'Actions for sharing'})
@@ -207,9 +239,35 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
         return node===hit || node.contains(hit)
       }),`${name} is uncovered at ${width}px`).toBe(true)
     }
+    const last=page.getByRole('article').last()
+    const more=last.getByRole('button',{name:/More actions/})
+    await page.evaluate(()=>window.scrollTo(0,document.documentElement.scrollHeight))
+    await more.scrollIntoViewIfNeeded();await uncovered(more);await more.click()
+    for(const action of await last.getByRole('menuitem').all()) {await action.scrollIntoViewIfNeeded();await uncovered(action)}
+    await page.keyboard.press('Escape');await expect(more).toBeFocused()
+    const older=page.getByRole('button',{name:'Load older items',exact:true})
+    await older.scrollIntoViewIfNeeded();await uncovered(older)
     await page.getByRole('button',{name:'New share',exact:true}).click()
-    await expect(page.getByRole('textbox',{name:'Text to share'})).toBeFocused()
+    const composer=page.getByRole('textbox',{name:'Text to share'})
+    await expect(composer).toBeFocused()
     expect(await page.locator('.composer').evaluate(node => getComputedStyle(node).position)).toBe('static')
+    expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('sticky')
+    await composer.fill('A draft that must survive an error')
+    await page.route('**/api/text',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":{"message":"Try sharing again"}}'}),{times:1})
+    const share=page.getByRole('button',{name:'Share text',exact:true})
+    await share.click();await expect(page.locator('.composer').getByRole('alert')).toContainText('Try sharing again')
+    await expect(composer).toHaveValue('A draft that must survive an error')
+    await share.scrollIntoViewIfNeeded();await uncovered(share)
+    // Each width also has to work when the available layout height is short.
+    await page.setViewportSize({width,height:420})
+    await share.scrollIntoViewIfNeeded();await uncovered(share)
+    const done=filters.getByRole('button',{name:'Done editing',exact:true})
+    await done.scrollIntoViewIfNeeded();await uncovered(done);await done.click()
+    await expect(filters.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
+    expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
+    await filters.getByRole('button',{name:'Text',exact:true}).focus();await page.keyboard.press('Enter')
+    await expect(filters.getByRole('button',{name:'Text',exact:true})).toHaveAttribute('aria-current','page')
+    await filters.getByRole('button',{name:'All shares',exact:true}).focus();await page.keyboard.press('Space')
   }
   // A shorter viewport approximates available layout after keyboard appearance.
   // This verifies reflow/visibility only; it does not simulate a device keyboard.
@@ -217,12 +275,77 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
   await page.getByRole('button',{name:'New share',exact:true}).click()
   await page.getByRole('textbox',{name:'Text to share'}).fill('Ready on my other device')
   const send = page.getByRole('button',{name:'Share text',exact:true})
-  await send.scrollIntoViewIfNeeded(); await expect(send).toBeInViewport()
+  await send.scrollIntoViewIfNeeded(); await uncovered(send)
   await expect(page.locator('[style]')).toHaveCount(0)
   const viewport = await page.locator('meta[name="viewport"]').getAttribute('content')
   expect(viewport).toContain('width=device-width'); expect(viewport).toContain('viewport-fit=cover')
   expect(viewport).not.toMatch(/user-scalable\s*=\s*no|maximum-scale/)
   await page.screenshot({path:'test-results/household-narrow-keyboard-layout.png',fullPage:false})
+})
+
+
+test('editing tabs stay reachable when an occluding keyboard does not resize either viewport', async ({page}) => {
+  await page.addInitScript(()=>localStorage.setItem('household.transfers.v1',JSON.stringify(Array.from({length:10},(_,n)=>({
+    id:`saved-${n}`,name:`Queued source ${n}.zip`,size:20_000_000_000,lastModified:1,kind:'file',sourceDevice:'Phone',
+    destination:location.origin,state:'uploading',confirmed:8*1024**2,sent:8*1024**2,
+  })))))
+  await page.setViewportSize({width:360,height:915});await fixture(page);await connect(page)
+  const initial=await page.evaluate(()=>({inner:innerHeight,visual:visualViewport!.height}))
+  const composer=page.getByRole('textbox',{name:'Text to share'})
+  await composer.fill('Keep my draft while changing sections')
+  await page.addStyleTag({content:'#keyboard-occlusion {position:fixed;inset:577.9px 0 0;background:#dce1d6;z-index:9999} '})
+  await page.evaluate(()=>{const overlay=document.createElement('div');overlay.id='keyboard-occlusion';document.body.append(overlay)})
+  expect(await page.evaluate(()=>({inner:innerHeight,visual:visualViewport!.height}))).toEqual(initial)
+  await expect(composer).toBeFocused()
+  const filters=page.getByRole('navigation',{name:'Mobile feed filters'})
+  const share=page.getByRole('button',{name:'Share text',exact:true})
+  await uncovered(share)
+  for (const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
+  const done=filters.getByRole('button',{name:'Done editing',exact:true})
+  await uncovered(done)
+  await page.screenshot({path:'test-results/household-editing-overlay-layout.png',fullPage:false})
+  // Removing the stand-in overlay leaves focus retained, like Android Back can.
+  await page.locator('#keyboard-occlusion').evaluate(node=>node.remove())
+  await expect(composer).toBeFocused();await uncovered(done)
+  // A tall composer and a failed draft remain scrollable above a non-resizing occlusion.
+  await page.addStyleTag({content:'.composer textarea {height:180px}'})
+  await page.route('**/api/text',route=>route.fulfill({status:503,contentType:'application/json',body:'{"error":{"message":"Try sharing again"}}'}),{times:1})
+  await share.click();await expect(page.locator('.composer').getByRole('alert')).toBeVisible()
+  await page.evaluate(()=>{const overlay=document.createElement('div');overlay.id='keyboard-occlusion';document.body.append(overlay)})
+  await share.evaluate(node=>node.scrollIntoView({block:'center'}));await uncovered(share)
+  await filters.evaluate(node=>node.scrollIntoView({block:'start'}))
+  for(const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
+  await uncovered(done)
+  await page.locator('#keyboard-occlusion').evaluate(node=>node.remove())
+  await filters.getByRole('button',{name:'Files',exact:true}).click()
+  await expect(filters.getByRole('button',{name:'Files',exact:true})).toHaveAttribute('aria-current','page')
+  expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('fixed')
+  await expect(composer).toHaveValue('Keep my draft while changing sections')
+  const search=page.getByRole('searchbox')
+  await search.fill('weekend')
+  expect(await search.evaluate(node=>parseFloat(getComputedStyle(node).fontSize))).toBeGreaterThanOrEqual(16)
+  expect(await filters.evaluate(node=>getComputedStyle(node).position)).toBe('sticky')
+  expect(await page.locator('.transfer-panel').evaluate(node=>node.getBoundingClientRect().height)).toBeGreaterThan(915)
+  const docked=await filters.boundingBox();expect(docked!.y).toBeGreaterThanOrEqual(0);expect(docked!.y+docked!.height).toBeLessThan(200)
+  await uncovered(search)
+  const sameNav=await filters.elementHandle()
+  for(const tab of await filters.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
+  await uncovered(done);await done.click()
+  expect(await sameNav!.evaluate(node=>node.isConnected)).toBe(true)
+  await expect(search).toHaveValue('weekend')
+  await expect(filters.getByRole('button',{name:'Files',exact:true})).toBeFocused()
+  await composer.focus()
+  await composer.dispatchEvent('keydown',{key:'Escape',isComposing:true,bubbles:true})
+  await expect(composer).toBeFocused();await expect(done).toBeVisible()
+  await page.getByRole('button',{name:'More actions for sharing',exact:true}).click()
+  await page.keyboard.press('Escape')
+  await expect(page.getByRole('button',{name:'More actions for sharing',exact:true})).toBeFocused()
+  await expect(done).toBeVisible()
+  await composer.focus();await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab')
+  await expect(filters.getByRole('button',{name:'All shares',exact:true})).toBeFocused()
+  await page.keyboard.press('Escape')
+  await expect(filters.getByRole('button',{name:'Files',exact:true})).toBeFocused()
+  await expect(page.getByRole('button',{name:'Done editing',exact:true})).toHaveCount(0)
 })
 
 test('secondary text and sharing actions stay keyboard accessible without crowding the feed', async ({page}) => {
@@ -276,6 +399,14 @@ test('pairing failures, empty inbox, and temporary server errors offer a usable 
   await page.setViewportSize({width:1280,height:900})
   await page.getByRole('button',{name:'Refresh feed'}).click()
   await expect(page.getByRole('heading',{name:'A fresh start'})).toBeVisible()
+  for(const width of [320,360,390,412]) {
+    await page.setViewportSize({width,height:740})
+    const bar=page.getByRole('navigation',{name:'Mobile feed filters'})
+    await expect(page.getByRole('navigation')).toHaveCount(1)
+    expect(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth)).toBe(true)
+    const box=await bar.boundingBox();expect(box!.y+box!.height).toBe(740)
+    for(const tab of await bar.locator('.mobile-tab-list').getByRole('button').all()) await uncovered(tab)
+  }
   await page.setViewportSize({width:360,height:740})
   await page.screenshot({path:'test-results/household-empty.png',fullPage:true})
   await page.getByRole('button',{name:'Share something',exact:true}).click()

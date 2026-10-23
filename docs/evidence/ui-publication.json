@@ -11,7 +11,14 @@
     "health remains ok",
     "backend executable unchanged; no service restart or Serve configuration change"
   ],
-  "macDownloads": "pending final native CI artifacts",
+  "macDownloads": {
+    "arm64": {
+      "path": "/downloads/Household-Share_0.1.0_arm64.dmg",
+      "bytes": 9063055,
+      "sha256": "010c86da84c78fd63d1a5337661f6da8a32e916e5c2b0b209d4624471b8c09fe"
+    },
+    "x86_64": "pending final native CI"
+  },
   "recordedAt": "2026-10-23",
   "entrypoint": "existing private Tailscale HTTPS origin",
   "frontendSourceCommit": "d600445d2996b9d49e685ab716237ae3ad4ff3f7"

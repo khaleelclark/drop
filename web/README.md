@@ -1,6 +1,6 @@
 # Household browser client
 
-React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to top filters on phones. Each item has one primary Copy or Download action; secondary text downloads, expansion and management live in a keyboard-accessible menu. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
+React + TypeScript + Vite client with a shared inbox, warm near-white surfaces, dark system typography, and an indigo action accent. A compact desktop sidebar gives way to four bottom navigation tabs on phones. Each item has one primary Copy or Download action; secondary text downloads, expansion and management live in a keyboard-accessible menu. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
 
 Client for `docs/api-contract.md`. All items come from
 the connected API; the product interface has no demo feed or synthetic storage
@@ -152,13 +152,59 @@ the feed's server-controlled readiness determines when Download is enabled.
 
 The viewport uses device-width, initial scale 1, viewport-fit=cover, and
 interactive-widget=resizes-content. All mobile text inputs use at least 16 CSS
-px. Safe-area padding and a normal-flow composer let the document reflow when
-available height changes. Browser accessibility zoom is unrestricted. Installed
+px. Safe-area padding, bottom-bar clearance and a normal-flow composer let the
+document reflow when available height changes. Browser accessibility zoom is unrestricted. Installed
 Android WebView page zoom is configured by the native owner; web CSS never
 scales the page or disables browser touch zoom. Actual keyboard, safe-area and
 physical-phone behavior require device validation.
 
+The 2026-10-23 mobile follow-up moves the existing All shares / Text / Files /
+Pinned filters into a single bottom navigation bar at widths up to 800 CSS px.
+Icons, labels, selected state, visible keyboard focus and 44 px targets remain
+available at 320 px. The page reserves the bar height plus the bottom safe area;
+notifications appear above the bar. Desktop navigation and item/transfer actions
+use the approved composition.
+
+Root's installed Android API36 evidence showed that the IME could cover the
+screen below 577.9 CSS px while both `innerHeight` and `visualViewport.height`
+stayed 915 px. This frontend therefore makes no keyboard-visibility inference
+from viewport dimensions. Focusing the mobile composer or search moves the same
+navigation into document flow below the composer, with an explicit **Done
+editing** action. It sticks below the top safe area when scrolling past a tall
+transfer queue to search. Selecting a section, Done editing, or Escape returns it to the
+bottom and focuses the selected section. Draft/search values are preserved.
+The navigation remains rendered if Android Back dismisses the keyboard but
+retains field focus; it never hides waiting for a blur event. This uses ordinary
+focus/click events without pointer interception, transforms, inline style or a
+native bridge change. Actual installed IME behavior still needs root's check.
+
 ## Validation scope
+
+Mobile-bottom-navigation candidate (2026-10-23): all **42 unit/component tests
+in 8 files passed** (1.77 s); five affected Chromium1243 fixtures passed
+(13.7 s), followed by four desktop/mobile/overlay/pairing checks (11.9 s) after
+adding notification clearance and empty-width assertions. The browser assertions
+cover a single bottom navigation with icons/selection/44 px targets at
+320/360/390/412 px, eight long shares plus pagination, uncovered final-menu and
+recovery controls, preserved failed drafts and reachable Share at each width
+with 420 px available height. Enter/Space select sections; Done editing and
+Escape restore focus to the selected section. Pairing keeps full Connect
+visibility and internal-scroll recovery. A new browser-only occlusion fixture
+covers the page below 577.9 px in a 360×915 viewport, verifies neither viewport
+height changes and hit-tests Share, all four tabs and Done editing above it.
+Removing the stand-in overlay retains textarea focus and leaves navigation
+reachable. The QA follow-up passed two focused browser checks (9.7 s), covering
+a ten-row transfer queue with focused search, sticky navigation reachability,
+maximum 180 px textarea height plus a failed draft, Tab access to the same nav
+DOM, preserved search/draft, and composition/menu Escape handling. Enlarged
+composer/error content can require scrolling; the fixture verifies that the
+actions can be reached, without claiming unconditional IME clearance. This fixture is **not an actual IME/device check**. The desktop test
+also retains exact text/paste, pin/search/delete and a direct HTTP download.
+TypeScript checking, production build and `git diff --check -- web` passed.
+Current candidate assets are `index-CS6EIQOV.js` and `index-DVPjc1UT.css`.
+The final QA correction also passed all 42 unit/component tests (1.84 s), then
+three phone/native-fixture/pairing browser checks (9.2 s), and the production
+build. This is a review candidate; root owns coordinated freeze and installed packages.
 
 Current redesign validation: **42 unit/component tests in 8 files passed**.
 **7 Chromium fixture tests passed** (33.2 seconds) using Chromium 1243.
@@ -184,10 +230,9 @@ and the bounded 9 MiB Chromium upload fixture (8.0 s), including scoped
 direction-labelled completion and enabled Download assertions. Native validation
 phases and indeterminate progress remain intact; completed uploads no longer
 claim that the server is still finalizing indefinitely.
-The TypeScript/Vite production build passed. Current stable candidate assets
-are `index-BRmFLqLf.js` and `index-BJCLriK5.css`. Root accepted compact pairing;
-packaging waits for final reference review and a coordinated freeze;
-these names are not a packaging authorization. Native adapter tests load
+The prior TypeScript/Vite production build passed. Root accepted compact pairing
+and the Blip refinement. The mobile navigation change reopens that frontend
+freeze; root reviews the new exact source/dist before another packaging freeze. Native adapter tests load
 `../clients/shared/native-contract-fixture.json` at test runtime, including
 pairing/disconnect, queue controls/reselection, exact text, headers, and empty
 HTTP responses. Run tests from `web/` in the complete checkout; production
@@ -211,7 +256,9 @@ content; the product never inserts demo shares.
 Screenshots are `test-results/household-desktop.png`,
 `household-mobile.png`, `household-pairing.png`, `household-empty.png`, and
 `household-narrow-keyboard-layout.png`. The reference follow-up also provides
-`household-transfers.png` with upload, validation and paused-download rows. They
+`household-transfers.png` with upload, validation and paused-download rows.
+The mobile follow-up refreshes these images and adds
+`household-editing-overlay-layout.png` (360×915, browser-only occlusion stand-in). They
 are review evidence using test
 content, not screenshots of a household's real private data.
 
