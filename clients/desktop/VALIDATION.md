@@ -1,6 +1,6 @@
 # Desktop native validation
 
-Earlier Linux checks were recorded 2026-10-22 in the Linux build workspace. Final accepted ARM64 package evidence is recorded separately below. The native transfer engine, package checks and installed Tauri GUI behavior have distinct validation boundaries.
+Earlier Linux checks were recorded 2026-10-22 in the Linux build workspace. Current accepted Mac 0.1.1 package evidence for ARM64 and Intel is recorded separately below, followed by the earlier 0.1.0 ARM64 acceptance history. The native transfer engine, package checks and installed Tauri GUI behavior have distinct validation boundaries.
 
 ## Earlier Linux checks (2026-10-22)
 
@@ -31,11 +31,47 @@ python3 clients/desktop/native/tests/live_roundtrip.py \
 
 The harness uses an isolated temporary data directory, explicit loopback development configuration and a fixed disposable test token. It starts/stops only its own server processes, compares checksums, deletes the test item, and cleans the temporary source/download/server data. It does not deploy, bind publicly, modify Tailscale, or install an app.
 
-## Accepted final Apple Silicon package
+## Accepted current Mac packages
 
-The native lead accepted the final ARM64 package evidence without a concrete package/evidence blocker. This supersedes the earlier source-only Mac status below. Root verified successful CI job/run provenance and downloaded the final outputs; the independent review used those actual retained files, not the earlier ARM64 candidate.
+The native lead accepted both **0.1.1 Apple Silicon and Intel packages** without a concrete package/evidence blocker. Both use clean source `57e26b4e8707eff13dabb5725d15b1ec7c67c6e4` and the approved CS6EIQOV/DVPjc1UT frontend freeze, including the mobile bottom tabs. This is the current package record; the 0.1.0 acceptance below remains historical. Root verified successful run `39878431406`, the two native jobs and downloaded artifact ZIP digests:
 
-This acceptance describes the current BRmFLqLf/BJCLriK5 release, which remains valid while the next mobile bottom-tab refinement is pending. That refinement is outside this record; refresh packages only after root announces the next exact frontend freeze, never from moving `web/dist`.
+| Architecture | Successful job | GitHub artifact | ZIP SHA-256 (root verification) |
+| --- | --- | --- | --- |
+| ARM64 | `120169690452` | `12469881431` | `3e31ae6a87b78a54792a74ba26bedad3d6f41c7edc8bf844d29427688eebf65b` |
+| Intel | `120169690572` | `12470001710` | `02d1665a64d0f818548fe34d106df287dfd79e9beb8db4843812c8d1a152d4f5` |
+
+The independent Linux review streamed each retained installer and matched both its supplied expected digest and adjacent `SHA256SUMS`:
+
+| Retained installer | Bytes | DMG SHA-256 |
+| --- | ---: | --- |
+| `artifacts/macos/0.1.1/aarch64-apple-darwin/Household-Share_0.1.1_arm64.dmg` | 9,064,284 | `8d86401ff54f6c98ef82f80eff73031c3867466be9e4a4156279848bf4203c6c` |
+| `artifacts/macos/0.1.1/x86_64-apple-darwin/Household-Share_0.1.1_x86_64.dmg` | 9,532,266 | `07d430cdcd9c43920bba1860c460fe2c64ab06ea5103b3d30d3246fe0c52ea60` |
+
+Both `build-environment.log` files record the expected clean source with an empty tracked working-tree change list, their respective native `aarch64-apple-darwin` / `x86_64-apple-darwin` targets, macOS 15.7.9 (24G830), Xcode 16.4 / SDK 15.5, Node 24.16.0, pnpm 11.10.0 and Rust/Cargo 1.99.1. At acceptance, each complete `web-assets-sha256.txt` manifest independently matched all **9** names and SHA-256 values in actual frozen `web/dist`, with no missing or extra files. The two manifests are identical. Key current assets are:
+
+| File | SHA-256 |
+| --- | --- |
+| `index.html` | `27c931d992feaad4a9f382b2a0d626aa11e3c210e63e6a58d805412cf9b44e63` |
+| `assets/index-CS6EIQOV.js` | `653a022c708d981fac099cde2bb68a3f9c14e61658a0124fb090ace36f6024d1` |
+| `assets/index-DVPjc1UT.css` | `c505382c94efdd9eadb756e72c60588247b82772e41142e66ee80b988a43ca11` |
+
+Actual native evidence retained beside **each** DMG:
+
+- `native-tests.log`: **17 tests passed per architecture** (4 core + 13 protocol), zero failures or ignored tests; these are native Mac test runs, separate from the earlier Linux 15-test record.
+- `helper-build.log` and `helper-execution.log`: the native helper release build finishes and its no-argument path prints expected usage. The audited successful build script requires exit status 1 before creating the installer; it opens no user queue and does not launch the GUI.
+- `app-verification.log`: app and helper are thin arm64 or x86_64 as appropriate, with Apple-system-only dynamic linkage; strict executable/deep app ad-hoc signatures and resource seals pass. The app retains hardened-runtime flags. The audited verifier also checks identifier `net.household.share` and minimum macOS 11.0.
+- `dmg-verification.log`: image ad-hoc signature and `hdiutil` checksum verification pass; read-only mount, Applications drag-install link, instructions and three capture scripts, repeated mounted app/helper verification and clean detach pass.
+- `INSTALL.txt`: both downloaded copies equal `integrations/macos/INSTALL.txt` byte-for-byte. Architecture choice, drag/eject/open, per-app Open Anyway guidance, private Tailscale/token pairing and bundled-helper setup agree with source packaging.
+
+The bounded independent Linux review completely read both sets of `SHA256SUMS`, `build-environment.log`, `web-assets-sha256.txt`, `native-tests.log`, `helper-build.log`, `app-verification.log`, `dmg-verification.log`, `helper-execution.log` and `INSTALL.txt`, and read the packaging/verification scripts, pinned versions, workflow and Tauri configuration. It independently checked DMG sizes/digests, both complete frontend manifests, clean-source records, native test totals and installation-file equality. Native signing, mounting, helper loading and test conclusions rely on downloaded Mac logs and audited successful scripts, not local Mac reruns or independent DMG asset extraction. CI job/ZIP provenance remains root's verification. This review changed only the three requested Markdown files; no builds/tests, CI queries/downloads, Git, host-service or device operations were performed.
+
+Package acceptance is tied to this exact source/freeze, not future `web/dist` changes. Installed GUI launch/lifecycle, downloaded-app quarantine/Gatekeeper approval, Finder/Shortcuts, native clipboard/dialogs, real household Mac/Tailscale operation, close/sleep/background behavior, macOS 11 runtime compatibility and Mac 20 GB transfers remain untested on both architectures. A macOS 15 CI build and package verification do not establish those device behaviors. Root owns final aggregate delivery and the separate Android inset acceptance; this Mac acceptance makes no Android device claim.
+
+## Historical Apple Silicon package
+
+The native lead previously accepted the final 0.1.0 ARM64 package evidence without a concrete package/evidence blocker. That acceptance superseded the earlier source-only Mac status below. Root verified successful CI job/run provenance and downloaded those final outputs; the independent review used those actual retained files, not the earlier ARM64 candidate. This historical record is preserved separately from the current 0.1.1 packages above.
+
+This earlier acceptance describes the BRmFLqLf/BJCLriK5 release. The mobile bottom-tab refinement was pending at that record and was outside its acceptance; the later approved CS6EIQOV/DVPjc1UT freeze is covered by the current 0.1.1 packages above.
 
 | Record | Accepted value |
 | --- | --- |
@@ -64,7 +100,7 @@ Actual native evidence retained beside the DMG:
 
 The bounded independent review on Linux completely read `SHA256SUMS`, `build-environment.log`, `web-assets-sha256.txt`, `native-tests.log`, `app-verification.log`, `dmg-verification.log`, `helper-execution.log` and `INSTALL.txt`, plus the packaging/verification/workflow/capture sources. It independently streamed the downloaded DMG SHA-256 and compared all 9 frontend manifest entries with actual frozen `web/dist`. Native signing, mounting, helper loading and test conclusions rely on the downloaded Mac logs and audited successful scripts, not local Mac reruns or independent DMG asset extraction. CI job/ZIP provenance remains root's verification.
 
-**Intel acceptance is pending at this record.** Root owns Intel progress/download and final aggregate delivery. GUI installation/launch, downloaded-app quarantine/Gatekeeper approval, Finder/Shortcuts, native clipboard/dialogs, real household Mac/Tailscale operation, close/sleep/background behavior, macOS 11 runtime compatibility and Mac 20 GB transfers remain untested. A macOS 15 CI build and package verification do not establish those device behaviors.
+**Intel acceptance was pending at that historical record**; current 0.1.1 Intel acceptance is recorded above. GUI installation/launch, downloaded-app quarantine/Gatekeeper approval, Finder/Shortcuts, native clipboard/dialogs, real household Mac/Tailscale operation, close/sleep/background behavior, macOS 11 runtime compatibility and Mac 20 GB transfers remained untested. A macOS 15 CI build and package verification do not establish those device behaviors.
 
 ## Host build limitations and historical Mac source checks
 
@@ -74,7 +110,7 @@ Implemented `.github/workflows/macos-dmg.yml` and `integrations/macos/{versions.
 
 At this source-only stage, the planned Mac checks were explicit: native core tests; app/helper release build; ad-hoc helper signing followed by app resource re-sealing with Tauri entitlements/flags preserved; architecture/app-identifier/deployment-target/system-dylib checks; strict executable and deep app signature verification; helper usage execution (before any user-state access); compressed DMG creation/signing; UDIF verification; read-only image mounting; bundled app/helper verification and Applications-link/instruction checks; SHA-256 output. Build source commit and actual OS/Xcode/SDK/tool versions are retained. These checks export artifacts; they do not publish a release or install an app on the host.
 
-At that historical source-only handoff, the shared UI redesign was still an integration dependency. Each Mac build regenerates `web/dist` from its checkout and records exact generated assets in `web-assets-sha256.txt`; an earlier passing candidate could not establish final redesigned-package acceptance. The final selected source/UI and accepted ARM64 evidence are now recorded above.
+At that historical source-only handoff, the shared UI redesign was still an integration dependency. Each Mac build regenerates `web/dist` from its checkout and records exact generated assets in `web-assets-sha256.txt`; an earlier passing candidate could not establish final redesigned-package acceptance. The later selected source/UI and accepted ARM64/Intel evidence are now recorded above.
 
 Actually performed on Linux in that source-check follow-up:
 
@@ -86,7 +122,7 @@ Actually performed on Linux in that source-check follow-up:
 - The corrected optional-report branches (full Xcode, CLT fallback and unavailable metadata) all continued under `set -euo pipefail` in an isolated Linux shell check with explicit `xcodebuild`/`pkgutil` stubs. No Mac command was executed by this control-flow check.
 - The frontend provenance script ran separately against the 9 current `web/dist` files; its streaming Node SHA-256 output matched independently computed Python hashes for every file. This reads the existing build only; no frontend rebuild, Mac packaging or final-design approval is inferred.
 
-At that historical handoff there was no macOS runner result or actual DMG evidence; Linux source checks did not validate Mac signatures, helper loading or mounting. The accepted final ARM64 record above supersedes that package status with actual retained native logs/checksum tied to the frozen source. Hosted package evidence remains separate from household Mac acceptance, Gatekeeper approval and GUI behavior. See `README.md` and `integrations/macos/README.md` for exact run/install instructions.
+At that historical handoff there was no macOS runner result or actual DMG evidence; Linux source checks did not validate Mac signatures, helper loading or mounting. The accepted 0.1.0 ARM64 and current 0.1.1 ARM64/Intel records above supersede that package status with actual retained native logs/checksums tied to their frozen sources. Hosted package evidence remains separate from household Mac acceptance, Gatekeeper approval and GUI behavior. See `README.md` and `integrations/macos/README.md` for exact run/install instructions.
 
 ### Linux workspace and cross-target attempts
 
@@ -97,7 +133,7 @@ At that historical handoff there was no macOS runner result or actual DMG eviden
 ## Unperformed release checks
 
 - macOS installed shell launch and lifecycle, including close/sleep/background behavior and macOS 11 runtime compatibility; actual household Linux installation, native dialogs/clipboard, desktop-panel tray interaction and paired API behavior. The isolated Linux run above covers window rendering, normal close-to-hide/process residency, hotkey/single-instance reopen and D-Bus tray Quit/relaunch; it does not establish an in-progress transfer continuing after window close.
-- Downloaded, quarantined macOS app Gatekeeper approval, actual Finder Quick Action/Shortcuts and temporary export lifetimes. ARM64 ad-hoc app/CLI/image signing and package checks passed in CI as recorded above; installed GUI/device acceptance remains separate.
+- Downloaded, quarantined macOS app Gatekeeper approval, actual Finder Quick Action/Shortcuts and temporary export lifetimes. ARM64 and Intel ad-hoc app/CLI/image signing and package checks passed in CI as recorded above; installed GUI/device acceptance remains separate.
 - Mac 20 GB transfers. The earlier Linux headless 20 GiB result is not Mac transfer evidence.
 - Actual household Tailscale connectivity, Wi-Fi interruption, physical device performance/memory, sleep/lock/logout boundaries, destination filesystem/disk exhaustion and permissions.
 - Android device behavior: see `clients/android/VALIDATION.md`; this headless Rust test is not Android evidence.

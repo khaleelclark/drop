@@ -1,0 +1,431 @@
+{
+  "recordedAt": "2026-10-23",
+  "performedBy": "Root integration agent; Android engineer read the complete saved reports and policy source without rebuilding, retesting or any emulator/ADB/device operations",
+  "scope": "Android API36 x86_64 disposable emulator: portrait text/tab/IME acceptance plus one landscape→portrait and Home/return layout/lifecycle observation; replacement inset-fixed Tauri package only",
+  "installedApk": {
+    "path": "clients/android/build/outputs/household-share-tauri-x86_64-debug.apk",
+    "applicationId": "net.household.share.mobile",
+    "versionName": "0.1.2",
+    "versionCode": 1002,
+    "bytes": 29446948,
+    "sha256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+    "hashProvenance": "Root confirmed replacement APK installation; bottom-tab report names the same SHA-256, independently matched to retained bytes during this documentation closure"
+  },
+  "sourceReports": [
+    {
+      "path": ".tools/ui-bottom-tabs/android-tabs.json",
+      "sha256": "104dc95c10ae036bcf16d0e1a56012e1d53d9c040e5235f357529231ed183556"
+    },
+    {
+      "path": ".tools/validation/android-emulator.json",
+      "sha256": "b8013a40885ad43e72b9e8f4e4983e0b9b71943b0d2aa547eceae7f8c93f75ab"
+    },
+    {
+      "path": ".tools/ui-bottom-tabs/android-rotation.json",
+      "sha256": "8d21510bd9e35469625ed59e9b5a56b55a2202306b20e5850cc81d18f326ce7f"
+    },
+    {
+      "path": "docs/evidence/android-bottom-tabs.json",
+      "sha256": "418929467c143b4bb1cfba6007ed0ce23e7ccf6f220fd10a57147f5e56b8676d"
+    }
+  ],
+  "reproductionScripts": [
+    "scripts/android-bottom-tabs-smoke.cjs",
+    "scripts/android-emulator-smoke.cjs"
+  ],
+  "textAndKeyboardSmoke": {
+    "passed": true,
+    "platform": "Android API36 x86_64 disposable emulator",
+    "coldLaunch": true,
+    "viewport": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "inputs": [
+        {
+          "name": "Text to share",
+          "fontSize": 16
+        },
+        {
+          "name": null,
+          "fontSize": 16
+        }
+      ]
+    },
+    "keyboard": {
+      "height": 839,
+      "scale": 1,
+      "contentWidth": 412,
+      "submit": {
+        "top": 210.76190185546875,
+        "bottom": 254.76190185546875,
+        "left": 285.1964416503906,
+        "right": 386.4285888671875
+      },
+      "webViewTop": 136,
+      "imeTop": 526.0952380952381
+    },
+    "checks": [
+      "automatic native bootstrap",
+      "explicit loopback development pairing",
+      "redacted config",
+      "UI text submit through real Kotlin API bridge",
+      "exact native text and headers",
+      "native clipboard write and Android paste",
+      "no browser API requests",
+      "initial scale 1 and no horizontal overflow",
+      "visible inputs at least 16 CSS px",
+      "actual visible OS keyboard leaves complete Share action uncovered"
+    ],
+    "binaryTransfers": "separate smoke; not implied by this text check",
+    "limitations": [
+      "not a physical phone",
+      "not a 20 GB Android transfer",
+      "not screen-lock/OS-job lifecycle proof",
+      "not a physical pinch-gesture test"
+    ]
+  },
+  "bottomTabsSmoke": {
+    "passed": true,
+    "version": "0.1.2/code1002",
+    "apkSHA256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+    "viewport": {
+      "width": 412,
+      "height": 839,
+      "scale": 1,
+      "dpr": 2.625,
+      "contentWidth": 412
+    },
+    "webViewBounds": {
+      "left": 0,
+      "top": 136,
+      "right": 1080,
+      "bottom": 2337
+    },
+    "keyboardTop": 526.0952380952381,
+    "safeBottom": 838.4761904761905,
+    "measurements": [
+      {
+        "stage": "docked above Android navigation area",
+        "boundary": 838.4761904761905,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 12,
+            "right": 106.04762268066406,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 110.04762268066406,
+            "right": 204.09524536132812,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 208.09524536132812,
+            "right": 302.1428680419922,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 306.1428527832031,
+            "right": 400.1904754638672,
+            "height": 55.23809814453125,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "editing with actual OS keyboard",
+        "boundary": 526.0952380952381,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 24.761905670166016,
+            "right": 112.4285774230957,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 116.42857360839844,
+            "right": 204.09524536132812,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 208.09524536132812,
+            "right": 295.7619171142578,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 299.76190185546875,
+            "right": 387.42857360839844,
+            "height": 52,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "redocked after Back and Done",
+        "boundary": 838.4761904761905,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 12,
+            "right": 106.04762268066406,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 110.04762268066406,
+            "right": 204.09524536132812,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 208.09524536132812,
+            "right": 302.1428680419922,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 306.1428527832031,
+            "right": 400.1904754638672,
+            "height": 55.23809814453125,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "search with actual OS keyboard",
+        "boundary": 526.0952380952381,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 24.761905670166016,
+            "right": 112.4285774230957,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 116.42857360839844,
+            "right": 204.09524536132812,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 208.09524536132812,
+            "right": 295.7619171142578,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 299.76190185546875,
+            "right": 387.42857360839844,
+            "height": 52,
+            "uncovered": true
+          }
+        ]
+      }
+    ],
+    "checks": [
+      "native bootstrap and no browser API traffic",
+      "one accessible bottom tab bar above actual Android navigation area",
+      "all four tab targets at least 44px and uncovered",
+      "actual OS keyboard leaves Share/tabs/Done visible",
+      "Android Back dismisses keyboard without losing navigation/draft",
+      "Done redocks same nav DOM",
+      "Files selection preserves draft",
+      "search/Done preserves search and draft",
+      "final feed action and item menu remain above bottom tabs"
+    ],
+    "limits": [
+      "API36 x86_64 emulator only",
+      "not a physical phone or physical gesture check",
+      "not a background or20GB transfer check"
+    ]
+  },
+  "rootReportedScreenshotReview": "Root viewed actual ADB screenshots with the bottom tabs docked and with the OS keyboard visible",
+  "coordinateBoundary": "Native WebView origin [0,136], bounds [0,136][1080,2337] physical px. CSS comparisons subtract the WebView origin before dividing by DPR 2.625; safe bottom=(2337-136)/2.625=838.4761904761905. IME top is likewise relative to that origin. No inferred IME layout resize.",
+  "policySource": {
+    "path": "app/src/main/java/household/share/android/AppWebViewPolicy.kt",
+    "sha256": "b1da6a9c53b96a5d7c07116bbdbb8e0b4378a9c262ee71f8aa34f3c814dbc6ee",
+    "boundary": "Tagged attach/pre-draw observer reserves measured missing system-bar/cutout overlap through existing margins, preserving existing inset listeners and IME dispatch. API30+ typed system-bar/cutout mask excludes IME; legacy bottom is capped at stable bars. One API36 emulator rotation and Home/return layout/lifecycle cycle passed; independently instrumented reattachment, repeated/physical-device rotation and legacy platform behavior remain unverified."
+  },
+  "existingUnitEvidence": {
+    "executedDuring": "Prior native inset correction; not rerun during this documentation closure",
+    "standaloneTests": 26,
+    "pluginTests": 5,
+    "totalTests": 31,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0,
+    "reports": [
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-household.share.android.ApiCallsTest.xml",
+        "sha256": "8feaa252edb5f75f5f41d12115dc1b34249e989e55b59efeb51867727adf3726",
+        "name": "household.share.android.ApiCallsTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-household.share.android.AppWebViewPolicyTest.xml",
+        "sha256": "df35468c0ac9cd2c5d11cfc875f1b7fd9984677b79da27c1fca8f28243c5debb",
+        "name": "household.share.android.AppWebViewPolicyTest",
+        "tests": 4,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-household.share.android.TransferPolicyTest.xml",
+        "sha256": "c48f8c451f606ad5ce2a0dae10fce509d8a6db5ea91b0a87baaff5fe47bd627e",
+        "name": "household.share.android.TransferPolicyTest",
+        "tests": 11,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "app/build/test-results/testDebugUnitTest/TEST-household.share.android.UploadCompletionTest.xml",
+        "sha256": "f148c921a177b6bf5d6160a675e86a4140b9c3f0508c7b4b427f9330856239a5",
+        "name": "household.share.android.UploadCompletionTest",
+        "tests": 7,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      },
+      {
+        "path": "tauri-plugin/android/build/test-results/testDebugUnitTest/TEST-household.share.android.ResumedActivityGateTest.xml",
+        "sha256": "0ed3858ad2fbfa1aa6d5ed5b56c484d9cf2d85fa04226c86aeca3958df71d805",
+        "name": "household.share.android.ResumedActivityGateTest",
+        "tests": 5,
+        "failures": 0,
+        "errors": 0,
+        "skipped": 0
+      }
+    ],
+    "boundary": "Four inset tests check arithmetic; no JVM platform-inset delivery, view or gesture claim"
+  },
+  "rejectedPreInset0.1.2": {
+    "sha256": "0f00362e407c21c6425c1f8d8cabd0ad2d6f4f6d99e43981ad6bf551fda14a08",
+    "status": "Superseded, failed root navigation safe-area acceptance; must not be published",
+    "auditPath": "build/final-package-verification-0.1.2-pre-insets.json",
+    "auditSHA256": "030f151e325d97f77e5142dee037aad386e659cd61ecfcd0a1d03e3c6fabc709",
+    "reason": "CSS safe-area bottom was zero; tab targets y=851.81–907.05 overlapped the OS navigation area, leaving about 38.5 px above it, below 44 px. Preserved root-reported failure, not a rerun."
+  },
+  "downloadBoundary": {
+    "final0.1.2DownloadRerun": false,
+    "priorEvidencePath": "validation/api36-ui-0.1.1.json",
+    "priorEvidenceSHA256": "af0dfa407a2bbf87b62fb28314c38e8b32ba33920cf7736d4291848ec4359939",
+    "boundary": "The 33,555,133-byte Save/unknown-length UIDT/range/SAF checksum pass remains 0.1.1 evidence. No 0.1.2 binary transfer is inferred from this UI/text pass."
+  },
+  "unperformed": [
+    "physical Android phone",
+    "physical pinch/double-tap gestures",
+    "physical-device or repeated rotation and independently instrumented detach/reattach",
+    "legacy API 26–29 inset delivery",
+    "standalone or ARM64 runtime acceptance",
+    "final 0.1.2 binary download or upload",
+    "Android 20 GB transfer",
+    "screen-lock/background continuation",
+    "memory measurement",
+    "UIDT stop/reschedule",
+    "transfer recovery after reboot or force-stop",
+    "provider-grant recovery",
+    "Android 8–13 service lifecycle"
+  ],
+  "ownership": "Root owns publication/archive/source integration and additional installed acceptance; this documentation closure changes no app source or APK bytes",
+  "rotationAndHomeSmoke": {
+    "passed": true,
+    "boundary": "API36 emulator rotation and Home/return only; not background-transfer evidence",
+    "before": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    },
+    "landscape": {
+      "width": 863,
+      "height": 360,
+      "contentWidth": 863,
+      "scale": 1,
+      "kind": "native"
+    },
+    "portrait": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    },
+    "afterHome": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    }
+  },
+  "rotationAndHomeProvenance": {
+    "mergedReportPath": "docs/evidence/android-bottom-tabs.json",
+    "mergedReportSHA256": "418929467c143b4bb1cfba6007ed0ce23e7ccf6f220fd10a57147f5e56b8676d",
+    "installedApkSHA256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+    "rootReportedObservations": [
+      "one actual emulator landscape→portrait cycle and Home/return passed",
+      "no accumulated margins observed",
+      "original emulator rotation settings restored"
+    ],
+    "boundary": "Layout/lifecycle observation only; not an independently instrumented detach/reattach check, repeated/physical-device rotation or background-transfer proof"
+  }
+}

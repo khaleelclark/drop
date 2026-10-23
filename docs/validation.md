@@ -1,5 +1,53 @@
 # Build and validation evidence
 
+## Mobile bottom-tab release, 2026-10-23
+
+The approved CS6EIQOV/DVPjc1UT frontend from source `57e26b4` is now served
+through the existing private Tailscale HTTPS origin. Android **0.1.2/code1002**,
+Mac **0.1.1** for Apple Silicon and Intel, and Linux **0.1.1** contain this exact
+frontend. Root streamed all four live package downloads and matched their byte
+counts and SHA256; the authenticated feed stayed unchanged, anonymous access
+remained 401 and health stayed OK. No backend bytes, service process, persistent
+data directory or Serve settings changed. See `docs/evidence/bottom-tabs-publication.json`.
+
+The first 0.1.2 candidate failed actual Android system-bar clearance and was
+rejected before publication. The replacement reserves measured native WebView
+system-bar/cutout overlap while preserving existing inset listeners and IME
+delivery. Root installed x86_64 APK
+`e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4`.
+Cold launch, native text send, exact Copy/Android Paste and zero browser API
+traffic passed. Actual WebView bounds are `[0,136][1080,2337]` physical pixels;
+the CSS viewport is 412×839 at scale 1. Docked tab targets are 55.24 CSS px high
+and end at 831.24, above the correctly offset native boundary at 838.48. The
+actual keyboard leaves Share, four tabs and Done visible; Android Back retains
+navigation/draft, Done redocks the same DOM, and search/section selection
+preserves text. The final feed action and menu remain above the bar. Root viewed
+actual ADB screenshots. See `docs/evidence/android-bottom-tabs.json` and
+`scripts/android-bottom-tabs-smoke.cjs`. All three replacement APK hashes and
+nine frozen assets were independently matched; v2 signatures, retained signer
+and ZIP 16 KiB alignment passed. Android owner records 26 standalone plus five
+plugin tests actually executed, zero failures/errors/skips; native rotation and
+legacy delivery are distinct from the arithmetic regressions.
+
+One additional API36 emulator landscape→portrait cycle and Home/return passed
+at scale 1 without horizontal overflow; the portrait viewport returned to
+412×839 without accumulated margins. This is a view/layout check, separate from
+background transfers or physical-device acceptance.
+
+Both Mac packages completed native CI run `39878431406` from a clean source
+checkout, passed all 17 native tests each, and verified app/helper architecture,
+system linkage, ad-hoc signatures, helper execution, signed DMG checksums,
+read-only mounting and drag-install layout. Both generated nine-file manifests
+match the frozen frontend. Exact provenance and checksums are in
+`docs/evidence/macos-bottom-tabs.json`. Linux rebuilt in the existing isolated
+Docker environment and embeds the same asset names; no new Linux GUI/lifecycle
+run follows from that rebuild (`docs/evidence/linux-bottom-tabs.json`).
+
+Physical phones, Mac GUI installation/Gatekeeper/Finder, macOS 11 runtime,
+background/screen-lock and Mac/Android 20 GB checks remain unperformed. No new
+0.1.2 binary transfer is inferred from these navigation checks; prior 0.1.1 SAF
+and earlier Linux large-transfer evidence remain separate below.
+
 ## Interface update and private release, 2026-10-23
 
 The reviewed Blip-inspired interface is frozen at source commit `d600445`

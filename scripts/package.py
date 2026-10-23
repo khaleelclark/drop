@@ -86,8 +86,8 @@ def main():
         'clients/android/build/outputs/household-share-tauri-aarch64-debug.apk',
         'clients/android/build/outputs/household-share-tauri-x86_64-debug.apk',
         'clients/android/app/build/outputs/apk/debug/app-debug.apk',
-        'artifacts/macos/aarch64-apple-darwin/Household-Share_0.1.1_arm64.dmg',
-        'artifacts/macos/x86_64-apple-darwin/Household-Share_0.1.1_x86_64.dmg',
+        'artifacts/macos/0.1.1/aarch64-apple-darwin/Household-Share_0.1.1_arm64.dmg',
+        'artifacts/macos/0.1.1/x86_64-apple-darwin/Household-Share_0.1.1_x86_64.dmg',
     ]]
     rows = []
     for path in outputs:

@@ -1,0 +1,317 @@
+{
+  "recordedAt": "2026-10-23",
+  "version": "0.1.2/code1002",
+  "installedApkSHA256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+  "textKeyboard": {
+    "passed": true,
+    "platform": "Android API36 x86_64 disposable emulator",
+    "coldLaunch": true,
+    "viewport": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "inputs": [
+        {
+          "name": "Text to share",
+          "fontSize": 16
+        },
+        {
+          "name": null,
+          "fontSize": 16
+        }
+      ]
+    },
+    "keyboard": {
+      "height": 839,
+      "scale": 1,
+      "contentWidth": 412,
+      "submit": {
+        "top": 210.76190185546875,
+        "bottom": 254.76190185546875,
+        "left": 285.1964416503906,
+        "right": 386.4285888671875
+      },
+      "webViewTop": 136,
+      "imeTop": 526.0952380952381
+    },
+    "checks": [
+      "automatic native bootstrap",
+      "explicit loopback development pairing",
+      "redacted config",
+      "UI text submit through real Kotlin API bridge",
+      "exact native text and headers",
+      "native clipboard write and Android paste",
+      "no browser API requests",
+      "initial scale 1 and no horizontal overflow",
+      "visible inputs at least 16 CSS px",
+      "actual visible OS keyboard leaves complete Share action uncovered"
+    ],
+    "binaryTransfers": "separate smoke; not implied by this text check",
+    "limitations": [
+      "not a physical phone",
+      "not a 20 GB Android transfer",
+      "not screen-lock/OS-job lifecycle proof",
+      "not a physical pinch-gesture test"
+    ]
+  },
+  "bottomTabs": {
+    "passed": true,
+    "version": "0.1.2/code1002",
+    "apkSHA256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+    "viewport": {
+      "width": 412,
+      "height": 839,
+      "scale": 1,
+      "dpr": 2.625,
+      "contentWidth": 412
+    },
+    "webViewBounds": {
+      "left": 0,
+      "top": 136,
+      "right": 1080,
+      "bottom": 2337
+    },
+    "keyboardTop": 526.0952380952381,
+    "safeBottom": 838.4761904761905,
+    "measurements": [
+      {
+        "stage": "docked above Android navigation area",
+        "boundary": 838.4761904761905,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 12,
+            "right": 106.04762268066406,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 110.04762268066406,
+            "right": 204.09524536132812,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 208.09524536132812,
+            "right": 302.1428680419922,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 306.1428527832031,
+            "right": 400.1904754638672,
+            "height": 55.23809814453125,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "editing with actual OS keyboard",
+        "boundary": 526.0952380952381,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 24.761905670166016,
+            "right": 112.4285774230957,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 116.42857360839844,
+            "right": 204.09524536132812,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 208.09524536132812,
+            "right": 295.7619171142578,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 299.76190185546875,
+            "right": 387.42857360839844,
+            "height": 52,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "redocked after Back and Done",
+        "boundary": 838.4761904761905,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 12,
+            "right": 106.04762268066406,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 110.04762268066406,
+            "right": 204.09524536132812,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 208.09524536132812,
+            "right": 302.1428680419922,
+            "height": 55.23809814453125,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 776,
+            "bottom": 831.2380981445312,
+            "left": 306.1428527832031,
+            "right": 400.1904754638672,
+            "height": 55.23809814453125,
+            "uncovered": true
+          }
+        ]
+      },
+      {
+        "stage": "search with actual OS keyboard",
+        "boundary": 526.0952380952381,
+        "rows": [
+          {
+            "label": "All shares",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 24.761905670166016,
+            "right": 112.4285774230957,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Text",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 116.42857360839844,
+            "right": 204.09524536132812,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Files",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 208.09524536132812,
+            "right": 295.7619171142578,
+            "height": 52,
+            "uncovered": true
+          },
+          {
+            "label": "Pinned",
+            "top": 311.28570556640625,
+            "bottom": 363.28570556640625,
+            "left": 299.76190185546875,
+            "right": 387.42857360839844,
+            "height": 52,
+            "uncovered": true
+          }
+        ]
+      }
+    ],
+    "checks": [
+      "native bootstrap and no browser API traffic",
+      "one accessible bottom tab bar above actual Android navigation area",
+      "all four tab targets at least 44px and uncovered",
+      "actual OS keyboard leaves Share/tabs/Done visible",
+      "Android Back dismisses keyboard without losing navigation/draft",
+      "Done redocks same nav DOM",
+      "Files selection preserves draft",
+      "search/Done preserves search and draft",
+      "final feed action and item menu remain above bottom tabs"
+    ],
+    "limits": [
+      "API36 x86_64 emulator only",
+      "not a physical phone or physical gesture check",
+      "not a background or20GB transfer check"
+    ]
+  },
+  "packages": [
+    {
+      "path": "clients/android/app/build/outputs/apk/debug/app-debug.apk",
+      "bytes": 2694751,
+      "sha256": "5056cadddb2a0dfbcfa76dfcb98143536a7ad1aa9200c468c84408dcc5ced73a",
+      "webAssetsMatched": 9
+    },
+    {
+      "path": "clients/android/build/outputs/household-share-tauri-x86_64-debug.apk",
+      "bytes": 29446948,
+      "sha256": "e76bd738d1c155bf14e2f3a9acb7547654f8b2e8ebfabe795814785bff58f6d4",
+      "webAssetsMatched": 9
+    },
+    {
+      "path": "clients/android/build/outputs/household-share-tauri-aarch64-debug.apk",
+      "bytes": 29762311,
+      "sha256": "54fc05c3a2cb297f02df3bf653b08ddf00af367c01202b70b1d98ee70bff395d",
+      "webAssetsMatched": 9
+    }
+  ],
+  "transferBoundary": "No new0.1.2binary transfer or20GB test; separate accepted0.1.1SAF evidence remains in docs/evidence/android-ui-update.json",
+  "rotationAndHome": {
+    "passed": true,
+    "boundary": "API36 emulator rotation and Home/return only; not background-transfer evidence",
+    "before": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    },
+    "landscape": {
+      "width": 863,
+      "height": 360,
+      "contentWidth": 863,
+      "scale": 1,
+      "kind": "native"
+    },
+    "portrait": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    },
+    "afterHome": {
+      "width": 412,
+      "height": 839,
+      "contentWidth": 412,
+      "scale": 1,
+      "kind": "native"
+    }
+  }
+}

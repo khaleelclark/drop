@@ -1,6 +1,6 @@
 {
   "recordedAt": "2026-10-23",
-  "status": "frozen frontend for mobile bottom-tab packaging; installed acceptance pending",
+  "status": "frozen frontend; replacement Android installed acceptance passed",
   "requestedBehavior": "Bottom mobile navigation for All shares, Text, Files and Pinned; approved desktop retained",
   "rootReview": [
     "Viewed all4 affected screenshots and read mobile editing/focus/CSS implementation",
@@ -23,8 +23,21 @@
   },
   "keyboardDesign": "One nav docks at bottom when browsing, stays in flow/sticky with Done editing when composer/search is focused; no inference of IME visibility from viewport resize",
   "limits": [
-    "Installed API36 actual IME,Back and bottom safe-area acceptance still pending",
+    "Installed API36 IME, Back, navigation safe area and one rotation/Home cycle passed; physical-device and background-transfer acceptance remain unperformed",
     "No physical phone or physical gesture validation",
     "Prior0.1.1 release and d600445Mac package remain separately recorded"
-  ]
+  ],
+  "sourceCommit": "57e26b4e8707eff13dabb5725d15b1ec7c67c6e4",
+  "rejectedInstalledCandidate": {
+    "version": "0.1.2/code1002",
+    "apkSHA256": "0f00362e407c21c6425c1f8d8cabd0ad2d6f4f6d99e43981ad6bf551fda14a08",
+    "acceptance": "rejected before live publication: docked tab targets overlap actual Android system navigation area",
+    "measuredTabTarget": {
+      "top": 851.8095092773438,
+      "bottom": 907.047607421875
+    },
+    "systemNavigationTop": 890.2857142857143,
+    "keyboardDiagnostic": "Share, editing tabs and Done fit above actual IME; Back preserves nav/draft; Done redocks; system inset fix remains tracked"
+  },
+  "installedAcceptance": "docs/evidence/android-bottom-tabs.json"
 }
