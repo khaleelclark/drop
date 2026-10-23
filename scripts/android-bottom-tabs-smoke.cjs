@@ -55,6 +55,12 @@ async function main() {
   }
   try {
     expect(await page.evaluate(() => window.householdPlatform.kind)).toBe('native');
+    await page.evaluate(() => {
+      window.__householdImeEvidence = [];
+      window.addEventListener('household-keyboard-visibility', event => {
+        window.__householdImeEvidence.push(event.detail);
+      });
+    });
     const connection = await page.evaluate(() => window.__HOUSEHOLD_NATIVE__.invoke('native_get_config'));
     expect(connection.baseUrl).toBe(process.env.HOUSEHOLD_ANDROID_URL || 'http://127.0.0.1:18877');
     const fixture = await page.evaluate(() => window.__HOUSEHOLD_NATIVE__.invoke('native_api', {
@@ -105,6 +111,7 @@ async function main() {
     await composer.fill(draft);
     await composer.click();
     await expect.poll(() => Boolean(inset('ime'))).toBe(true);
+    await expect.poll(() => page.evaluate(() => window.__householdImeEvidence.at(-1)?.visible)).toBe(true);
     const keyboardTop = (Number(inset('ime')[2]) - webViewBounds.top) / viewport.dpr;
     await expect(tabs).toBeHidden();
     const doneBounds = await done.boundingBox();
@@ -114,19 +121,30 @@ async function main() {
     await screenshot('android-tabs-keyboard.png');
     shell('shell', 'input', 'keyevent', '4');
     await expect.poll(() => Boolean(inset('ime'))).toBe(false);
-    await expect(tabs).toBeHidden();
-    await expect(composer).toHaveValue(draft);
-    await done.click();
+    await expect.poll(() => page.evaluate(() => window.__householdImeEvidence.at(-1)?.visible)).toBe(false);
     await expect(tabs).toBeVisible();
+    await expect(composer).toHaveValue(draft);
     expect(await tabs.evaluate((node, original) => node === original, navNode)).toBe(true);
     await expect.poll(() => tabs.evaluate(node => getComputedStyle(node).position)).toBe('fixed');
-    await checkTargets(safeBottom, 'redocked after Back and Done');
+    await checkTargets(safeBottom, 'redocked after Android Back without Done');
+    await screenshot('android-tabs-after-back.png');
 
     await kind.selectOption('file');
     await tabs.getByRole('button', { name: 'For you', exact: true }).click();
     await expect(tabs.getByRole('button', { name: 'For you', exact: true })).toHaveAttribute('aria-current', 'page');
     await expect(kind).toHaveValue('file');
     await expect(composer).toHaveValue(draft);
+    shell('shell', 'input', 'keyevent', '3');
+    shell('shell', 'am', 'start', '-W', '-n', 'net.household.share.mobile/.MainActivity');
+    if (inset('ime')) shell('shell', 'input', 'keyevent', '4');
+    await expect.poll(() => Boolean(inset('ime'))).toBe(false);
+    await expect.poll(() => page.evaluate(() => window.__householdImeEvidence.at(-1)?.visible)).toBe(false);
+    await expect(tabs).toBeVisible();
+    await expect(tabs.getByRole('button', { name: 'For you', exact: true })).toHaveAttribute('aria-current', 'page');
+    await expect(kind).toHaveValue('file');
+    await expect(composer).toHaveValue(draft);
+    await checkTargets(safeBottom, 'visible after background and resume with keyboard closed');
+    await screenshot('android-tabs-after-resume.png');
     await search.fill('Browser integration');
     await search.click();
     await expect(tabs).toBeHidden();
@@ -161,8 +179,9 @@ async function main() {
     await expect(lastItem.getByRole('menu')).toHaveCount(0);
     expect(browserApi).toEqual([]);
     const apk = await fs.readFile(path.resolve(__dirname, '../clients/android/build/outputs/household-share-tauri-x86_64-debug.apk'));
-    const report = { passed: true, version: `${version}/code${versionCode}`, apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, safeArea, webViewBounds, keyboardTop, safeBottom, measurements,
-      checks: ['native bootstrap and no browser API traffic', 'three scope tabs above actual Android navigation area, at least 44px and uncovered', 'content-kind filter beside heading and full-width search below', 'actual OS keyboard hides feed tabs and leaves Share/Done visible', 'Android Back dismisses keyboard without losing draft', 'Done restores same nav DOM', 'content kind and For you scope preserve draft', 'search/Done preserves search, kind and draft', 'final feed action and item menu remain above bottom tabs'],
+    const keyboardEvents = await page.evaluate(() => window.__householdImeEvidence);
+    const report = { passed: true, version: `${version}/code${versionCode}`, apkSHA256: createHash('sha256').update(apk).digest('hex'), viewport, safeArea, webViewBounds, keyboardTop, safeBottom, measurements, keyboardEvents,
+      checks: ['native bootstrap and no browser API traffic', 'three scope tabs above actual Android navigation area, at least 44px and uncovered', 'content-kind filter beside heading and full-width search below', 'actual OS keyboard and native visibility event hide feed tabs while leaving Share/Done visible', 'Android Back restores the same nav without Done and preserves draft', 'background/resume with closed keyboard restores nav, draft, scope and kind', 'content kind and For you scope preserve draft', 'search/Done preserves search, kind and draft', 'final feed action and item menu remain above bottom tabs'],
       limits: ['API36 x86_64 emulator only', 'not a physical phone or physical gesture check', 'not a background or20GB transfer check'] };
     await fs.writeFile(path.join(output, 'android-tabs.json'), JSON.stringify(report, null, 2) + '\n');
     console.log('PASS: installed bottom tabs, actual keyboard/Back, navigation safe area, focus and draft/search preservation');

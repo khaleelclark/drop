@@ -27,6 +27,7 @@ class HouseholdPlugin(private val activity: Activity) : app.tauri.plugin.Plugin(
             // immediately and currentState remains authoritative for each later UI operation.
             foreground = ResumedActivityGate((activity as LifecycleOwner).lifecycle, onResumed = {
                 if (!activity.isFinishing && !activity.isDestroyed) {
+                    AppWebViewPolicy.refreshKeyboardVisibility(webView)
                     ArrivalScheduler.visible(activity, this, true)
                     runCatching { TransferScheduler.startVisible(activity, QueueStore.of(activity).all()) }
                 }

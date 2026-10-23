@@ -21,13 +21,16 @@ export function App() {
   const [refreshTick, setRefreshTick] = useState(0)
   const refresh = useCallback(() => setRefreshTick(value => value + 1), [])
   const platform = useMemo(() => window.householdPlatform || browserPlatform(window.location.origin, refresh), [refresh])
-  const [origin, setOrigin] = useState(platform.baseURL || window.location.origin)
-  const [draftOrigin, setDraftOrigin] = useState(origin)
+  const [origin, setOrigin] = useState(platform.baseURL || (platform.kind === 'native' ? 'http://127.0.0.1:8787' : window.location.origin))
+  const [draftOrigin, setDraftOrigin] = useState(platform.kind === 'native' ? platform.baseURL || '' : origin)
   const api = useMemo(() => new ApiClient(origin, platform.request), [origin, platform])
   const [connected, setConnected] = useState(false); const [checked, setChecked] = useState(false)
   const [needsConnection, setNeedsConnection] = useState(Boolean(platform.requiresConnection))
   const configuredNative = platform.kind === 'native' && !needsConnection
-  const [connectionOpen, setConnectionOpen] = useState(Boolean(platform.requiresConnection)); const [token, setToken] = useState('')
+  const nativeNeedsConnection = platform.kind === 'native' && needsConnection
+  const [connectionOpen, setConnectionOpen] = useState(false); const [token, setToken] = useState('')
+  const connectionTrigger = useRef<HTMLElement | null>(null)
+  const openConnection = useCallback(() => { connectionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setConnectionOpen(true) }, [])
   const [advancedToken,setAdvancedToken]=useState(false)
   const [connecting, setConnecting] = useState(false); const [connectionError, setConnectionError] = useState('')
   const [device, setDevice] = useState(() => platform.kind==='native' ? platform.defaultDeviceName||'My device' : stored('household.device', (/Android/i.test(navigator.userAgent) ? 'My Android' : /Mac/i.test(navigator.userAgent) ? 'My Mac' : 'My computer')))
@@ -57,6 +60,18 @@ export function App() {
     setMobileEditing(false)
     requestAnimationFrame(() => mobileNav.current?.querySelector<HTMLButtonElement>('[aria-current]')?.focus({preventScroll:true}))
   }, [])
+  useEffect(() => {
+    const leave = () => setMobileEditing(false)
+    const visibility = () => { if (document.visibilityState === 'hidden') leave() }
+    const keyboard = (event: Event) => {
+      if (platform.kind !== 'native' || !document.documentElement.hasAttribute('data-native-android') || !(event instanceof CustomEvent) || typeof event.detail?.visible !== 'boolean') return
+      if (!event.detail.visible) leave()
+      else if (document.activeElement?.closest('.workspace') && document.activeElement.matches('input, textarea') && window.matchMedia('(max-width: 800px)').matches) setMobileEditing(true)
+    }
+    window.addEventListener('blur', leave); document.addEventListener('visibilitychange', visibility)
+    window.addEventListener('household-keyboard-visibility', keyboard)
+    return () => { window.removeEventListener('blur', leave); document.removeEventListener('visibilitychange', visibility); window.removeEventListener('household-keyboard-visibility', keyboard) }
+  }, [platform])
   useEffect(() => { if (!toast) return; const timer = setTimeout(() => setToast(''), 4000); return () => clearTimeout(timer) }, [toast])
   useEffect(() => { const timer = setTimeout(() => setSearch(query), 300); return () => clearTimeout(timer) }, [query])
   useEffect(() => {
@@ -66,6 +81,7 @@ export function App() {
   }, [refresh])
   useEffect(() => {
     const number = ++sequence.current; let cancelled = false
+    if (nativeNeedsConnection) { setLoading(false); return }
     setLoading(true); setError('')
     if(view==='you'&&!deviceId){setLoading(false);return}
     void api.list(search,undefined,view==='you'?deviceId:undefined).then(async page => {
@@ -83,12 +99,12 @@ export function App() {
       if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
         const message = 'Access was not accepted. Check Tailscale and this server’s access settings, or use an app token under Advanced.'
         setConnected(false); setItems([]); setStorage(undefined); setError(message); setConnectionError(message)
-        if (!configuredNative) setConnectionOpen(true)
+        if (!configuredNative) openConnection()
       }
       else setError(`Couldn’t reach your household. Check Tailscale and that the server is running. ${errorMessage(error)}`)
     }).finally(() => { if (!cancelled && number === sequence.current) setLoading(false) })
     return () => { cancelled = true }
-  }, [api, search, refreshTick, view==='you', deviceId, configuredNative])
+  }, [api, search, refreshTick, view==='you', deviceId, configuredNative, nativeNeedsConnection])
   useEffect(()=>{
     if(!connected)return
     let cancelled=false; setDeviceId('');setDeviceError('')
@@ -178,7 +194,7 @@ export function App() {
   }, [mobileEditing, finishMobileEditing])
   useEffect(() => {
     if (!connectionOpen && !helpOpen) return
-    const previous = document.activeElement as HTMLElement | null
+    const previous = connectionOpen ? connectionTrigger.current : document.activeElement as HTMLElement | null
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]')
     const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), summary, a[href], [tabindex="0"]') || []).filter(node=>!node.closest('details:not([open])')||node.tagName==='SUMMARY')
     const timer = setTimeout(() => { if (!dialog?.contains(document.activeElement)) focusable()[0]?.focus() }, 0)
@@ -190,7 +206,7 @@ export function App() {
     }
     document.addEventListener('keydown', trap)
     document.body.classList.add('modal-open')
-    return () => { clearTimeout(timer); document.removeEventListener('keydown', trap); document.body.classList.remove('modal-open'); previous?.focus() }
+    return () => { clearTimeout(timer); document.removeEventListener('keydown', trap); document.body.classList.remove('modal-open'); if(previous?.isConnected)previous.focus() }
   }, [connectionOpen, helpOpen])
   const connect = async (event: FormEvent) => {
     event.preventDefault(); setConnecting(true); setConnectionError('')
@@ -215,7 +231,7 @@ export function App() {
     }catch(error){setConnectionError(errorMessage(error))}finally{setConnecting(false)}
   }
   const logout = async () => {
-    try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } sequence.current++;setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setItems([]); setStorage(undefined); setConnectionOpen(true); notify('Disconnected.') }
+    try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } sequence.current++;setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setItems([]); setStorage(undefined); setMobileEditing(false); setConnectionOpen(platform.kind === 'browser'); notify('Disconnected.') }
     catch (error) { setConnectionError(errorMessage(error)) }
   }
   const sendText = async () => {
@@ -229,7 +245,7 @@ export function App() {
     } catch (error) { setComposerError(errorMessage(error)) } finally { setSending(false) }
   }
   const enqueue = (files: File[], kind: 'file' | 'text', selected?:{routing:SendRouting;sourceDevice:string;origin:string}) => {
-    if (!connected) { setConnectionOpen(true); return }
+    if (!connected) { openConnection(); return }
     if (!storage) { setError('Wait for the server’s storage limits before adding files, then try again.'); refresh(); return }
     try {
       if(selected&&selected.origin!==api.baseURL)throw new Error('The server changed while choosing files. Choose them again for this server.')
@@ -237,7 +253,7 @@ export function App() {
     } catch (error) { setError(errorMessage(error)) }
   }
   const choose = (kind: 'file' | 'text') => {
-    if (!connected) { setConnectionOpen(true); return }
+    if (!connected) { openConnection(); return }
     try{
       const routing=sendRouting(deviceId,targets,devices)
       pickerRouting.current={routing,sourceDevice:device,origin:api.baseURL}
@@ -266,15 +282,15 @@ export function App() {
       <div className="sidebar-bottom">
         <div className="storage-card"><div><HardDrive size={17} /><strong>Household storage</strong></div>{storage ? <><p>{formatBytes(storage.usedBytes)} <span>stored</span></p><meter className="storage-bar" aria-label="Storage used" min={0} max={Math.max(1, storage.maxStorageBytes || storage.usedBytes + storage.freeBytes)} value={storage.usedBytes}>{formatBytes(storage.usedBytes)} stored</meter><small>{formatBytes(storage.freeBytes)} disk space free{storage.maxStorageBytes ? ` · ${formatBytes(storage.maxStorageBytes)} app budget` : ''}</small></> : <p className="storage-wait">{storageError ? 'Storage status unavailable' : connected ? 'Checking storage…' : 'Connect to view storage'}</p>}</div>
         <button className="sidebar-link" onClick={() => setHelpOpen(true)}><CircleHelp size={17} /> Help & tips</button>
-        <div className="device-card"><span className="device-avatar"><Smartphone size={18} /></span><div><strong>{device}</strong><span>{platform.kind === 'native' ? 'Installed client' : 'Browser client'}</span></div><button className="icon-button" onClick={() => setConnectionOpen(true)} aria-label="Connection and device settings"><Settings2 size={16} /></button></div>
+        <div className="device-card"><span className="device-avatar"><Smartphone size={18} /></span><div><strong>{device}</strong><span>{platform.kind === 'native' ? 'Installed client' : 'Browser client'}</span></div><button className="icon-button" onClick={() => openConnection()} aria-label="Connection and device settings"><Settings2 size={16} /></button></div>
       </div>
     </aside>
-    <div className="workspace" inert={connectionOpen || helpOpen} onFocusCapture={event=>{if(['INPUT','TEXTAREA'].includes(event.target.tagName))startMobileEditing()}}>
-      <header className="topbar"><a className="mobile-brand" href="/" aria-label="Zing home"><ZingMark className="brand-mark" /><span className="brand-wordmark">Zing<span className="brand-signal" aria-hidden="true" /></span></a><span className="topbar-caption">Shared with your household</span><button className={`connection-badge ${connected && live && !offline ? 'is-live' : ''}`} onClick={() => setConnectionOpen(true)}><span className="status-dot" />{offline ? 'Offline' : !connected ? configuredNative ? checked ? 'Connection issue' : 'Connecting…' : 'Connect household' : live ? 'Connected' : 'Reconnecting…'}<Settings2 size={15} /></button></header>
+    <div className="workspace" inert={connectionOpen || helpOpen} onFocusCapture={event=>{if(event.target.matches('input:not([type=file]), textarea'))startMobileEditing()}} onBlurCapture={event=>{const next=event.relatedTarget;if(!(next instanceof HTMLElement) || (!next.matches('input:not([type=file]), textarea') && !next.closest('.composer, .editing-toolbar, .recipient-popover')))setMobileEditing(false)}}>
+      <header className="topbar"><a className="mobile-brand" href="/" aria-label="Zing home"><ZingMark className="brand-mark" /><span className="brand-wordmark">Zing<span className="brand-signal" aria-hidden="true" /></span></a><span className="topbar-caption">Shared with your household</span><button className={`connection-badge ${connected && live && !offline ? 'is-live' : ''}`} onClick={() => openConnection()}><span className="status-dot" />{nativeNeedsConnection ? 'Not connected' : offline ? 'Offline' : !connected ? configuredNative ? checked ? 'Connection issue' : 'Connecting…' : 'Connect household' : live ? 'Connected' : 'Reconnecting…'}<Settings2 size={15} /></button></header>
       <main id="main">
         <div className="page-heading"><div><h1>{view === 'all' ? 'Shared inbox' : nav.find(item=>item.id===view)?.label}</h1></div><button className="button action-button compose-jump" onClick={()=>{composer.current?.scrollIntoView({block:'center'});composer.current?.focus({preventScroll:true})}}><Plus size={18}/>New share</button></div>
         {offline && <div className="banner" role="status"><WifiOff size={17} /> You’re offline. Your saved transfers can resume when you reconnect.</div>}
-        {checked && !connected && !connectionOpen && !configuredNative && <div className="banner"><Link2 size={17} /><span>Connect to your household to see and share items.</span><button className="text-button" onClick={() => setConnectionOpen(true)}>Connect <ArrowRight size={14} /></button></div>}
+        {(nativeNeedsConnection || (checked && !connected && !connectionOpen && !configuredNative)) && <div className="banner"><Link2 size={17} /><span>{nativeNeedsConnection ? 'Choose your household server in Settings. This app will remember the connection.' : 'Connect to your household to see and share items.'}</span><button className="text-button" onClick={() => openConnection()}>{nativeNeedsConnection ? 'Configure connection' : 'Connect'} <ArrowRight size={14} /></button></div>}
         {deviceError&&<div className="banner error-banner" role="alert"><span>{deviceError}</span><button className="text-button" onClick={()=>setIdentityTick(value=>value+1)}>Retry registration</button></div>}
         {targetError&&<div className="banner error-banner" role="alert"><span>{targetError}</span><button className="text-button" onClick={refresh}>Retry opening share</button><button className="icon-button" aria-label="Dismiss opening error" onClick={()=>{setTargetError('');setArrivalTarget('')}}><X size={15}/></button></div>}
         <RecipientPicker devices={devices} currentId={deviceId} targets={targets} onChange={setTargets} onRefresh={refresh} disabled={!connected||!deviceId}/>
@@ -291,15 +307,15 @@ export function App() {
         <div className="transfer-note"><button onClick={()=>setHelpOpen(true)}><CircleHelp size={13}/>{platform.kind==='browser'?'Keep this tab open while sending':'Transfer help'}</button></div>
         <TransferQueue store={platform.transfers} onError={setError} />
         <section className="feed" aria-labelledby="feed-title"><div className="feed-toolbar"><div className="feed-title"><h2 id="feed-title">{search ? 'Search results' : view==='you'?'Sent to this device':'Recent shares'}</h2><span className="count-pill">{visible.length}</span></div><label className="kind-filter"><span className="sr-only">Content type</span><select value={contentKind} onChange={event=>setContentKind(event.target.value as ContentKind)}><option value="all">All types</option><option value="text">Text</option><option value="file">Files</option></select></label><div className="feed-controls"><label className="search-field"><Search size={16} /><input id="feed-search" type="search" placeholder="Search shares" value={query} onChange={event => setQuery(event.target.value)} /><span className="search-shortcut">/</span><span className="sr-only">Search names and text previews</span></label><button className="icon-button refresh-button" onClick={refresh} disabled={loading} aria-label="Refresh feed"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button></div></div>
-          {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button>{configuredNative && <button className="text-button" onClick={() => setConnectionOpen(true)}>Settings</button>}<button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
-          {loading && !items.length ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Opening your household…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={highlight===item.id?'arrival-highlight':undefined}><FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} /></div>)}</div> : <div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? configuredNative ? 'Your household is unavailable' : 'Connect your household' : search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3><p>{!connected ? configuredNative ? 'Retry when Tailscale and the server are available, or check connection settings.' : 'Connect to your private server to bring your devices together.' : search ? 'Try another name or a phrase from the text preview.' : contentKind !== 'all' ? 'Choose All types or load older items to include more shares.' : view === 'pinned' ? 'Pin an item to find it here. Load more to include older pins.' : view==='you'?'New shares addressed to this device or Everyone appear here. All shares shows the whole household.':'Paste something above or add a file. It’ll be here when you pick up your next device.'}</p>{!connected ? !configuredNative && <button className="button primary" onClick={() => setConnectionOpen(true)}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && <button className="button secondary" onClick={() => composer.current?.focus()}><Plus size={16} /> Share something</button>}</div>}
+          {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button>{configuredNative && <button className="text-button" onClick={() => openConnection()}>Settings</button>}<button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
+          {loading && !items.length ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Opening your household…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={highlight===item.id?'arrival-highlight':undefined}><FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} /></div>)}</div> : <div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3><p>{!connected ? nativeNeedsConnection ? 'Save your server address using Configure connection above, or open connection settings at any time.' : configuredNative ? 'Retry when Tailscale and the server are available, or check connection settings.' : 'Connect to your private server to bring your devices together.' : search ? 'Try another name or a phrase from the text preview.' : contentKind !== 'all' ? 'Choose All types or load older items to include more shares.' : view === 'pinned' ? 'Pin an item to find it here. Load more to include older pins.' : view==='you'?'New shares addressed to this device or Everyone appear here. All shares shows the whole household.':'Paste something above or add a file. It’ll be here when you pick up your next device.'}</p>{!connected ? platform.kind === 'browser' && <button className="button primary" onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && <button className="button secondary" onClick={() => composer.current?.focus()}><Plus size={16} /> Share something</button>}</div>}
           {cursor && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowDown size={15} />} Load older items</button>}
         </section>
       </main>
     </div>
     {dragging && <div className="drop-overlay"><div><UploadCloud size={52} strokeWidth={1.3} /><h2>Drop files to share</h2><p>Upload to your household server.</p></div></div>}
     {toast && <div className="toast" role="status"><Check size={17} />{toast}<button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast('')}><X size={14} /></button></div>}
-    {connectionOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget && connected) setConnectionOpen(false) }}><section className="modal connection-modal" role="dialog" aria-modal="true" aria-labelledby="connection-title"><button className="icon-button modal-close" aria-label="Close connection settings" onClick={() => setConnectionOpen(false)}><X size={20} /></button><div className="connection-heading"><ZingMark className="modal-icon" /><h2 id="connection-title">{connected || configuredNative ? 'Connection settings' : 'Connect to Zing'}</h2></div><p>{connected || configuredNative ? 'Manage this device’s connection.' : 'Connect through Tailscale. Installed apps remember your server address.'}</p>{connected && storage && <div className="settings-storage"><span><HardDrive size={16}/>Storage</span><p><strong>{formatBytes(storage.usedBytes)}</strong> stored · <strong>{formatBytes(storage.freeBytes)}</strong> free</p><small>Up to {formatBytes(storage.maxFileBytes)} per file</small></div>}<form onSubmit={event => void connect(event)}><label>Household server<input autoFocus type="url" required value={draftOrigin} onChange={event => setDraftOrigin(event.target.value)} spellCheck={false} autoCapitalize="none" /></label>{platform.kind === 'browser' && <p className="field-note">Use your private Tailscale HTTPS address.</p>}<button type="button" className="text-button advanced-token" aria-expanded={advancedToken} onClick={()=>setAdvancedToken(!advancedToken)}>Advanced · Use app token</button>{advancedToken&&<label>App token (optional)<input type="password" value={token} onChange={event => setToken(event.target.value)} autoComplete="off" placeholder="For token servers or local development" /></label>}<label>This device’s name<input required maxLength={80} value={draftDevice} onChange={event => setDraftDevice(event.target.value)} autoComplete="off" /></label><p className="field-note">Shown beside your shares, e.g. “Kitchen Mac”.</p>{connectionError && <p className="inline-error" role="alert">{connectionError}</p>}<button className="button primary connect-button" disabled={connecting}>{connecting ? <LoaderCircle className="spin" size={16} /> : <Link2 size={16} />}{connecting ? 'Connecting…' : 'Connect household'}</button></form>{connected&&<button className="button secondary save-device-name" disabled={draftDevice===device||connecting} onClick={()=>void saveDeviceName()}>Save device name</button>}
+    {connectionOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget && connected) setConnectionOpen(false) }}><section className="modal connection-modal" role="dialog" aria-modal="true" aria-labelledby="connection-title"><button className="icon-button modal-close" aria-label="Close connection settings" onClick={() => setConnectionOpen(false)}><X size={20} /></button><div className="connection-heading"><ZingMark className="modal-icon" /><h2 id="connection-title">{connected || platform.kind === 'native' ? 'Connection settings' : 'Connect to Zing'}</h2></div><p>{connected || platform.kind === 'native' ? 'Manage this device’s connection. Your server address is remembered on this device.' : 'Connect through Tailscale. Installed apps remember your server address.'}</p>{connected && storage && <div className="settings-storage"><span><HardDrive size={16}/>Storage</span><p><strong>{formatBytes(storage.usedBytes)}</strong> stored · <strong>{formatBytes(storage.freeBytes)}</strong> free</p><small>Up to {formatBytes(storage.maxFileBytes)} per file</small></div>}<form onSubmit={event => void connect(event)}><label>Household server<input autoFocus type="url" required value={draftOrigin} onChange={event => setDraftOrigin(event.target.value)} spellCheck={false} autoCapitalize="none" /></label>{platform.kind === 'browser' && <p className="field-note">Use your private Tailscale HTTPS address.</p>}<button type="button" className="text-button advanced-token" aria-expanded={advancedToken} onClick={()=>setAdvancedToken(!advancedToken)}>Advanced · Use app token</button>{advancedToken&&<label>App token (optional)<input type="password" value={token} onChange={event => setToken(event.target.value)} autoComplete="off" placeholder="For token servers or local development" /></label>}<label>This device’s name<input required maxLength={80} value={draftDevice} onChange={event => setDraftDevice(event.target.value)} autoComplete="off" /></label><p className="field-note">Shown beside your shares, e.g. “Kitchen Mac”.</p>{connectionError && <p className="inline-error" role="alert">{connectionError}</p>}<button className="button primary connect-button" disabled={connecting}>{connecting ? <LoaderCircle className="spin" size={16} /> : <Link2 size={16} />}{connecting ? 'Connecting…' : 'Connect household'}</button></form>{connected&&<button className="button secondary save-device-name" disabled={draftDevice===device||connecting} onClick={()=>void saveDeviceName()}>Save device name</button>}
       {connected&&deviceError&&<p className="inline-error" role="alert">{deviceError}</p>}
       {connected&&<DeviceSettings api={api} platform={platform} deviceId={deviceId} devices={devices} refresh={refresh} onArrivalChange={()=>setArrivalTick(value=>value+1)} arrivalError={arrivalError}/>}
       {(connected || configuredNative) && <button className="text-button disconnect-button" onClick={() => void logout()}><LogOut size={14} /> {platform.kind === 'native' ? 'Disconnect this app' : 'Disconnect this browser'}</button>}<p className="field-note">Disconnect clears this app’s connection state. It does not revoke Tailscale access.</p><div className="modal-footnote"><LockKeyhole size={13} />{platform.kind === 'native' ? 'Server settings are stored by your installed client.' : 'Optional tokens aren’t saved in browser storage.'}</div></section></div>}

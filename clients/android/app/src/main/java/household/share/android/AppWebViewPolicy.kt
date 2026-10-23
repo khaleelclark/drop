@@ -37,9 +37,30 @@ object AppWebViewPolicy {
     internal fun systemBarOverlap(inset: Int, gap: Int, reserved: Int): Int =
         (inset - gap + reserved).coerceAtLeast(0)
 
+    /** Call on the UI thread after Activity resume; sample current insets on the next draw. */
+    fun refreshKeyboardVisibility(webView: WebView) {
+        (webView.getTag(R.id.household_system_bar_space) as? SystemBarSpace)?.refreshKeyboardVisibility()
+    }
+
+    internal class KeyboardVisibilitySignal {
+        private var previous: Boolean? = null
+        private var refresh = true
+
+        fun refresh() { refresh = true }
+
+        fun script(visible: Boolean?): String? {
+            if (visible == null || (!refresh && visible == previous)) return null
+            previous = visible
+            refresh = false
+            return "window.dispatchEvent(new CustomEvent('household-keyboard-visibility',{detail:{visible:$visible}}));"
+        }
+    }
+
     private class SystemBarSpace(private val webView: WebView) :
-        View.OnAttachStateChangeListener, ViewTreeObserver.OnPreDrawListener {
+        View.OnAttachStateChangeListener, ViewTreeObserver.OnPreDrawListener,
+        ViewTreeObserver.OnWindowFocusChangeListener {
         private var observer: ViewTreeObserver? = null
+        private val keyboard = KeyboardVisibilitySignal()
         private val position = IntArray(2)
         private val rootPosition = IntArray(2)
         private val bars = Rect()
@@ -51,17 +72,35 @@ object AppWebViewPolicy {
 
         override fun onViewAttachedToWindow(v: View) {
             observer?.takeIf { it.isAlive }?.removeOnPreDrawListener(this)
-            observer = v.viewTreeObserver.also { it.addOnPreDrawListener(this) }
-            v.requestApplyInsets()
+            observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
+            observer = v.viewTreeObserver.also {
+                it.addOnPreDrawListener(this)
+                it.addOnWindowFocusChangeListener(this)
+            }
+            refreshKeyboardVisibility()
         }
 
         override fun onViewDetachedFromWindow(v: View) {
             observer?.takeIf { it.isAlive }?.removeOnPreDrawListener(this)
+            observer?.takeIf { it.isAlive }?.removeOnWindowFocusChangeListener(this)
             observer = null
+        }
+
+        override fun onWindowFocusChanged(hasFocus: Boolean) {
+            if (hasFocus) refreshKeyboardVisibility()
+        }
+
+        fun refreshKeyboardVisibility() {
+            keyboard.refresh()
+            webView.requestApplyInsets()
+            webView.invalidate()
         }
 
         override fun onPreDraw(): Boolean {
             val insets = webView.rootWindowInsets ?: return true
+            // shortcut: API26–29 have no typed IME visibility; retain web recovery until legacy device evidence.
+            val imeVisible = if (Build.VERSION.SDK_INT >= 30) insets.isVisible(WindowInsets.Type.ime()) else null
+            keyboard.script(imeVisible)?.let { webView.evaluateJavascript(it, null) }
             val margins = webView.layoutParams as? ViewGroup.MarginLayoutParams ?: return true
             val root = webView.rootView
             if (webView.width == 0 || webView.height == 0) return true

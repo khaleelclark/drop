@@ -22,7 +22,13 @@ describe('safe-area ownership at startup', () => {
     try {
       await act(async () => { root = await startApplication(element) })
       expect(document.documentElement.hasAttribute('data-native-android')).toBe(runtime === 'android')
-      expect(screen.getByRole('dialog', {name:'Connect to Zing'})).toBeInTheDocument()
+      if(runtime==='browser')expect(screen.getByRole('dialog', {name:'Connect to Zing'})).toBeInTheDocument()
+      else {
+        expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+        expect(screen.getByRole('heading',{name:'Shared inbox'})).toBeInTheDocument()
+        expect(screen.getByRole('button',{name:'Configure connection'})).toBeEnabled()
+        expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
+      }
     } finally { await act(async () => root.unmount()); element.remove() }
   })
 })

@@ -109,6 +109,7 @@ class MainActivity : Activity() {
 
     override fun onResume() {
         super.onResume(); visible = true
+        AppWebViewPolicy.refreshKeyboardVisibility(web)
         ArrivalScheduler.visible(this, this, true)
         // Reopening the app is renewed user initiation after reboot or explicit system/user interruption.
         runCatching { TransferScheduler.startVisible(this, store.all()) }.onFailure { toast(it.message.orEmpty()) }

@@ -359,8 +359,12 @@ No network handshake or permission prompt is needed to save this configuration.
 
 Never overwrite an existing saved origin, token, name, identity, routing or
 transfer queue. Explicit Disconnect must survive relaunch and upgrades without
-automatic reconnection. No-default generic builds retain manual setup. Invalid
-defaults must fail safely before configuration is written. Accept only an HTTPS
+automatic reconnection. No-default generic builds open the inbox shell without
+automatically showing a connection dialog. Indicate the missing connection inline
+and expose an explicit Settings/Configure connection action; the address is a
+remembered setting rather than a main login screen. Defer native API requests
+until a connection is configured. Invalid defaults must fail safely before
+configuration is written. Accept only an HTTPS
 origin without userinfo, query, fragment or a non-root path. Token-mode/tagged
 client recovery remains explicit and must not weaken server authentication.
 

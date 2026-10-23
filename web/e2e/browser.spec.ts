@@ -229,17 +229,20 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await expect(page.getByRole('button',{name:'Close connection settings'})).toBeFocused()
   await page.keyboard.press('Escape'); await expect(dialog).not.toBeVisible()
 })
-async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null,startup:'ready'|'offline'|401|403='ready') {
-  await page.addInitScript(({body,clickTarget,startup}) => {
+async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null,startup:'ready'|'offline'|401|403='ready',connection:'saved'|'missing'|'disconnected'='saved') {
+  await page.addInitScript(({body,clickTarget,startup,connection}) => {
     let pendingTarget=clickTarget
     let feedFailure=startup
+    let config=JSON.parse(localStorage.getItem('fixture.native.config')||'null') || {baseUrl:connection==='missing'?undefined:'https://household.example',connected:connection==='saved',sourceDevice:'Phone',deviceId:'11111111111111111111111111111111',platform:'android'}
     ;(window as unknown as {setNativeFeedFailure:(failure:typeof startup)=>void}).setNativeFeedFailure=failure=>{feedFailure=failure}
     ;(window as unknown as {setNativeTarget:(target:typeof clickTarget)=>void}).setNativeTarget=target=>{pendingTarget=target}
     const calls: {command:string;args?:Record<string,unknown>}[] = []
     ;(window as unknown as {nativeCalls:unknown}).nativeCalls=calls
     window.__HOUSEHOLD_NATIVE__={platform:'android',invoke:async(command,args)=>{
       calls.push({command,args})
-      if(command==='native_get_config') return {baseUrl:'https://household.example',sourceDevice:'Phone',deviceId:'11111111111111111111111111111111',platform:'android'}
+      if(command==='native_get_config') return config
+      if(command==='native_configure'){config={...config,baseUrl:args?.baseUrl,sourceDevice:args?.sourceDevice,connected:true};localStorage.setItem('fixture.native.config',JSON.stringify(config));return null}
+      if(command==='native_disconnect'){config={...config,connected:false};localStorage.setItem('fixture.native.config',JSON.stringify(config));return null}
       if(command==='native_get_arrival_settings')return {enabled:false,permission:'prompt',mode:'scheduled'}
       if(command==='native_set_arrival_enabled')return {enabled:args?.enabled,permission:'granted',mode:'scheduled'}
       if(command==='native_take_arrival_target'){const target=pendingTarget;pendingTarget=null;return target}
@@ -249,6 +252,7 @@ async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:stri
         {id:'download',direction:'download',name:'Holiday photos.zip',size:2*1024**3,offset:512*1024**2,status:'paused'},
       ]
       if(command==='native_api') {
+        if(!config.baseUrl||!config.connected)throw new Error('Native API must not run before connection is configured')
         const path=String(args?.path)
         if(path.startsWith('/api/items?')){
           if(feedFailure==='offline')throw new Error('Network unavailable')
@@ -263,7 +267,7 @@ async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:stri
         return {status:200,body:'{"status":"ok"}'}
       }
     }}
-  },{body:fullText,clickTarget,startup})
+  },{body:fullText,clickTarget,startup,connection})
 }
 test('packaged native bridge is detected before the app renders', async ({page}) => {
   await nativeFixture(page)
@@ -303,6 +307,42 @@ test('packaged native bridge is detected before the app renders', async ({page})
     return node===hit||node.contains(hit)
   })).toBe(true)
   await page.screenshot({animations:'disabled',path:'test-results/household-transfers.png',fullPage:false})
+})
+
+for(const connection of ['missing','disconnected'] as const)test(`native ${connection} connection opens the inbox, saves explicit settings and preserves Disconnect`,async({page})=>{
+  await page.setViewportSize({width:360,height:839});await nativeFixture(page,null,'ready',connection)
+  const browserApiRequests:string[]=[]
+  page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))browserApiRequests.push(request.url())})
+  await page.goto('/')
+  await expect(page.getByRole('heading',{name:'Shared inbox'})).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0)
+  const configure=page.getByRole('button',{name:'Configure connection',exact:true}),tabs=page.getByRole('navigation',{name:'Mobile feed filters'})
+  await uncovered(configure);await expect(page.getByRole('textbox',{name:'Text to share'})).toBeDisabled()
+  for(const tab of await tabs.getByRole('button').all())await uncovered(tab)
+  await tabs.getByRole('button',{name:'Pinned',exact:true}).click();await page.getByRole('combobox',{name:'Content type'}).selectOption('file')
+  await expect(page.getByRole('dialog')).toHaveCount(0)
+  expect(await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string}[]}).nativeCalls.some(call=>call.command==='native_api'))).toBe(false)
+  await page.screenshot({animations:'disabled',path:`test-results/zing-native-${connection}-inbox.png`})
+  await configure.click()
+  const dialog=page.getByRole('dialog',{name:'Connection settings'})
+  await expect(dialog.getByLabel('Household server')).toHaveValue(connection==='missing'?'':'https://household.example')
+  await expect(dialog.getByLabel('App token (optional)')).toHaveCount(0)
+  await expect(dialog.getByRole('button',{name:'Advanced · Use app token'})).toBeEnabled()
+  await page.keyboard.press('Escape');await expect(dialog).toHaveCount(0);await expect(configure).toBeFocused()
+  await configure.click();await dialog.getByLabel('Household server').fill('https://chosen.example')
+  await dialog.getByRole('button',{name:'Connect household',exact:true}).click();await expect(dialog).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()
+  await expect(page.getByRole('combobox',{name:'Content type'})).toHaveValue('file')
+  await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toHaveAttribute('aria-current','page')
+  const configured=await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string;args?:Record<string,unknown>}[]}).nativeCalls.filter(call=>call.command==='native_configure'))
+  expect(configured).toEqual([{command:'native_configure',args:{baseUrl:'https://chosen.example',token:'',sourceDevice:'Phone'}}])
+  await page.reload();await expect(page.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled();await expect(dialog).toHaveCount(0)
+  expect(await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string}[]}).nativeCalls.some(call=>call.command==='native_configure'))).toBe(false)
+  await page.getByRole('button',{name:/Connected|Reconnecting/}).click()
+  await expect(dialog.getByLabel('Household server')).toHaveValue('https://chosen.example')
+  await dialog.getByRole('button',{name:'Disconnect this app',exact:true}).click();await expect(dialog).toHaveCount(0);await expect(configure).toBeVisible()
+  await page.reload();await expect(configure).toBeVisible();await expect(dialog).toHaveCount(0)
+  expect(await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string}[]}).nativeCalls.some(call=>call.command==='native_api'||call.command==='native_configure'))).toBe(false)
+  expect(browserApiRequests).toEqual([])
 })
 
 for(const failure of ['offline',401,403] as const)test(`configured native startup ${failure} keeps the feed open with Retry and Settings`,async({page})=>{
@@ -454,6 +494,7 @@ test('narrow layouts keep long shares, recovery controls, and the composer usabl
     const share=page.getByRole('button',{name:'Share text',exact:true})
     await share.click();await expect(page.locator('.composer').getByRole('alert')).toContainText('Try sharing again')
     await expect(composer).toHaveValue('A draft that must survive an error')
+    await composer.focus()
     await share.scrollIntoViewIfNeeded();await uncovered(share)
     // Each width also has to work when the available layout height is short.
     await page.setViewportSize({width,height:420})
@@ -511,11 +552,27 @@ for(const runtime of ['browser','android'] as const)test(`${runtime} hides feed 
   await expect(composer).toBeFocused();await expect(tabs).toBeHidden()
   const share=page.getByRole('button',{name:'Share text',exact:true}),done=page.getByRole('button',{name:'Done editing',exact:true})
   await uncovered(share);await uncovered(done)
+  await page.evaluate(()=>window.dispatchEvent(new CustomEvent('household-keyboard-visibility',{detail:{visible:'false'}})))
+  await expect(tabs).toBeHidden()
   expect(await tabs.evaluate(node=>node.contains(document.activeElement))).toBe(false)
   await page.screenshot({animations:'disabled',path:`test-results/zing-editing-${runtime}-keyboard.png`,fullPage:false})
   await page.locator('#keyboard-occlusion').evaluate(node=>node.remove())
-  // Android Back may remove the keyboard while leaving field focus and draft intact.
-  await expect(composer).toBeFocused();await expect(tabs).toBeHidden()
+  // A native IME-hidden signal restores tabs even with unchanged viewports and field focus.
+  if(runtime==='android'){
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('household-keyboard-visibility',{detail:{visible:false}})))
+    await expect(composer).toBeFocused()
+  }else{
+    await page.evaluate(()=>window.dispatchEvent(new CustomEvent('household-keyboard-visibility',{detail:{visible:false}})))
+    await expect(tabs).toBeHidden()
+    await composer.blur()
+  }
+  await expect(tabs).toBeVisible();await expect(done).toHaveCount(0)
+  for(const tab of await tabs.getByRole('button').all())await uncovered(tab)
+  expect(await page.evaluate(()=>({inner:innerHeight,visual:visualViewport!.height}))).toEqual(initial)
+  await expect(composer).toHaveValue('Keep my draft, scope, kind, recipients and identity')
+  await composer.focus()
+  if(runtime==='android')await page.evaluate(()=>window.dispatchEvent(new CustomEvent('household-keyboard-visibility',{detail:{visible:true}})))
+  await expect(tabs).toBeHidden()
   await page.addStyleTag({content:'.composer.has-draft textarea {height:180px}'})
   await overlay();await share.evaluate(node=>node.scrollIntoView({block:'center'}));await uncovered(share)
   await done.evaluate(node=>node.scrollIntoView({block:'start'}));await uncovered(done)
@@ -535,6 +592,12 @@ for(const runtime of ['browser','android'] as const)test(`${runtime} hides feed 
   await composer.focus();await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab');await page.keyboard.press('Tab')
   await expect(done).toBeFocused();await page.keyboard.press('Escape')
   await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toBeFocused();await expect(done).toHaveCount(0)
+  await composer.focus();await expect(tabs).toBeHidden()
+  await page.evaluate(()=>{Object.defineProperty(document,'visibilityState',{configurable:true,value:'hidden'});document.dispatchEvent(new Event('visibilitychange'));Object.defineProperty(document,'visibilityState',{configurable:true,value:'visible'});document.dispatchEvent(new Event('visibilitychange'));window.dispatchEvent(new Event('focus'))})
+  await expect(tabs).toBeVisible();await expect(done).toHaveCount(0)
+  await expect(composer).toBeFocused();await expect(composer).toHaveValue('Keep my draft, scope, kind, recipients and identity')
+  await expect(kind).toHaveValue('file');await expect(tabs.getByRole('button',{name:'Pinned',exact:true})).toHaveAttribute('aria-current','page')
+  await expect(page.getByRole('button',{name:'Send to Kitchen Mac',exact:true})).toBeVisible()
 })
 
 for (const many of [false,true]) test(`last five-action text menu stays above bottom tabs on a ${many?'long':'short'} feed`, async ({page}) => {

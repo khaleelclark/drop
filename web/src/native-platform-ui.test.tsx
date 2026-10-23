@@ -8,7 +8,7 @@ import { TransferQueue } from './TransferQueue'
 afterEach(() => { delete window.householdPlatform; vi.unstubAllGlobals() })
 
 describe('shared native fixture at the interface boundary', () => {
-  it('opens pairing for disconnected saved configuration and calls native disconnect before returning to setup', async () => {
+  it('opens connection settings explicitly and returns to the inbox shell after native disconnect', async () => {
     let connected = false
     const browserFetch = vi.fn().mockRejectedValue(new Error('Native UI must not use browser fetch'))
     vi.stubGlobal('fetch',browserFetch)
@@ -31,7 +31,11 @@ describe('shared native fixture at the interface boundary', () => {
     })
     window.householdPlatform = await nativePlatform(invoke)
     render(<App />)
-    const dialog = screen.getByRole('dialog',{name:'Connect to Zing'})
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(screen.getByRole('heading',{name:'Shared inbox'})).toBeInTheDocument()
+    expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
+    fireEvent.click(screen.getByRole('button',{name:'Configure connection'}))
+    const dialog = screen.getByRole('dialog',{name:'Connection settings'})
     expect(within(dialog).getByLabelText('Household server')).toHaveValue(fixture.unpairedConfig.baseUrl)
     fireEvent.click(within(dialog).getByRole('button',{name:'Advanced · Use app token'}))
     fireEvent.change(within(dialog).getByLabelText('App token (optional)'),{target:{value:'pairing-token'}})
@@ -41,7 +45,8 @@ describe('shared native fixture at the interface boundary', () => {
     fireEvent.click(screen.getByRole('button',{name:'Connection and device settings'}))
     fireEvent.click(await screen.findByRole('button',{name:'Disconnect this app'}))
     await waitFor(() => expect(invoke).toHaveBeenCalledWith('native_disconnect'))
-    expect(await screen.findByRole('dialog',{name:'Connect to Zing'})).toBeInTheDocument()
+    await waitFor(()=>expect(screen.queryByRole('dialog')).not.toBeInTheDocument())
+    expect(screen.getByRole('button',{name:'Configure connection'})).toBeEnabled()
     expect(screen.queryByRole('button',{name:'Disconnect this app'})).not.toBeInTheDocument()
     expect((await nativePlatform(invoke)).requiresConnection).toBe(true)
     expect(browserFetch).not.toHaveBeenCalled()
@@ -177,7 +182,10 @@ describe('URL-only installed connection',()=>{
       throw new Error(`Unexpected command ${command}`)
     })
     window.householdPlatform=await nativePlatform(invoke);render(<App/>)
-    const dialog=screen.getByRole('dialog',{name:'Connect to Zing'})
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
+    expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
+    fireEvent.click(screen.getByRole('button',{name:'Configure connection'}))
+    const dialog=screen.getByRole('dialog',{name:'Connection settings'})
     expect(within(dialog).queryByLabelText('App token (optional)')).not.toBeInTheDocument()
     fireEvent.click(within(dialog).getByRole('button',{name:'Connect household'}))
     expect(await waitFor(()=>{expect(invoke).toHaveBeenCalledWith('native_configure',{baseUrl:fixture.unpairedConfig.baseUrl,token:'',sourceDevice:fixture.unpairedConfig.sourceDevice});return true})).toBe(true)

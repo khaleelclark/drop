@@ -2,6 +2,18 @@
 
 This Android client has a native Kotlin transfer queue and two packaging entry points: the standalone Gradle application under `app/`, and the Tauri 2 Android shell under `src-tauri/` with a real Kotlin mobile plugin under `tauri-plugin/`. Both reuse the same queue/service/source-access files, with a locally bundled copy of the common React interface. Distinguish the standalone `app-debug.apk` from the Tauri Android APK; build and validation evidence for each is recorded in `VALIDATION.md`. Neither queue depends on JavaScript or a WebView staying alive. Minimum supported Android is 8.0 / API 26; target/compile SDK is 36.
 
+## 0.1.6 Tauri keyboard visibility recovery — source handoff
+
+Both Android hosts now supply `window` events named `household-keyboard-visibility`, with exactly `detail: {visible: boolean}`. On Android 11 / API30+, the shared `AppWebViewPolicy` observes actual [`WindowInsets.Type.ime()` visibility](https://developer.android.com/reference/android/view/WindowInsets#isVisible(int)) before drawing. It emits the first available state, subsequent show/hide transitions, and current state after attachment, Activity resume or window-focus gain. Android Back can therefore report dismissal even when a text field retains focus and the overlay keyboard changes no viewport dimensions. Unknown/unavailable insets emit nothing. The event contains no field, content, token, keyboard height or other data.
+
+The interface owner consumes this signal only for detected native Android. A false event can clear editing mode without moving focus or changing a draft; a true event can hide phone tabs during text editing. No WebView settings, system-bar calculations, inset listeners, soft-input mode or IME handling were changed. Both hosts use the same observer and resume refresh; attach/detach manages both pre-draw and window-focus listeners.
+
+Android 8–10 / API26–29 has no platform typed IME visibility signal in this path, so it emits no guessed state. The interface's blur, Done and browser-resume recovery remains the fallback; Back with retained focus and a non-resizing overlay IME is not guaranteed on these versions. No viewport/height heuristic, keyboard interception or new dependency was added.
+
+Root's replacement Tauri source targets **0.1.6/code1006** in Cargo package/lock metadata, Tauri configuration, generated Gradle fallbacks and retained generated version properties. Standalone stays **0.1.5/code6**. IDs, signing paths, data and dependencies are unchanged. Android minimum remains API26; the genuine typed IME signal requires API30. Current source checks use JDK17 and compile/target SDK36.
+
+See [the final source record](validation/keyboard-visibility-0.1.6-source.json) and `VALIDATION.md` for current source/test hashes and requirements. [The pre-version check snapshot](validation/keyboard-visibility-0.1.5-source.json) preserves the executed focused JVM, compilation, lint and JS contract evidence; runtime/test source is identical after the metadata-only bump, so those checks were not repeated. This is native source readiness, not installed acceptance: no replacement APK or device/emulator run was performed for this handoff. Root owns packaging and real-IME Back, Home/resume, rotation and phone acceptance. Earlier source/package reports below keep their original scope.
+
 
 ## 0.1.5 Ribbon Z icons — source checks only
 

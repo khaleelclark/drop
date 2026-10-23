@@ -63,6 +63,7 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
   let origin = config.baseUrl || 'http://127.0.0.1:8787'
   const transfers = new NativeTransfers(invoke, () => origin)
   const request: typeof fetch = async (input, init) => {
+    if (!config.baseUrl || config.connected === false) throw new Error('Configure your household connection in Settings first.')
     const signal=init?.signal
     if (signal?.aborted) throw new DOMException('Aborted','AbortError')
     const url = new URL(input instanceof Request ? input.url : String(input))
@@ -81,7 +82,7 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
     } finally { if(signal&&abort)signal.removeEventListener('abort',abort) }
   }
   return {
-    kind:'native',get baseURL(){return origin},defaultDeviceName:config.sourceDevice,requiresConnection:!config.baseUrl || config.connected === false,transfers,request,
+    kind:'native',get baseURL(){return config.baseUrl ? origin : undefined},defaultDeviceName:config.sourceDevice,get requiresConnection(){return !config.baseUrl || config.connected === false},transfers,request,
     get deviceIdentity() { return config.deviceId && config.platform ? {id:config.deviceId,platform:config.platform} : undefined },
     async configureConnection(nextOrigin,token,sourceDevice) { await invoke('native_configure',{baseUrl:nextOrigin,token,sourceDevice:sourceDevice || config.sourceDevice || 'My device'}); origin=nextOrigin; config=await invoke('native_get_config') as NativeConfig },
     async getArrivalSettings() { return await invoke('native_get_arrival_settings') as ArrivalSettings },
@@ -108,6 +109,7 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
         for(const row of transfers.getSnapshot()) if(['queued','checking','uploading'].includes(row.state)) await transfers.pause(row.id)
         await invoke('native_configure',{baseUrl:origin,token:'',sourceDevice:config.sourceDevice || 'My device'})
       }
+      config = {...config, connected:false}
     },
   }
 }

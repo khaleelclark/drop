@@ -2,6 +2,41 @@
 
 Checked 2026-10-22–23 in the shared Linux build workspace. This record distinguishes standalone Gradle packaging, Tauri Android packaging and actual device evidence.
 
+## 0.1.6 Tauri keyboard visibility recovery — source checks only
+
+Checked 2026-10-23 under the interface owner's root-coordinated native-signal request, using the existing JDK17/SDK36 and offline Gradle caches. The actual-user missing-tabs report is not disproven by prior emulator checks. This change adds an observation path; it does not identify the phone's original trigger or establish an installed fix.
+
+Shared `AppWebViewPolicy` reads `rootWindowInsets.isVisible(WindowInsets.Type.ime())` on API30+ before any existing margin/bounds early return in `onPreDraw`. It emits `window.dispatchEvent(new CustomEvent('household-keyboard-visibility', {detail: {visible: boolean}}))` for the first available state, visibility transitions and an explicitly refreshed state. Both standalone `MainActivity.onResume` and the Tauri plugin's existing late-catch-up `ResumedActivityGate` request refresh, as do attachment and window-focus gain. Refresh requests current insets and a draw; it samples on that draw instead of claiming that focus implies dismissal. Tag guarding and balanced attach/detach registration also cover the added window-focus observer. No inset listener is replaced or consumed. The native signal contains only a boolean and never reads or changes DOM focus, drafts, viewport dimensions or user data.
+
+The existing zoom/viewport settings, system-bar/cutout margin arithmetic and legacy inset cap remain unchanged. No permission, manifest, soft-input mode, API/bridge command, min/target SDK, signing, native queue/configuration/identity or icon change is part of this fix. No existing simpler native keyboard event was found. Platform references: [typed visibility, available from API30](https://developer.android.com/reference/android/view/WindowInsets#isVisible(int)) and [window-focus observation](https://developer.android.com/reference/android/view/ViewTreeObserver.OnWindowFocusChangeListener).
+
+API26–29 and unavailable root insets emit no state. Legacy inset/viewport height guessing would not reliably identify a non-resizing overlay keyboard. Web blur, Done and browser-resume handling remain the older-version fallback; Back with retained focus/non-resizing IME is not guaranteed there. Events are not persisted or replayed for a late JS listener or WebView reload. Interface owns native-only listening and clearing editing on false without moving focus or discarding drafts.
+
+Commands from repository root:
+
+```sh
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/gradlew -p clients/android --offline --console=plain \
+  :app:testDebugUnitTest --tests household.share.android.AppWebViewPolicyTest \
+  :app:lintDebug -x :app:bundleWeb
+ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 \
+  clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android \
+  --offline --console=plain :tauri-plugin-household:compileDebugKotlin \
+  :tauri-plugin-household:lintDebug :app:compileUniversalDebugKotlin :app:lintUniversalDebug \
+  -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb -Pkotlin.incremental=false
+node clients/android/build/check-keyboard-visibility-0.1.5.cjs
+```
+
+The focused JVM suite executes seven tests: three new signal-state regressions and four retained system-bar geometry checks. It covers initial false/true, show→hide without focus/size inputs, duplicate suppression, forced same-state refresh and unknown state not inventing a dismissal or consuming refresh. The Node check extracts the actual Kotlin JS string and dispatches false/true/false through `CustomEvent`/`EventTarget`, asserting the event name and boolean-only detail. An initial harness assertion compared objects across VM realms and failed on their prototypes despite correct payloads; the corrected harness compares boolean values and own payload keys. This is JS syntax/contract evidence, not Android or React execution.
+
+All three commands pass. Seven focused JVM tests have zero failures/errors/skips. Standalone, shared-plugin and generated-host Kotlin compilation succeeds. Lint has zero errors, with 6/21/23 warnings respectively and one generated-host hint. Existing generated-code deprecation warnings remain. No Android observer/lifecycle instrumentation was run; the state-helper tests do not exercise real inset delivery or `evaluateJavascript` timing.
+
+Root subsequently authorized a metadata-only Tauri replacement version **0.1.6/code1006**. Exactly five version files change: `src-tauri/Cargo.toml`, the own-package entry in `src-tauri/Cargo.lock`, `src-tauri/tauri.conf.json`, generated `src-tauri/gen/android/app/build.gradle.kts` fallbacks and retained `src-tauri/gen/android/app/tauri.properties`. A Python TOML/JSON/property check verifies agreement, unchanged dependency graph and configuration apart from version/code, preserved application ID `net.household.share.mobile`, and standalone **0.1.5/code6** unchanged. Android minimum is API26; native typed IME visibility requires API30. Compile/target SDK36 and JDK17 remain current. No dependency or toolchain installation is required by this change.
+
+The four runtime/test files retain their exact passing-check hashes after this metadata-only bump. JVM, Kotlin compilation and lint were not repeated; root's future versioned package build remains necessary. `build/keyboard-visibility-0.1.6-version-{before,check}.json` records metadata provenance and the successful static check. [The final source record](validation/keyboard-visibility-0.1.6-source.json) lists current source/test hashes, minimum requirements and all retained evidence. [The unchanged 0.1.5 pre-version snapshot](validation/keyboard-visibility-0.1.5-source.json) retains its original source/doc/version receipts and check scope. Logs use `build/keyboard-visibility-0.1.5-*`. No unrelated JVM suite, icon checks or package audit was repeated. Historical source/package reports and retained APK bytes keep their original scopes.
+
+No replacement APK/Rust/frontend build, install/ADB/device/emulator, new dependency/toolchain/SDK/system installation, new Agent, service/deployment/publication or web/root edit was performed. Actual IME delivery, Back with retained focus and unchanged viewport, Home/resume, window focus, rotation/reattachment, API26–29 and physical-phone acceptance remain unperformed. Background/transfer/recovery/memory/20 GB checks remain outside this source handoff. Root owns replacement packaging and installed acceptance.
+
 ## 0.1.5 navy Ribbon Z recolor — source checks only
 
 Checked 2026-10-23 with existing JDK17/SDK36 and offline caches. The user approved the navy/soft-white/signal-red preview after removing Sea Glass/teal. The selected launcher uses white Ribbon Z on navy `#244C6A`, without red details. This supersedes the historical Iris palette below. Sea Glass preparation was cancelled before PNG generation or validation; no final Sea Glass source report exists. The original navy source report remains unchanged; its earlier pending-review wording is historical. [The approval addendum](validation/icons-navy-0.1.5-approval.json) records current branding/document hashes and verifies the source, assets and earlier evidence remain unchanged. No generation, build, pixel check or test was repeated for this documentation-only approval update.

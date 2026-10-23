@@ -18,6 +18,26 @@ describe('native adapter contract', () => {
     expect(unpaired.defaultDeviceName).toBe(fixture.unpairedConfig.sourceDevice)
     expect((await nativePlatform(vi.fn().mockResolvedValue({...fixture.config,baseUrl:''}))).requiresConnection).toBe(true)
   })
+  it('blocks API calls without a configured connection and again after explicit disconnect', async () => {
+    let config: Record<string,unknown> = {}
+    const invoke=vi.fn<NativeInvoke>(async(command,args)=>{
+      if(command==='native_get_config')return config
+      if(command==='native_configure'){config={...fixture.config,baseUrl:args?.baseUrl};return null}
+      if(command==='native_disconnect')return null
+      if(command==='native_api')return {status:200,body:'{}'}
+    })
+    const adapter=await nativePlatform(invoke)
+    expect(adapter.baseURL).toBeUndefined()
+    await expect(adapter.request!('http://127.0.0.1:8787/api/items')).rejects.toThrow('Settings')
+    expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
+    await adapter.configureConnection!('https://chosen.example','','Phone')
+    expect(adapter.requiresConnection).toBe(false)
+    await adapter.request!('https://chosen.example/api/items')
+    await adapter.disconnect!()
+    expect(adapter.requiresConnection).toBe(true)
+    await expect(adapter.request!('https://chosen.example/api/items')).rejects.toThrow('Settings')
+    expect(invoke.mock.calls.filter(([command])=>command==='native_api')).toHaveLength(1)
+  })
   it('preserves native response headers, exact fixture text, and empty HTTP responses', async () => {
     const invoke = vi.fn<NativeInvoke>(async command => command === 'native_get_config' ? fixture.config : fixture.apiResponse)
     const adapter = await nativePlatform(invoke)

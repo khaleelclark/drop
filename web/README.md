@@ -31,7 +31,7 @@ documentation describes private Tailscale HTTPS hosting.
 
 The browser build deliberately uses its own origin. Open the private server's
 HTTPS address to connect; it does not send household tokens to an arbitrary
-cross-origin server. A successful protected feed fetch through configured Tailscale Serve opens the inbox directly, without a login form. Installed apps use saved configuration supplied by the native bridge before rendering; a preconfigured client opens the feed directly. Network failures and access denials on configured installed clients keep the feed visible with Retry and Settings, without automatically opening setup. Manual settings, unconfigured clients and explicit disconnect retain the connection form. The web interface supplies no default server or configuration migration. Optional token entry is behind Advanced; token servers exchange it for the server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
+cross-origin server. A successful protected feed fetch through configured Tailscale Serve opens the inbox directly, without a login form. Installed apps use saved configuration supplied by the native bridge before rendering; a preconfigured client opens the feed directly. Network failures and access denials on configured installed clients keep the feed visible with Retry and Settings, without automatically opening setup. Unconfigured installed clients and explicit Disconnect open the inbox shell with a nonblocking Configure connection action; the connection dialog opens only when requested. Native API calls wait until a connection is saved. Browser same-origin authentication recovery is unchanged. The web interface supplies no default server or configuration migration. Optional token entry is behind Advanced; token servers exchange it for the server's HttpOnly cookie. Tokens never enter URL query strings, localStorage,
 queue records, or the service-worker cache. Native adapters can configure a
 remote HTTPS origin and supply a bearer-authenticated HTTP bridge.
 
@@ -90,7 +90,7 @@ Go server or any physical device.
 
 ## Native platform adapter
 
-`src/native-platform.ts` automatically detects the desktop Tauri invoke bridge and Android `__HOUSEHOLD_NATIVE__` bridge, maps native queue snapshots, calls native pickers/clipboard/download/API commands, and polls metadata every five seconds. No Tauri npm package is needed by the browser build. Native shells provide `native_get_config` with redacted origin/device and a `connected` flag; no token is returned to JS. A saved server with `connected: false` opens pairing again. Validation remains pausable, retry waits expose Resume, completed downloads can be cleared, and missing sources use native Resume/reselection instead of a browser file picker.
+`src/native-platform.ts` automatically detects the desktop Tauri invoke bridge and Android `__HOUSEHOLD_NATIVE__` bridge, maps native queue snapshots, calls native pickers/clipboard/download/API commands, and polls metadata every five seconds. No Tauri npm package is needed by the browser build. Native shells provide `native_get_config` with redacted origin/device and a `connected` flag; no token is returned to JS. A missing address or `connected: false` opens the inbox with explicit connection settings, without issuing native API calls. Saving settings remembers the address through the existing native configuration store; explicit Disconnect remains disconnected across relaunch. Validation remains pausable, retry waits expose Resume, completed downloads can be cleared, and missing sources use native Resume/reselection instead of a browser file picker.
 
 `src/platform.ts` exports `PlatformAdapter`; `src/transfers.ts` exports
 `TransferStore` and `Transfer`. Before `src/main.tsx` executes, an installed
@@ -282,14 +282,10 @@ white Ribbon Z on navy without a red overlay. PWA metadata matches the neutral
 canvas; shell cache v13 retains the existing shell-only caching boundary.
 
 The current feed UX separates All shares/For you/Pinned scope from content kind
-and hides browsing tabs while workspace text fields are focused. Done editing
-or handled Escape restores selected-scope focus with draft, recipients, kind,
-search and identity retained. Existing configured startup/recovery, bounded
+and hides browsing tabs during text editing. Leaving the editing controls or backgrounding the window restores browsing; Android’s actual IME-hidden signal restores tabs even when Back retains field focus and neither viewport resizes. Done editing or handled Escape still restores selected-scope focus. Draft, recipients, kind, search and identity are retained. The event is `household-keyboard-visibility` with boolean `detail.visible`, consumed only for detected native Android; browser input blur and explicit Done remain recovery paths without guessing keyboard visibility from viewport heights. Existing configured startup/recovery, bounded
 text/copy/editing/downloads, menus, arrivals and transfer behavior are preserved.
 
-Final current-source validation passes 94/94 unit/component tests (11 files,
-5.34 s), 36/36 Chromium tests (1.6 m), TypeScript and the Vite production build
-(4.94 s). Screenshots, exact changed paths, all nine
+The original 94/94 unit/component and 36/36 Chromium results predate the connection/navigation follow-up. Current focused results, any failures and corrections, TypeScript/build evidence and native/device limitations are recorded in FINAL-REVIEW.md; they do not imply a repeated full browser suite. Screenshots, exact changed paths, all nine
 production asset hashes and remaining checks are recorded in
 [FINAL-REVIEW.md](./FINAL-REVIEW.md). Rendered role checks cover text/action
 contrast, essential input boundaries and 3 px focus; they are not a complete
