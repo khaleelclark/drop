@@ -61,17 +61,18 @@ export class ApiClient {
     if (!Array.isArray(page.items) || page.items.length > 50 || page.items.some(item => !validItemId(item.id) || !item.deletedAt || !Number.isFinite(Date.parse(item.deletedAt))) || !(page.nextCursor === null || typeof page.nextCursor === 'string')) throw new Error('Invalid Recently Deleted response. Update your household server and retry; active shares have not been changed.')
     return page
   }
-  private async recoverable<T>(request:()=>Promise<T>):Promise<T> {
+  private async recoverable<T>(request:()=>Promise<T>,missingRoute=true):Promise<T> {
     try { return await request() }
     catch(error) {
-      if(error instanceof ApiError && [404,405,501].includes(error.status)) throw new ApiError('Update your household server to use Recently Deleted. No legacy delete was attempted.',error.status,'update_required')
+      if(error instanceof ApiError && ([405,501].includes(error.status)||(missingRoute&&error.status===404))) throw new ApiError('Update the household server to delete items.',error.status,'update_required')
+      if(error instanceof ApiError && error.status===404&&!missingRoute) throw new ApiError('This item is no longer available.',404,error.code)
       if(error instanceof ApiError && error.code==='upload_active') throw new ApiError('This upload is still active. Use Cancel in Transfers instead.',error.status,error.code)
       throw error
     }
   }
   itemAction(action:ItemAction,id:string) {
     if(!['trash','restore','purge'].includes(action)||!validItemId(id)) throw new Error('Invalid item ID.')
-    return this.recoverable(()=>this.response(`/items/${encodeURIComponent(id)}/${action}`,{method:'POST'}))
+    return this.recoverable(()=>this.response(`/items/${encodeURIComponent(id)}/${action}`,{method:'POST'}),false)
   }
   async itemActions(action:ItemAction,ids:string[]) {
     if(!['trash','restore','purge'].includes(action) || ids.length<1 || ids.length>100 || new Set(ids).size!==ids.length || ids.some(id=>!validItemId(id))) throw new Error('Select 1–100 unique displayed items.')

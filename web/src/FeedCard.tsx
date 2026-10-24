@@ -7,8 +7,8 @@ import { isTextFileCandidate, textDownloadName } from './text-files'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { copyExactText, type PlatformAdapter } from './platform'
 import { errorMessage, formatBytes, type Item } from './types'
-interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; actionBusy?:boolean }
-export function FeedCard({ item, api, platform, refresh, notify, onTrash, actionBusy }: Props) {
+interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; actionBusy?:boolean; trashAvailable?:boolean }
+export function FeedCard({ item, api, platform, refresh, notify, onTrash, actionBusy, trashAvailable=true }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
   const [body, setBody] = useState<string | undefined>(); const [loading, setLoading] = useState(false)
   const previewElement=useRef<HTMLPreElement>(null);const [clipped,setClipped]=useState(false)
@@ -35,7 +35,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
     if(item.size>COPY_LIMIT) return
     const controller=new AbortController();preparation.current?.abort();preparation.current=controller
     setLoading(true); setError('')
-    try { const full=await api.text(item.id,controller.signal); if(!controller.signal.aborted) { setBody(full); notify('Full text is ready. Press Copy text to copy it.') } }
+    try { const full=await api.text(item.id,controller.signal); if(!controller.signal.aborted) { setBody(full); notify('Ready to copy.') } }
     catch (error) { if(!controller.signal.aborted) setError(errorMessage(error)) } finally { if(preparation.current===controller) { setLoading(false);preparation.current=undefined } }
   }
   const copy = async () => {
@@ -69,7 +69,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
     setSaving(true);setEditError('')
     try {
       await api.edit(item.id,{name:editor.name,...(editor.text !== undefined ? {text:editor.text} : {}),expectedUpdatedAt:editor.version})
-      setEditor(null);setBody(undefined);setCopied(false);notify('Entry saved for your household.');refresh()
+      setEditor(null);setBody(undefined);setCopied(false);notify('Saved.');refresh()
     } catch (error) { setEditError(error instanceof ApiError && error.status === 409 ? 'This entry changed or is no longer ready. Your draft is kept. Reload the latest entry to replace this draft, or keep it and copy your changes.' : `${errorMessage(error)} Your draft is kept. The save may have reached the server; reload to check before saving again.`) }
     finally { setSaving(false) }
   }
@@ -94,7 +94,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
         event.preventDefault();const pasted=event.clipboardData.getData('text/plain');const start=event.currentTarget.selectionStart;const end=event.currentTarget.selectionEnd
         setEditor({...editor,text:insertPlainText(editor.text!,start,end,pasted)})
         requestAnimationFrame(()=>{const caret=start+textareaText(pasted).length;textInput.current?.setSelectionRange(caret,caret)})
-      }}/></label> : <p className="field-note">{item.kind==='text'?'This entry exceeds the 8 MiB editor budget. You can rename it or download the full text.':'Rename this file. Its original bytes stay the same.'}</p>}
+      }}/></label> : item.kind==='text'&&<p className="field-note">Too large to edit here. Rename or download it.</p>}
       <div className="editor-actions"><button className="button secondary" disabled={saving||editLoading}><Save size={16}/>{saving?'Saving…':'Save entry'}</button><button type="button" className="text-button" disabled={saving} onClick={cancelEdit}>Cancel editing</button><button type="button" className="text-button" onClick={()=>{(document.activeElement as HTMLElement)?.blur()}}>Done typing</button></div>
     </form> : <div className={`feed-row ${expanded ? 'is-expanded' : ''}`}>
       <div className="row-content">
@@ -113,14 +113,14 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
           {item.kind==='text'&&(['txt','md'] as const).map(format=><button key={format} role="menuitem" tabIndex={0} onClick={()=>{void download(format);close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download .{format}</button>)}
           <button role="menuitem" tabIndex={0} disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
           <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
-          <button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Move to Recently Deleted</button>
+          {trashAvailable&&<button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Move to Recently Deleted</button>}
         </>}</ItemMenu>
       </div></div>
       {item.status !== 'ready' && <span className={`item-status status-${item.status}`}>{item.status === 'failed' ? 'Upload failed' : <><LoaderCircle className="spin" size={12} /> Uploading — use Cancel in Transfers</>}</span>}
     </div>}
     {(loading||editLoading)&&<button className="text-button" onClick={()=>{preparation.current?.abort();setLoading(false);editPreparation.current?.abort();setEditLoading(false)}}>Cancel preparation</button>}
-    {expanded && rendered?.truncated && <p className="inline-note">Showing the first 256 KiB. Copy text uses the full prepared body; download .txt or .md to read everything.</p>}
-    {textual && item.size > COPY_LIMIT && <p className="inline-note">This text exceeds the 8 MiB copy budget. Download {item.kind==='text'?'.txt or .md':'the file'} to open or copy the full text in another app.</p>}
+    {expanded && rendered?.truncated && <p className="inline-note">Preview shortened. Copy or download the full text.</p>}
+    {textual && item.size > COPY_LIMIT && <p className="inline-note">Too large to copy here. Download {item.kind==='text'?'.txt or .md':'the file'} to open or copy the full text in another app.</p>}
     {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
     {error && <p className="inline-error" role="alert">{error}</p>}
   </article>

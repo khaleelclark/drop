@@ -82,8 +82,11 @@ describe('recoverable deletion safety',()=>{
     const api=new ApiClient('https://household.example',request)
     await expect(api.trashPage()).rejects.toThrow('Invalid Recently Deleted')
     request.mockResolvedValue(new Response('not found',{status:404}))
-    await expect(api.itemAction('trash','note')).rejects.toThrow('Update your household server')
-    expect(request).toHaveBeenCalledTimes(2);expect(request.mock.calls.every(([,init])=>init.method!=='DELETE')).toBe(true)
+    await expect(api.trashPage()).rejects.toMatchObject({code:'update_required'})
+    await expect(api.itemAction('trash','note')).rejects.toMatchObject({status:404,message:'This item is no longer available.'})
+    request.mockResolvedValue(new Response('not allowed',{status:405}))
+    await expect(api.itemAction('trash','note')).rejects.toMatchObject({code:'update_required'})
+    expect(request).toHaveBeenCalledTimes(4);expect(request.mock.calls.every(([,init])=>init.method!=='DELETE')).toBe(true)
   })
   it('validates the whole bounded batch before requesting and keeps ordered partial errors',async()=>{
     const results=[{id:'a',ok:true},{id:'b',ok:false,error:{status:409,code:'upload_active',message:'Use transfer Cancel'}}]
@@ -128,9 +131,9 @@ describe('shared retention and whole-folder deletion',()=>{
   })
   it('reports old settings/summary/purge routes as update-required without another request',async()=>{
     const request=vi.fn().mockImplementation(()=>Promise.resolve(new Response('missing',{status:404}))),api=new ApiClient('https://household.example',request)
-    await expect(api.trashSettings()).rejects.toThrow('Update your household server')
-    await expect(api.trashSummary()).rejects.toThrow('Update your household server')
-    await expect(api.purgeTrash('2026-10-24T02:00:00Z')).rejects.toThrow('Update your household server')
+    await expect(api.trashSettings()).rejects.toThrow('Update the household server')
+    await expect(api.trashSummary()).rejects.toThrow('Update the household server')
+    await expect(api.purgeTrash('2026-10-24T02:00:00Z')).rejects.toThrow('Update the household server')
     expect(request).toHaveBeenCalledTimes(3)
   })
 })
