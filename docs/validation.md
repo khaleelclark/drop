@@ -1,3 +1,17 @@
+## Current delete-error follow-up — 24 October 2026
+
+Previous Mac WebKit run 40054960535 failed last-row HTTP 500 error visibility
+(23/24 checks passed). The exact nine-item/three-transfer fixture reproduced
+801.5–821.5px error bounds in the 800px desktop viewport before the correction.
+Current web correction places the error in the confirmation scroll area,
+scrolls on error appearance and preserves opening-only safe Keep focus.
+Five focused Chromium cases, typecheck and one new production build pass.
+Root directly verified 81 hash entries and 20 embedded source bytes against
+`web/test-results/ui-refresh/error-visibility-freeze.json`. New-asset real Mac
+WebKit and matching installer acceptance remain pending. Existing native package
+and emulator reports describe the prior assets and do not validate this change.
+The 22 historical evidence gaps remain recorded and unresolved.
+
 ## Current UI refresh candidate — 24 October 2026
 
 The accepted navy/white/red layout and Mac Delete focus correction are frozen in

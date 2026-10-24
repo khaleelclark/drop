@@ -1,0 +1,758 @@
+{
+  "status": "failed-visible-error-acceptance",
+  "sourceCommit": "efa33faeeebfac1c12866f502793d2ead89ee19e",
+  "runId": 40054960535,
+  "runUrl": "https://github.com/khaleelclark/household-share/actions/runs/40054960535",
+  "artifactId": 12544534267,
+  "artifactSHA256": "6c7fe0c32e8c121f6884f9b6815d07add726070158659e7a8825e0ccd99cdcf8",
+  "driver": "Playwright WebKit on macOS; real browser input; no forced DOM focus/events",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "result": "failed",
+  "infrastructureError": "",
+  "checks": [
+    {
+      "case": "default",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Keep retains item with zero mutations",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Escape closes menu and restores trigger focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "500 keeps item and explicit retry without false success",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Bodyless 204 succeeds while failed feed refresh remains recoverable",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Feed Retry removes item without repeating DELETE",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Keep retains item with zero mutations",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Escape closes menu and restores trigger focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "TimeoutError: page.waitForFunction: Timeout 30000ms exceeded.",
+      "passed": false
+    }
+  ],
+  "cases": [
+    {
+      "name": "default",
+      "error": "",
+      "observations": {
+        "viewport": {
+          "width": 1100,
+          "height": 800,
+          "scrollX": 0,
+          "scrollY": 0,
+          "visual": {
+            "offsetLeft": 0,
+            "offsetTop": 0,
+            "width": 1100,
+            "height": 800,
+            "scale": 1
+          }
+        },
+        "rowPresent": false,
+        "confirmation": null,
+        "keep": null,
+        "deleteButton": null,
+        "errorVisible": false,
+        "deleteEnabled": false,
+        "success": true,
+        "deleteCount": 2,
+        "calls": [
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items/native-note/text",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "POST",
+            "path": "/api/devices/register",
+            "hasBody": true,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "DELETE",
+            "path": "/api/items/native-note",
+            "hasBody": false,
+            "outcome": 500
+          },
+          {
+            "command": "native_api",
+            "method": "DELETE",
+            "path": "/api/items/native-note",
+            "hasBody": false,
+            "outcome": 204
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": "offline"
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          }
+        ],
+        "dom": [],
+        "attributeOverrides": []
+      }
+    },
+    {
+      "name": "last",
+      "error": "TimeoutError: page.waitForFunction: Timeout 30000ms exceeded.",
+      "observations": {
+        "viewport": {
+          "width": 1100,
+          "height": 800,
+          "scrollX": 0,
+          "scrollY": 566,
+          "visual": {
+            "offsetLeft": 0,
+            "offsetTop": 0,
+            "width": 1100,
+            "height": 800,
+            "scale": 1
+          }
+        },
+        "rowPresent": true,
+        "confirmation": {
+          "x": 216,
+          "y": 722.5,
+          "width": 860,
+          "height": 69,
+          "top": 722.5,
+          "right": 1076,
+          "bottom": 791.5,
+          "left": 216,
+          "visible": true,
+          "uncovered": true
+        },
+        "keep": {
+          "x": 1014.203125,
+          "y": 735.5,
+          "width": 61.796875,
+          "height": 44,
+          "top": 735.5,
+          "right": 1076,
+          "bottom": 779.5,
+          "left": 1014.203125,
+          "visible": true,
+          "uncovered": true
+        },
+        "deleteButton": {
+          "x": 935.234375,
+          "y": 735.5,
+          "width": 70.96875,
+          "height": 44,
+          "top": 735.5,
+          "right": 1006.203125,
+          "bottom": 779.5,
+          "left": 935.234375,
+          "visible": true,
+          "uncovered": true
+        },
+        "errorVisible": false,
+        "deleteEnabled": true,
+        "success": false,
+        "deleteCount": 1,
+        "calls": [
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items/native-note/text",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "POST",
+            "path": "/api/devices/register",
+            "hasBody": true,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "DELETE",
+            "path": "/api/items/native-last",
+            "hasBody": false,
+            "outcome": 500
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/health",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/items?limit=50",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/devices",
+            "hasBody": false,
+            "outcome": 200
+          },
+          {
+            "command": "native_api",
+            "method": "GET",
+            "path": "/api/storage",
+            "hasBody": false,
+            "outcome": 200
+          }
+        ],
+        "dom": [
+          {
+            "element": {
+              "nodeTag": "BUTTON",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "BUTTON",
+              "id": "",
+              "connected": true,
+              "tabindex": null,
+              "role": null,
+              "label": "Download",
+              "name": "Download"
+            },
+            "rect": {
+              "x": 928.265625,
+              "y": 670.5,
+              "width": 103.734375,
+              "height": 44,
+              "top": 670.5,
+              "right": 1032,
+              "bottom": 714.5,
+              "left": 928.265625,
+              "visible": true,
+              "uncovered": true
+            }
+          },
+          {
+            "element": {
+              "nodeTag": "BUTTON",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "BUTTON",
+              "id": "",
+              "connected": true,
+              "tabindex": "0",
+              "role": null,
+              "label": "More actions for Synthetic file 8.zip",
+              "name": ""
+            },
+            "rect": {
+              "x": 1032,
+              "y": 670.5,
+              "width": 44,
+              "height": 44,
+              "top": 670.5,
+              "right": 1076,
+              "bottom": 714.5,
+              "left": 1032,
+              "visible": true,
+              "uncovered": true
+            }
+          },
+          {
+            "element": {
+              "nodeTag": "DIV",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "DIV",
+              "id": "",
+              "connected": true,
+              "tabindex": null,
+              "role": "group",
+              "label": "Confirm deletion",
+              "name": null
+            },
+            "rect": {
+              "x": 216,
+              "y": 722.5,
+              "width": 860,
+              "height": 69,
+              "top": 722.5,
+              "right": 1076,
+              "bottom": 791.5,
+              "left": 216,
+              "visible": true,
+              "uncovered": true
+            }
+          },
+          {
+            "element": {
+              "nodeTag": "BUTTON",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "BUTTON",
+              "id": "",
+              "connected": true,
+              "tabindex": null,
+              "role": null,
+              "label": null,
+              "name": "Delete"
+            },
+            "rect": {
+              "x": 935.234375,
+              "y": 735.5,
+              "width": 70.96875,
+              "height": 44,
+              "top": 735.5,
+              "right": 1006.203125,
+              "bottom": 779.5,
+              "left": 935.234375,
+              "visible": true,
+              "uncovered": true
+            }
+          },
+          {
+            "element": {
+              "nodeTag": "BUTTON",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "BUTTON",
+              "id": "",
+              "connected": true,
+              "tabindex": null,
+              "role": null,
+              "label": null,
+              "name": "Keep"
+            },
+            "rect": {
+              "x": 1014.203125,
+              "y": 735.5,
+              "width": 61.796875,
+              "height": 44,
+              "top": 735.5,
+              "right": 1076,
+              "bottom": 779.5,
+              "left": 1014.203125,
+              "visible": true,
+              "uncovered": true
+            }
+          },
+          {
+            "element": {
+              "nodeTag": "P",
+              "nodeId": "",
+              "nodeConnected": true,
+              "tag": "P",
+              "id": "",
+              "connected": true,
+              "tabindex": null,
+              "role": "alert",
+              "label": null,
+              "name": null
+            },
+            "rect": {
+              "x": 216,
+              "y": 801.5,
+              "width": 860,
+              "height": 20,
+              "top": 801.5,
+              "right": 1076,
+              "bottom": 821.5,
+              "left": 216,
+              "visible": false,
+              "uncovered": false
+            }
+          }
+        ],
+        "attributeOverrides": []
+      }
+    }
+  ],
+  "rawReport": ".tools/mac-delete-ci/run-40054960535/extracted/fixed/report.json",
+  "installer": {
+    "runId": 40054961984,
+    "statusAtSingleRootCheck": "in_progress",
+    "sourceCommit": "efa33faeeebfac1c12866f502793d2ead89ee19e"
+  },
+  "remaining": "Interface owner assigned minimal error-appearance visibility correction, focused regression and replacement web freeze. Existing native packages predate this correction.",
+  "limits": [
+    "Playwright WebKit on macOS, not installed Tauri/WKWebView",
+    "Last-case 204/refresh recovery not reached",
+    "No physical-device or 20GB validation"
+  ]
+}

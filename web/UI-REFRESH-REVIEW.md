@@ -1,4 +1,43 @@
-# Zing layout refresh — reviewed production freeze
+# Current UI freeze — error visibility follow-up
+
+24 October 2026. Root's accepted desktop/phone composition is preserved.
+The one newly authorized correction/build keeps a last-item delete error inside
+its confirmation scroll area and scrolls again when that error appears, without
+refocusing Keep. Explicit menu tabindex and all navigation/picker/composer/layout
+behavior remain unchanged. Current assets are `index-Cak_AnQS.js`, its map and
+`index-Dw3Gk6BF.css`.
+
+Root's actual macOS arm64 WebKit run **40054960535** on the previous assets
+passed 23/24 checks: default full flow passed; last-item confirmation, safe Keep
+and menu passed, but the 500 error was offscreen at y=801.5–821.5 in an 800 px
+window. The prior freeze therefore did not pass the full Mac flow. A new Chromium
+regression reused the exact diagnostic nine-item/three-transfer fixture and
+reproduced those exact desktop error bounds before failing. The phone case
+already passed. After correction **5/5 focused checks passed (7.90 s)**, including
+unobscured confirmation/both buttons/error on desktop 1100×800 and phone 390×600,
+safe Keep/cancel, menu dismissal, structured 500/retry/no false success, empty 204
+and failed-feed-refresh Retry without duplicate mutation. Source typecheck and
+**one new production build** passed (Vite 6.4.5, 1620 modules, 1.76 s); no broad rerun.
+
+Visually inspected current last-item error renders:
+[desktop](test-results/ui-refresh/error-visibility/after-browser-last-item-delete-e-a89fb-ecovery-visible-at-1100x800-last-error.png),
+[phone](test-results/ui-refresh/error-visibility/after-browser-last-item-delete-e-335a2-recovery-visible-at-390x600-last-error.png).
+Desktop error now y759.5–779.5; phone error y458.5–478.5 above tabs. Entire
+confirmation and both controls remain visible; active BODY is unchanged by
+error appearance. No installed/native Mac success is inferred. Root owns the
+Mac WebKit rerun, native packages and device acceptance.
+
+[Current manifest](test-results/ui-refresh/error-visibility-freeze.json) records
+all nine asset/source hashes, 20/20 exact source-map matches, HTML/public-file
+consistency and checks. Prior `final-freeze.json`, prior production files in
+`error-visibility/prior-dist/`, all approved renders/evidence and ten immutable
+baseline files are preserved. The unchanged 22-missing historical inventory
+remains unresolved; no original was fabricated. Exact commands, limits and
+current asset table are in [FINAL-REVIEW.md](FINAL-REVIEW.md).
+
+---
+
+# Historical Zing layout refresh — prior production freeze
 
 24 October 2026. Root inspected the actual desktop/phone after renders and
 accepted the shared edges, grouped composer, quieter list and four complete

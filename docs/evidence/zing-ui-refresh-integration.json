@@ -1,0 +1,39 @@
+{
+  "status": "CorrectedWebVerified;NewMacWebKitAndPackagesPending",
+  "date": "2026-10-24",
+  "webFreeze": "web/test-results/ui-refresh/error-visibility-freeze.json",
+  "webFreezeRootAudit": ".tools/build-ui-refresh/root-freeze-check.json",
+  "webVerification": {
+    "hashEntries": 79,
+    "sourceMapLocalFiles": 20,
+    "productionAssets": 9,
+    "unitPassesRetained": 36,
+    "focusedBrowserCasesRetained": 20,
+    "finalFocusedBrowserPasses": 4,
+    "additionalNarrowErrorPasses": 1,
+    "typecheck": "passed",
+    "productionBuildsDuringWebFinalization": 1,
+    "currentHashEntries": 81,
+    "currentFocusedBrowserPasses": 5,
+    "additionalProductionBuildsForErrorCorrection": 1
+  },
+  "packages": {
+    "linux": "docs/evidence/zing-ui-refresh-linux-package.json",
+    "android": "docs/evidence/zing-ui-refresh-android-packages.json",
+    "macOSRun": 40054961984,
+    "macWebKitRun": 40054960535,
+    "androidInstalled": "docs/evidence/zing-ui-refresh-android-installed.json",
+    "scope": "Existing packages match efa33fa candidate and predate remaining error-visibility correction"
+  },
+  "historicalMissingRequired": "docs/evidence/historical-evidence-unavailable.json",
+  "historicalMissingCount": 22,
+  "allRequiredDeliverablesComplete": false,
+  "daymark": "Out of scope: user clarified wrong chat; no publication",
+  "limits": [
+    "Installed Mac acceptance pending",
+    "No physical-device or20GB validation fromthisrelease",
+    "No deployment"
+  ],
+  "macWebKitEvidence": "docs/evidence/zing-ui-refresh-macos-webkit.json",
+  "previousSourceCommit": "efa33faeeebfac1c12866f502793d2ead89ee19e"
+}

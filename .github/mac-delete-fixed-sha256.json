@@ -1,18 +1,18 @@
 [
   {
-    "path": "web/dist/assets/index-8QCwuAnd.js",
-    "bytes": 400154,
-    "sha256": "bac70db5940e78530e0b32abbe19633b8b94305d286d69c2a3574d88887c99ed"
+    "path": "web/dist/assets/index-Cak_AnQS.js",
+    "bytes": 400260,
+    "sha256": "e5c4648dde1aea8bd61836c62b84c9b79c0a69351cb4069b7f9a41ea79328c13"
   },
   {
-    "path": "web/dist/assets/index-8QCwuAnd.js.map",
-    "bytes": 1811498,
-    "sha256": "d62fe5554cc15cbe32ea34e307506f3f6d3a7f11e218c8915581439b1e2f5618"
+    "path": "web/dist/assets/index-Cak_AnQS.js.map",
+    "bytes": 1811814,
+    "sha256": "155b83fd4229a99d5185d258992019207cdca40651866d9af100dff0e28526f3"
   },
   {
-    "path": "web/dist/assets/index-CJq1Hml4.css",
-    "bytes": 28077,
-    "sha256": "c1579ec4882826529767143a83736692de5b249e4544586b3d7eaf3770ef9ccf"
+    "path": "web/dist/assets/index-Dw3Gk6BF.css",
+    "bytes": 28132,
+    "sha256": "ba90f33f3540b56d070b5027aeee6588dab7b50c6403dd1b9ae43bd04e24bf41"
   },
   {
     "path": "web/dist/icon-192.png",
@@ -32,7 +32,7 @@
   {
     "path": "web/dist/index.html",
     "bytes": 704,
-    "sha256": "071ef1d8634ba5137aae15bbda6a46b6d7fa2864677db13875a3ceb6f2a4b727"
+    "sha256": "c27a0effdb22fb634d202acf5358205f2229d4e0589d5cf3fa56680b7fe95e21"
   },
   {
     "path": "web/dist/manifest.webmanifest",

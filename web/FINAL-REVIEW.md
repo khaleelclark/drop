@@ -1,4 +1,104 @@
-# Current reviewed UI + Mac menu production freeze
+# Current freeze — last-item delete error visibility
+
+24 October 2026. The remaining error-visibility correction is built and frozen.
+Root explicitly authorized one new production build for the evidenced failure;
+**exactly one build ran for this correction**. The previously reviewed layout
+and explicit menu tabindex remain unchanged. Root owns Mac WebKit rerun,
+package integration and installed acceptance.
+
+## Evidence and minimal correction
+
+Directly read `scripts/macos-delete-webkit.cjs`, its shared fixture and
+`.tools/mac-delete-ci/run-40054960535/extracted/fixed/report.json`.
+The real macOS arm64 WebKit run on the prior frozen assets passed **23/24
+checks**: default full flow passed; last-item menu, safe Keep and confirmation
+passed, but the structured-500 error was at y=801.5–821.5 in an 800 px viewport,
+causing a visibility timeout. That prior build did not pass the full Mac flow.
+
+The new local regression reuses that exact nine-item/three-transfer fixture.
+Before the change, Chromium reproduced **the same y=801.5–821.5 desktop error**
+and failed its visibility assertion. The 390×600 phone case already passed;
+there is no claim of a reproduced phone failure.
+
+`FeedCard` now places its delete error inside the existing confirmation scroll
+area, on a full-width flex row. Its scrolling effect reacts to error changes;
+the separate safe-Keep focus effect still runs only when confirmation opens.
+Each explicit attempt clears the previous error so a repeated failure is a new
+appearance. Error appearance does not take focus or issue another DELETE.
+Non-delete errors retain their existing inline alert. No menu/pointer handling,
+UI redesign, API/native/CI/dependency change was made.
+
+After correction, the desktop confirmation/error are y=694.5–791.5 and
+759.5–779.5; phone confirmation/error are y=367.5–490.5 and 458.5–478.5,
+above the bottom tabs. The full confirmation, both enabled controls and error
+are unobscured. Both captures were visually inspected. At error settlement the
+active element remains BODY in both fixtures, without refocusing Keep.
+
+## Validation actually run
+
+From `web/`, with the existing Chromium 1243 executable selected:
+
+- Before: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/home/phoenix/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome pnpm test:browser --grep 'last-item delete error keeps' --output=test-runs/delete-error-visibility-before --reporter=json` — **1 failed desktop, 1 passed phone; 10.05 s**.
+- After: same prefix and `pnpm test:browser --grep 'last-item delete error keeps|native desktop delete confirmation|native delete confirmation clears' --output=test-runs/delete-error-visibility-after --reporter=json` — **5/5 passed; 7.90 s**.
+- The focused set covers last-item desktop/phone geometry, ordinary and controlled
+  null-blur activation, safe Keep/cancel with zero DELETE, Escape/trigger return,
+  visible structured 500/enabled explicit retry/no false success, bodyless 204,
+  failed feed refresh and Retry without duplicate DELETE. The synthetic
+  null-blur case remains Chromium-only diagnostic coverage.
+- `pnpm typecheck` passed; **one `pnpm build` passed**: TypeScript + Vite 6.4.5,
+  1620 modules, 1.76 s Vite build. No broad test/unit rerun or second build.
+- Postbuild audit verifies all **20/20** embedded application sources equal
+  current source bytes, JS/map filenames and map reference agree, both HTML
+  bundle references resolve, and all five public copies match exactly.
+- All ten immutable baseline files, prior freeze and retained UI evidence were
+  checked unchanged. The prior nine production files are preserved byte-for-byte
+  under `test-results/ui-refresh/error-visibility/prior-dist/`.
+
+## Current deliverables
+
+Changed exactly six source/test/report files in this correction:
+`src/FeedCard.tsx`, `src/styles.css`, `e2e/browser.spec.ts`, `README.md`,
+`UI-REFRESH-REVIEW.md`, and `FINAL-REVIEW.md`. Generated TypeScript state is
+`tsconfig.tsbuildinfo`. New evidence, full before/after JSON results, four
+geometry records, nine PNGs, logs, preservation receipt and reproducible audit
+script live under `test-results/ui-refresh/error-visibility/`.
+
+The current source/asset/check manifest is
+[error-visibility-freeze.json](test-results/ui-refresh/error-visibility-freeze.json).
+The unchanged previous `final-freeze.json` and its nine-asset production snapshot
+are historical. The three updated production filenames are below.
+
+| Production file | Bytes | SHA256 |
+| --- | ---: | --- |
+| assets/index-Cak_AnQS.js | 400260 | `e5c4648dde1aea8bd61836c62b84c9b79c0a69351cb4069b7f9a41ea79328c13` |
+| assets/index-Cak_AnQS.js.map | 1811814 | `155b83fd4229a99d5185d258992019207cdca40651866d9af100dff0e28526f3` |
+| assets/index-Dw3Gk6BF.css | 28132 | `ba90f33f3540b56d070b5027aeee6588dab7b50c6403dd1b9ae43bd04e24bf41` |
+| icon-192.png | 920 | `4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e` |
+| icon-512.png | 3392 | `c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641` |
+| icon.svg | 243 | `da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128` |
+| index.html | 704 | `c27a0effdb22fb634d202acf5358205f2229d4e0589d5cf3fa56680b7fe95e21` |
+| manifest.webmanifest | 619 | `34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f` |
+| sw.js | 2153 | `dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543` |
+
+## Remaining acceptance and historical gaps
+
+New assets still need root's real Mac WebKit rerun and matching package/installed
+Tauri acceptance; Chromium results do not establish Mac or physical-device
+success. The approved desktop/phone visual direction and earlier passed evidence
+remain preserved, without broad reruns. No 20 GB transfer, OS notification,
+screen-reader/full accessibility, device keyboard/Back/Done or deployment check
+was performed here. No system installation or live household deletion occurred.
+
+The current root inventory lists 105 web files. Direct audit finds 80 present,
+22 previously reported irrecoverable historical evidence paths (unchanged missing
+inventory), and three superseded prior JS/map/CSS names. Those three prior files
+are now preserved in `error-visibility/prior-dist/`; root owns updating its
+required manifest. No missing original is recreated or relabelled. All current
+named source, reports, nine assets and new evidence were verified directly.
+
+---
+
+# Historical reviewed UI + Mac menu production freeze — superseded
 
 24 October 2026. Root accepted the actual desktop and phone renders, then
 explicitly authorized the exact Mac menu correction and **one combined build**.

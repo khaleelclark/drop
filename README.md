@@ -1,25 +1,25 @@
 ## Current UI refresh candidate — 24 October 2026
 
-The accepted navy/white/red layout and Mac Delete focus correction are frozen in
-`web/test-results/ui-refresh/final-freeze.json`. Current bundles are
-`index-8QCwuAnd.js`/map and `index-CJq1Hml4.css`. The interface owner ran one
-production build, focused deletion/recovery checks and typecheck; root verified
-79 recorded hashes. Desktop shell version is 0.1.5; Android Tauri is 0.1.7/code
-1007. Package and installed acceptance are separate and remain pending until
-version-specific evidence is recorded. No service deployment is part of this task.
+The reviewed navy/white/red layout, Mac menu focus and last-row delete-error
+visibility correction are built. Current freeze:
+`web/test-results/ui-refresh/error-visibility-freeze.json`; bundles are
+`index-Cak_AnQS.js`/map and `index-Dw3Gk6BF.css`. Root verified all 81 recorded
+hash entries and 20 embedded source matches. The exact regression failed on the
+prior desktop assets and passes after correction; all five focused cases,
+typecheck and one newly authorized production build passed.
 
-The macOS WebKit baseline/differential isolated focus moving to the parent
-before Delete click. Explicit tabindex=0 restores the click. Final candidate
-Mac WebKit and installed Tauri checks are pending; older diagnostic failures
-are not full-flow passes. See `docs/evidence/zing-mac-delete-webkit-diagnosis.json`
-and `web/UI-REFRESH-REVIEW.md`.
+The previous macOS WebKit candidate passed 23/24 checks but failed because the
+last-row HTTP 500 error was below the window. Its failed report is preserved in
+`docs/evidence/zing-ui-refresh-macos-webkit.json`. New-asset Mac WebKit,
+matching replacement packages and installed Mac acceptance remain pending.
+Existing desktop 0.1.5 and Android 0.1.7 packages predate this final correction.
+No service deployment is part of this task.
 
-Twenty-two required historical evidence files were lost and could not be
-recovered from permitted archives. They remain required and absent; no originals
-were fabricated. See `docs/evidence/historical-evidence-unavailable.json`. The
-aggregate `artifacts/package-manifest.json` and `artifacts/SHA256SUMS` are stale
-and must not be used for current downloads. Version-specific receipts and
-immutable Project downloads are the authority until packaging is finalized.
+Twenty-two required historical evidence files remain absent after attempted
+recovery; no originals were fabricated. See
+`docs/evidence/historical-evidence-unavailable.json`. The aggregate
+`artifacts/package-manifest.json` and `artifacts/SHA256SUMS` are historical;
+use version-specific receipts and immutable Project downloads.
 
 # Zing
 
@@ -31,7 +31,7 @@ while Android deletion works; the Mac fix remains open. Naming acceptance is
 unverified. See
 [package evidence](docs/evidence/zing-delete-name-macos-package.json).
 
-The current UI refresh has accepted desktop and phone previews; its combined production build and replacement installers are pending. A macOS WebKit diagnostic reproduced the missed Delete click and isolated an explicit menu-focus correction. This is browser-engine evidence with synthetic data; installed Mac acceptance remains open. See [diagnostic evidence](docs/evidence/zing-mac-delete-webkit-diagnosis.json).
+The current UI refresh has accepted desktop and phone previews and a corrected production build; replacement installers remain pending. A macOS WebKit diagnostic reproduced the missed Delete click and isolated an explicit menu-focus correction. This is browser-engine evidence with synthetic data; installed Mac acceptance remains open. See [diagnostic evidence](docs/evidence/zing-mac-delete-webkit-diagnosis.json).
 
 The connection/navigation correction has verified **Apple Silicon household
 0.1.3** and **Android Tauri 0.1.6/code1006** packages. The Mac installer includes

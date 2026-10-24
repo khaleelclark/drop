@@ -300,8 +300,14 @@ click and isolated explicit focusability as the correction on the same frozen
 assets. The existing pointer/null-focus guard stays unchanged. Confirmation
 scrolls into view above phone tabs and focuses **Keep**; keyboard navigation,
 outside dismissal and explicit final Delete remain. Focused Chromium checks
-also verify visible 500-error recovery. Installed Tauri Mac acceptance remains
-pending; the Mac differential was not a complete passing delete flow.
+also verify visible 500-error recovery. Root’s later real Mac WebKit check on
+the prior freeze passed the default flow but exposed an offscreen last-item
+500 error. The error now shares the confirmation scroll area, which scrolls
+again on error appearance without taking focus; each retry clears the old
+error. The exact diagnostic fixture reproduces the desktop failure before
+this fix and passes desktop/phone recovery afterward. Current source/assets
+and checks are in `test-results/ui-refresh/error-visibility-freeze.json`.
+The new assets still need a real Mac WebKit rerun and installed Tauri acceptance.
 Native
 DELETE uses the existing bridge and accepts an empty HTTP 204; failures keep the
 confirmation available for retry. A failed feed refresh after successful delete
