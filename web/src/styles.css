@@ -91,7 +91,7 @@
 :root[data-native-android] { --safe-area-top: 0px; --safe-area-right: 0px; --safe-area-bottom: 0px; --safe-area-left: 0px; }
 * { box-sizing: border-box; }
 body { margin: 0; }
-body.modal-open, body.composer-open { overflow: hidden; }
+body.modal-open { overflow: hidden; }
 button, input, textarea, select { font: inherit; }
 button, input, textarea, select, a, summary { -webkit-tap-highlight-color: transparent; }
 button { cursor: pointer; color: inherit; border: 0; background: none; transition: background .12s, color .12s, border-color .12s; }
@@ -182,7 +182,7 @@ main {   margin: auto;  max-width: 936px; padding: 8px 24px 32px; }
 .search-shortcut { width: 18px; height: 20px; border: 1px solid var(--line); border-radius: 4px; font-size: 10px; text-align: center; }
 .feed-list { display: flex; flex-direction: column; }
 .feed-card { position: relative; border-bottom: 1px solid var(--line); isolation: isolate; padding: 12px 0; }
-.composer.has-draft textarea { height: 80px; }
+
 .feed-row { flex-direction: column; gap: 2px; min-height: 60px; display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 16px; row-gap: 4px; }
 .row-footer { align-items: center; justify-content: space-between; gap: 8px; min-width: 0; display: contents; }
 .row-footer .row-metadata { margin: 0; flex: 1; grid-column: 1; grid-row: 2; }
@@ -414,7 +414,7 @@ body.recipient-open { overflow: hidden; }
 
 @media (max-width: 359px) { .composer-bottom .recipient-picker { order: -1; flex: 1 0 100%; } .composer-bottom .recipient-trigger { width: 100%; } }
 
-/* Sharing and browsing have separate working surfaces. */
+/* Navigation keeps the established theme. */
 .sidebar { width: 184px; background: var(--nav-surface); color: var(--on-nav); border: 0; }
 .sidebar .nav-item { color: var(--on-nav); }
 .sidebar .nav-item:hover, .sidebar .nav-item.selected { background: var(--nav-selected); color: var(--on-nav); }
@@ -436,9 +436,6 @@ main { max-width: 1240px; }
 .composer-heading { padding: 0 16px 12px; font-size: 18px; line-height: 24px; font-weight: 600; }
 .composer textarea { margin: 0 12px; width: calc(100% - 24px); border: 1px solid var(--strong-line); background: var(--input-surface); border-radius: 10px; height: 64px; padding: 12px; }
 .composer textarea:focus-visible { outline: 3px solid var(--focus); outline-offset: 3px; }
-.composer-sheet { display: contents; }
-.composer-header { display: flex; align-items: flex-start; justify-content: space-between; }
-.composer-close, .new-drop { display: none; }
 .composer-bottom { padding: 12px; gap: 6px; flex-wrap: wrap; }
 .composer-context, .composer-footnote { padding-inline: 16px; }
 .send-workspace:has(.composer[hidden]):not(:has(.transfer-panel)) { display: none; }
@@ -494,21 +491,6 @@ input:disabled, textarea:disabled, select:disabled { color: var(--disabled-text)
 .purge-names { margin: 0 0 24px; padding-left: 20px; max-height: 160px; overflow: auto; overflow-wrap: anywhere; font-size: 14px; }
 .purge-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 8px; }
 .toast { left: calc(50% + 92px); }
-@media (min-width: 1180px) {
-  main { display: grid; grid-template-columns: 320px minmax(0, 1fr); gap: 24px; align-items: start; }
-  main>.banner, main>.device-name-prompt { grid-column: 1 / -1; margin-bottom: 0; }
-  main:has(.composer[hidden]):not(:has(.transfer-panel)) { grid-template-columns: minmax(0, 1fr); }
-  .send-workspace { min-width: 0; }
-  .composer textarea, .composer.has-draft textarea { height: 150px; }
-  .composer-bottom { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-  .composer-bottom .recipient-picker { grid-column: 1 / -1; grid-row: 1; }
-  .composer-tools { grid-row: 2; }
-  .send-button { grid-row: 2; }
-  .feed { margin-top: 0; }
-  .feed-row { display: flex; flex-direction: column; gap: 6px; }
-  .row-footer { display: flex; align-items: center; }
-  .row-footer .card-actions { margin-left: auto; }
-}
 @media (max-width: 800px) {
   .workspace { margin-left: 0; }
   .topbar { gap: 8px; max-width: none; background: var(--nav-surface); color: var(--on-nav); }
@@ -517,23 +499,7 @@ input:disabled, textarea:disabled, select:disabled { color: var(--disabled-text)
   .topbar .connection-badge .status-dot { background: var(--nav-muted); }
   .topbar .connection-badge>svg { margin-left: 4px; }
   .topbar :focus-visible { outline-color: var(--focus-inverse); }
-  .new-drop { display: grid; place-items: center; position: fixed; right: max(16px, var(--safe-area-right)); bottom: calc(var(--mobile-tabs-height) + var(--safe-area-bottom) + var(--bulk-actions-height, 0px) + 16px); width: 56px; height: 56px; border-radius: 18px; background: var(--blue); color: var(--on-accent); box-shadow: 0 4px 16px #08131c40; z-index: 32; }
-  .new-drop[hidden] { display: none; }
-  .composer-sheet { display: none; }
-  .composer-sheet.is-open { display: flex; align-items: flex-end; position: fixed; top: var(--sheet-top, 0px); left: 0; right: 0; height: var(--sheet-height, 100dvh); padding-top: max(12px, var(--safe-area-top)); background: #08131c99; z-index: 140; }
-  /* Native IMEs can overlay unchanged JS viewports; keep the controls at the top. */
-  .composer-sheet.ime-visible { align-items: flex-start; }
-  .composer-sheet .composer { width: 100%; max-height: 100%; min-height: 0; overflow: auto; overscroll-behavior: contain; padding: 12px max(16px, var(--safe-area-right)) max(12px, var(--safe-area-bottom)) max(16px, var(--safe-area-left)); border-radius: 20px 20px 0 0; background: var(--surface); }
-  .composer-header { position: sticky; top: -12px; background: var(--surface); z-index: 1; align-items: center; padding-bottom: 8px; }
-  .composer-heading { padding: 0; }
-  .composer-close { display: flex; }
-  .composer textarea { margin: 0; width: 100%; height: 52px; }
-  .composer textarea, .composer.has-draft textarea { max-height: min(180px, 25dvh); }
-  .composer-bottom { position: sticky; bottom: 0; background: var(--surface); padding: 8px 0; flex-wrap: nowrap; }
-  .composer-context { padding: 0 0 8px; font-size: 12px; line-height: 18px; }
-  .composer-footnote { padding-inline: 0; }
   .feed { margin: 0 calc(-1 * max(16px, var(--safe-area-right))) 0 calc(-1 * max(16px, var(--safe-area-left))); padding: 0 max(16px, var(--safe-area-right)) 16px max(16px, var(--safe-area-left)); border-radius: 0; }
-  .send-workspace:has(.transfer-panel) + .feed { margin-top: 16px; }
   .feed-toolbar { gap: 4px 8px; }
   .kind-filter select { font-size: 14px; padding-inline: 4px; max-width: 100px; }
   .mobile-tab-list>button { font-size: 11px; line-height: 15px; }
@@ -583,3 +549,50 @@ body:has(.purge-dialog[open]) { overflow: hidden; }
 .retention-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; }
 
 .feed-controls .finish-editing { flex-shrink: 0; white-space: nowrap; }
+
+/* One scrollable feed and one mounted dock share the same column on every screen. */
+.workspace { position: fixed; inset: var(--app-top, 0px) 0 auto 184px; margin: 0; height: var(--app-height, 100dvh); display: flex; flex-direction: column; }
+.topbar { width: 100%; max-width: 984px; flex-shrink: 0; }
+main, main:has(.composer[hidden]):not(:has(.transfer-panel)) { display: flex; flex-direction: column; gap: 12px; width: 100%; max-width: 984px; min-height: 0; flex: 1; margin-inline: auto; padding: 0 24px 16px; }
+main>.banner, main>.device-name-prompt { flex-shrink: 0; margin-bottom: 0; max-height: 25%; overflow: auto; }
+.feed { display: flex; flex-direction: column; position: relative; flex: 1; min-height: 0; margin: 0; padding: 16px 16px 0; overflow: visible; }
+.feed-toolbar, .selection-bar, .trash-folder-tools { flex-shrink: 0; }
+.feed>.banner, .feed>.folder-progress { flex-shrink: 0; max-height: 25%; overflow: auto; margin-block: 8px; }
+.feed-scroll { flex: 1; min-height: 0; overflow: auto; overscroll-behavior: contain; overflow-anchor: none; padding: 4px 4px 12px; margin-inline: -4px; scroll-padding-block: 8px; }
+.feed-scroll:focus-visible { outline: 3px solid var(--focus); outline-offset: -3px; }
+.share-entry, .feed-card, .load-more, .arrival-highlight { scroll-margin-block: 8px; }
+.load-more { margin: 8px auto 16px; }
+.send-workspace { min-width: 0; flex-shrink: 0; }
+.composer { padding: 6px; border: 1px solid var(--strong-line); border-radius: 16px; }
+.composer textarea, .composer.has-draft textarea { width: 100%; margin: 0; border: 0; background: transparent; height: 48px; min-height: 48px; max-height: min(240px, 25dvh); padding: 12px 10px; resize: none; overflow-y: auto; }
+.composer textarea:focus-visible { outline-offset: -3px; }
+.composer-bottom { display: flex; flex-wrap: nowrap; gap: 4px; padding: 0; }
+.composer-bottom .recipient-picker { order: 0; flex: 1; min-width: 44px; }
+.composer-bottom .recipient-trigger { width: auto; max-width: 100%; }
+.composer-bottom .send-button { margin-left: auto; }
+.composer-bottom .finish-editing { margin: 0; padding: 0; flex-shrink: 0; }
+.composer>.inline-error { max-height: 80px; overflow: auto; padding: 4px 10px; }
+.send-workspace .transfer-panel { margin: 0 0 8px; max-height: min(160px, 20dvh); overflow: auto; }
+.new-shares { position: absolute; bottom: 12px; left: 50%; transform: translateX(-50%); box-shadow: 0 4px 16px #08131c30; z-index: 36; }
+.toast { bottom: auto; top: max(12px, var(--safe-area-top)); }
+@media (max-width: 800px) {
+  .workspace { left: 0; --tabs-space: calc(var(--mobile-tabs-height) + var(--safe-area-bottom)); }
+  .workspace.is-editing { --tabs-space: 0px; }
+  .topbar { max-width: none; }
+  main, main:has(.selection-bar) { max-width: none; padding: 8px max(12px, var(--safe-area-right)) calc(8px + var(--tabs-space)) max(12px, var(--safe-area-left)); gap: 8px; }
+  .feed { padding: 0 4px; margin: 0; border-radius: 0; }
+  .composer { border-radius: 14px; }
+  .composer textarea, .composer.has-draft textarea { max-height: min(160px, 25dvh); }
+  .selection-actions { position: static; padding: 0; border: 0; border-radius: 0; display: flex; }
+  .selection-bar { max-height: 160px; overflow: auto; }
+  .toast { left: 50%; bottom: auto; }
+  .ime-unmeasured .send-workspace { order: -1; }
+  .ime-unmeasured .composer textarea { max-height: 64px; }
+  .ime-unmeasured .transfer-panel { max-height: 44px; }
+}
+@media (max-width: 480px) {
+  .composer-tools>.add-files { width: 44px; padding: 0; }
+  .composer-bottom .recipient-trigger { font-size: 12px; padding-inline: 2px; gap: 2px; }
+  .composer-bottom .recipient-trigger>svg:first-child { display: none; }
+  .composer-bottom .send-button { padding-inline: 10px; }
+}

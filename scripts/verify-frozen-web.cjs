@@ -7,7 +7,7 @@ const crypto = require('node:crypto');
 function verify(root, manifestPath) {
   const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
   const expected = new Set();
-  for (const item of manifest.bundleFiles) {
+  for (const item of (manifest.bundleFiles ?? manifest.distFiles)) {
     if (!item.path.startsWith('web/dist/') || item.path.split('/').includes('..') || expected.has(item.path)) throw Error('Invalid frozen asset path');
     expected.add(item.path);
     const file = path.join(root, item.path);
@@ -31,6 +31,6 @@ function verify(root, manifestPath) {
 
 if (require.main === module) {
   const root = path.resolve(__dirname, '..');
-  console.log(`Verified ${verify(root, path.join(root, 'web/release-evidence/mobile-final/frozen-manifest.json'))} frozen frontend assets`);
+  console.log(`Verified ${verify(root, path.join(root, 'web/release-evidence/bottom-composer/frozen-manifest.json'))} frozen frontend assets`);
 }
 module.exports = {verify};

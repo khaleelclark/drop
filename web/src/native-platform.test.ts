@@ -170,3 +170,52 @@ describe('optional local appearance dispatch',()=>{
     window.__TAURI__={core:{invoke},window:{getCurrentWindow(){throw new Error('No window namespace')}}};try{expect((await nativePlatform(invoke)).setAppearance).toBeUndefined()}finally{delete window.__TAURI__}
   })
 })
+
+describe('desktop path-only file drop',()=>{
+  it('binds the existing Tauri window drop API and enqueues unique native paths with a routing snapshot',async()=>{
+    const receives=new Map<string,(event:{payload:any})=>void>()
+    const unlisten=vi.fn(),bind=vi.fn(async(event:string,callback:(event:{payload:any})=>void)=>{receives.set(event,callback);return unlisten})
+    window.__TAURI__={core:{invoke:vi.fn()},window:{getCurrentWindow:()=>({setTheme:async()=>{},listen:bind})}}
+    try{
+      const invoke=vi.fn<NativeInvoke>(async command=>command==='native_get_config'?{...fixture.config,platform:'linux'}:null)
+      const adapter=await nativePlatform(invoke),events:any[]=[]
+      const stop=await adapter.onFileDrop!(event=>events.push(event))
+      receives.get('tauri://drag-enter')!({payload:{}});receives.get('tauri://drag-drop')!({payload:{paths:['/home/me/20GB.zip']}});expect(events).toEqual([{type:'enter'},{type:'drop',paths:['/home/me/20GB.zip']}])
+      await adapter.enqueuePaths!(['/home/me/20GB.zip','/home/me/20GB.zip','/home/me/other.bin'],['2'.repeat(32)])
+      expect(invoke.mock.calls.filter(([command])=>command==='native_enqueue_upload')).toEqual([
+        ['native_enqueue_upload',{path:'/home/me/20GB.zip',kind:'file',targetDeviceIds:['2'.repeat(32)]}],
+        ['native_enqueue_upload',{path:'/home/me/other.bin',kind:'file',targetDeviceIds:['2'.repeat(32)]}],
+      ])
+      await stop();expect(unlisten).toHaveBeenCalledTimes(4)
+      await expect(adapter.enqueuePaths!(['bad\0path'],[])).rejects.toThrow('valid file paths')
+      await adapter.disconnect!();await expect(adapter.enqueuePaths!(['/home/me/new.bin'],[])).rejects.toThrow('Remaining dropped files were not queued')
+    }finally{delete window.__TAURI__}
+  })
+  it('stops after an ambiguous native enqueue failure without repeating accepted paths or falling back to JS',async()=>{
+    window.__TAURI__={core:{invoke:vi.fn()},window:{getCurrentWindow:()=>({setTheme:async()=>{},listen:async()=>()=>{}})}}
+    try{
+      const calls:string[]=[]
+      const invoke=vi.fn<NativeInvoke>(async(command,args)=>{if(command==='native_get_config')return {...fixture.config,platform:'macos'};if(command==='native_enqueue_upload'){calls.push(String(args?.path));if(calls.length===2)throw Error('Native enqueue outcome unknown')}})
+      const adapter=await nativePlatform(invoke)
+      await expect(adapter.enqueuePaths!(['/one','/two','/three'],[])).rejects.toThrow('outcome unknown')
+      expect(calls).toEqual(['/one','/two'])
+    }finally{delete window.__TAURI__}
+  })
+  it('rolls back partial listener setup and attempts every async unlisten even when one fails',async()=>{
+    const first=vi.fn(async()=>{throw Error('cleanup failed')}),second=vi.fn(async()=>{}),callbacks:((event:{payload:{paths?:string[]}})=>void)[]=[]
+    const listen=vi.fn(async(_event:string,callback:(event:{payload:{paths?:string[]}})=>void)=>{callbacks.push(callback);if(callbacks.length===3)throw Error('listen denied');return callbacks.length===1?first:second})
+    window.__TAURI__={core:{invoke:vi.fn()},window:{getCurrentWindow:()=>({setTheme:async()=>{},listen})}}
+    try{
+      const adapter=await nativePlatform(vi.fn(async()=>({...fixture.config,platform:'linux'}))),events:any[]=[]
+      await expect(adapter.onFileDrop!(event=>events.push(event))).rejects.toThrow('Use Add files')
+      expect(first).toHaveBeenCalledOnce();expect(second).toHaveBeenCalledOnce();callbacks[0]({payload:{}});expect(events).toEqual([])
+      listen.mockImplementation(async()=>first)
+      const stop=await adapter.onFileDrop!(event=>events.push(event));await expect(stop()).rejects.toThrow('release file drop listeners');expect(first).toHaveBeenCalledTimes(5)
+    }finally{delete window.__TAURI__}
+  })
+  it('does not attach desktop file drop to Android or older shells',async()=>{
+    const invoke=vi.fn<NativeInvoke>(async()=>({...fixture.config,platform:'android'}))
+    expect((await nativePlatform(invoke)).onFileDrop).toBeUndefined()
+    expect((await nativePlatform(vi.fn(async()=>fixture.config))).onFileDrop).toBeUndefined()
+  })
+})

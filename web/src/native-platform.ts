@@ -1,8 +1,11 @@
-import type { AppearanceChoice, AppearanceRequest, PlatformAdapter, ResolvedTheme } from './platform'
+import type { AppearanceChoice, AppearanceRequest, FileDrop, PlatformAdapter, ResolvedTheme } from './platform'
 import type { Transfer, TransferState, TransferStore } from './transfers'
-import type { ArrivalSettings, DevicePlatform } from './types'
+import { errorMessage, type ArrivalSettings, type DevicePlatform } from './types'
 export type NativeInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>
-interface NativeWindowAppearance {setTheme(value:ResolvedTheme|null):Promise<void>;setBackgroundColor?(value:string):Promise<void>}
+interface NativeWindowAppearance {
+  setTheme(value:ResolvedTheme|null):Promise<void>;setBackgroundColor?(value:string):Promise<void>;
+  listen?(event:string,receive:(event:{payload:{paths?:string[]}})=>void):Promise<()=>void|Promise<void>>;
+}
 interface NativeTransfer { id: string; direction: 'upload' | 'download'; name: string; size: number; offset: number; status: string; error?: string; itemId?: string }
 interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform; canRenameDevice?: boolean }
 declare global {
@@ -107,6 +110,32 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
   }
   return {
     kind:'native',...(setAppearance?{setAppearance}:{}),get baseURL(){return config.baseUrl ? origin : undefined},get defaultDeviceName(){return config.sourceDevice},
+    ...(!android&&nativeWindow?.listen?{
+      async onFileDrop(receive:(event:FileDrop)=>void){
+        const stops:(()=>void|Promise<void>)[]=[];let active=true
+        const cleanup=async()=>{
+          active=false
+          const results=await Promise.allSettled(stops.map(stop=>Promise.resolve().then(stop)))
+          const failed=results.find((result):result is PromiseRejectedResult=>result.status==='rejected')
+          if(failed)throw new Error(`Couldn’t release file drop listeners. ${errorMessage(failed.reason)}`)
+        }
+        try{
+          for(const type of ['enter','over','drop','leave'] as const)stops.push(await nativeWindow!.listen!(`tauri://drag-${type}`,event=>{
+            if(active)receive(type==='drop'?{type,paths:event.payload.paths||[]}:{type})
+          }))
+        }catch(error){await cleanup().catch(()=>{});throw new Error(`File drop is unavailable. Use Add files. ${errorMessage(error)}`)}
+        return cleanup
+      },
+      async enqueuePaths(paths:string[],targetDeviceIds:string[]){
+        if(!paths.length||paths.some(path=>typeof path!=='string'||!path||path.includes('\0')))throw new Error('The drop did not contain valid file paths.')
+        const destination=origin,source=config.sourceDevice,targets=[...targetDeviceIds]
+        for(const path of new Set(paths)){
+          if(!config.baseUrl||config.connected===false||origin!==destination||config.sourceDevice!==source)throw new Error('The connection or sender changed. Remaining dropped files were not queued; choose them again.')
+          try{await invoke('native_enqueue_upload',{path,kind:'file',targetDeviceIds:targets})}
+          catch(error){throw new Error(`${path.split(/[\\/]/).pop()||'Dropped file'} could not be confirmed. ${errorMessage(error)} Some dropped files may already be queued. Check Transfers before adding files again.`)}
+        }
+      },
+    }:{}),
     ...(config.canRenameDevice===true&&['macos','linux'].includes(config.platform||'')?{async renameDevice(name:string){await invoke('native_rename_device',{sourceDevice:name});config={...config,sourceDevice:name}}}:{}),
     get requiresConnection(){return !config.baseUrl || config.connected === false},transfers,request,
     get deviceIdentity() { return config.deviceId && config.platform ? {id:config.deviceId,platform:config.platform} : undefined },

@@ -21,7 +21,7 @@ describe('shared native fixture at the interface boundary', () => {
       if (command === 'native_take_arrival_target') return null
       if (command === 'native_api') {
         if (!connected) return {status:401,body:'{"error":{"message":"Connect first"}}'}
-        if (String(args?.path).startsWith('/api/items?')) return {status:200,body:'{"items":[],"nextCursor":null}'}
+        if (String(args?.path).startsWith('/api/items?') || String(args?.path).startsWith('/api/trash?')) return {status:200,body:'{"items":[],"nextCursor":null}'}
         if (args?.path === '/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
         if (args?.path === '/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
         if (args?.path === '/api/storage') return {status:200,body:JSON.stringify({usedBytes:0,freeBytes:100000,maxFileBytes:21474836480,maxTextBytes:33554432,maxStorageBytes:null})}
@@ -121,6 +121,7 @@ describe('URL-only installed connection',()=>{
           if(failure!=='ready')return {status:failure,body:'{"error":{"message":"Access denied"}}'}
           return {status:200,body:'{"items":[],"nextCursor":null}'}
         }
+        if(path.startsWith('/api/trash?'))return {status:200,body:'{"items":[],"nextCursor":null}'}
         if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
         if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
         if(path==='/api/storage')return {status:200,body:'{"usedBytes":0,"freeBytes":1000,"maxFileBytes":21474836480,"maxTextBytes":33554432,"maxStorageBytes":null}'}
@@ -131,7 +132,7 @@ describe('URL-only installed connection',()=>{
     window.householdPlatform=await nativePlatform(invoke);render(<App/>)
     if(startup!=='ready'){
       const alert=await screen.findByRole('alert')
-      expect(alert).toHaveTextContent(startup==='offline'?'Check Tailscale':'Access was not accepted')
+      expect(alert).toHaveTextContent(startup==='offline'?'Network unavailable':'Access was not accepted')
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
       expect(screen.getByRole('button',{name:'Send to Everyone'})).toBeDisabled()
       fireEvent.click(within(alert).getByRole('button',{name:'Settings'}))
@@ -174,6 +175,7 @@ describe('URL-only installed connection',()=>{
         const path=String(args?.path)
         if(!configured||(denied&&path.startsWith('/api/items?')))return {status:401,body:'{"error":{"message":"Access denied"}}'}
         if(path.startsWith('/api/items?'))return {status:200,body:'{"items":[],"nextCursor":null}'}
+        if(path.startsWith('/api/trash?'))return {status:200,body:'{"items":[],"nextCursor":null}'}
         if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:fixture.device})}
         if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[fixture.device]})}
         if(path==='/api/storage')return {status:200,body:'{"usedBytes":0,"freeBytes":1000,"maxFileBytes":21474836480,"maxTextBytes":33554432,"maxStorageBytes":null}'}

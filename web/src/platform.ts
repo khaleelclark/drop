@@ -1,6 +1,7 @@
 import { BrowserTransfers, type TransferStore } from './transfers'
 import type { ArrivalSettings, DevicePlatform } from './types'
 export interface DownloadRequest { url: string; name: string; itemId: string }
+export type FileDrop = {type:'enter'|'over'|'leave'} | {type:'drop';paths:string[]}
 export type AppearanceChoice = 'light' | 'dark' | 'system'
 export type ResolvedTheme = 'light' | 'dark'
 export interface AppearanceRequest { appearance:AppearanceChoice; resolvedTheme:ResolvedTheme; canvas:string; header:string; navigation:string }
@@ -20,6 +21,8 @@ export interface PlatformAdapter {
   transfers: TransferStore;
   /** Native pickers must enqueue into transfers without reading a whole file into JS. */
   chooseFiles?(kind: 'file' | 'text', sourceDevice: string, targetDeviceIds?: string[]): Promise<void>;
+  onFileDrop?(receive:(event:FileDrop)=>void):Promise<()=>void|Promise<void>>;
+  enqueuePaths?(paths:string[],targetDeviceIds:string[]):Promise<void>;
   /** Native runtime may supply an authenticated streaming fetch bridge. */
   request?: typeof fetch;
   baseURL?: string;
