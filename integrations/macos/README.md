@@ -21,7 +21,7 @@ Zing scope; substitute the Drop app path only for an actual new Drop installer.
 
 # macOS capture
 
-These scripts make durable **local queue** captures. They never make a whole-file HTTP request or block for upload completion. Text streams into one owned staging file; file sends preserve the original path and identity rather than duplicating a large file. Keep original files in place until their transfer completes.
+These scripts make durable **local queue** captures. They never make a whole-file HTTP request or block for upload completion. Text streams into one owned staging file; regular file sends preserve the original path and identity rather than duplicating a large file. Keep original files in place until their transfer completes. In next 0.2.4 source, folder captures durably queue preparation of one managed ZIP; keep the directory stable until preparation finishes. After that, upload resume uses the private finished ZIP. Preparation has entry/name/depth,20 GiB ZIP and local-space budgets and rejects named unsupported symlinks/special entries; see the desktop README. Mac metadata/resource forks and original permissions are not preserved. Finder/Shortcuts and installed folder behavior remain unperformed checks.
 
 The following capture paths describe **Zing.app**. A private household build of **0.1.3** can capture before the GUI has ever been opened: its bundled helper saves the same validated build-supplied HTTPS origin, empty token and existing **Desktop** name as native app startup. File/text capture then uses the shared native identity and durable spool without owning the transfer queue. Opening the app shows the shared feed automatically; Settings remain optional. Existing connections, tokens, names, device identity and queued routing survive upgrades. An explicit Disconnect stays disconnected across relaunch/upgrades; reconnect through Settings. A generic build asks for the household server's Tailscale HTTPS origin and this device's name once. Leave the token empty when the server explicitly uses [Tailscale Serve sign-in](../../docs/api-contract.md#optional-tailscale-serve-sign-in); **Advanced** token entry is for a token-mode server or the configured fallback for tagged Tailscale clients. Each device still needs household Tailscale access. The historical **0.1.1** installers contain **Household Share.app**; their bundled token setup instructions belong to that version.
 
@@ -44,7 +44,7 @@ Before upgrading, quit the old Zing or Household Share app and move its bundle o
 1. In Automator, make a Quick Action receiving **files or folders** in **Finder**.
 2. Add **Run Shell Script**, shell `/bin/bash`, input **as arguments**.
 3. Paste the contents of `send-files.sh`. Save as **Send with Zing**.
-4. Right-click files → Quick Actions → Send with Zing. Folders are deliberately rejected; archive them first.
+4. Right-click files or folders → Quick Actions → Send with Drop (the older action may still be named Zing). Next 0.2.4 source queues folders as one ZIP; earlier installers retain their original file-only behavior.
 
 `"$@"` preserves spaces, newlines, Unicode and shell metacharacters. Do not replace it with a command string, `eval`, unquoted expansions, or an HTTP upload. File size, modification time, file identity and sampled contents are captured. Missing/changed originals produce a visible transfer error.
 

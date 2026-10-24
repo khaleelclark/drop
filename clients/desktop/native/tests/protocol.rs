@@ -346,6 +346,10 @@ impl Server {
                         );
                     }
                     ("GET", "/api/items/item") => {
+                        if let Some((entered, release)) = &s.metadata_gate {
+                            entered.send(()).unwrap();
+                            release.recv_timeout(Duration::from_secs(5)).unwrap();
+                        }
                         let status = s.validation.clone().unwrap_or_else(|| {
                             if s.bytes.len() == s.length {
                                 "ready"
@@ -1218,5 +1222,190 @@ fn ambiguous_upload_creation_is_not_automatically_retried() {
             .starts_with(prefix));
         assert!(!q.tick().unwrap());
         assert_eq!(server.state.lock().unwrap().creations, 1);
+    }
+}
+
+#[test]
+fn folder_archive_loopback_routing_restart_resume_and_confirmed_cleanup() {
+    let server = Server::new();
+    let tmp = tempfile::tempdir().unwrap();
+    let root = tmp.path().join("queue");
+    let folder = tmp.path().join("家 folder");
+    fs::create_dir_all(folder.join("nested/empty")).unwrap();
+    let binary = data();
+    fs::write(folder.join("nested/noextension"), &binary).unwrap();
+    fs::write(folder.join("zero.bin"), []).unwrap();
+    fs::write(folder.join("雪.md"), "text 🏠\n").unwrap();
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(server.config()).unwrap();
+    let sender = q.connection().unwrap().device_id.unwrap();
+    let target = "b".repeat(32);
+    let context = q.prepare_send(None, Some(vec![target.clone()])).unwrap();
+    q.configure(Config {
+        base_url: "https://different.example".into(),
+        ..server.config()
+    })
+    .unwrap();
+    q.enqueue_prepared(&folder, "file", &context).unwrap();
+    let id = q.list().unwrap()[0].id.clone();
+    assert_eq!(q.list().unwrap()[0].status, "paused");
+    drop(q);
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(Config {
+        source_device: "Later name".into(),
+        ..server.config()
+    })
+    .unwrap();
+    q.control(&id, "resume").unwrap();
+    q.tick().unwrap(); // Archive commits before any upload request.
+    assert_eq!(server.state.lock().unwrap().creations, 0);
+    let archive_path = root.join("staging").join(format!("{id}.zip"));
+    let archive_bytes = fs::read(&archive_path).unwrap();
+    assert_eq!(q.list().unwrap()[0].name, "家 folder.zip");
+    assert_eq!(q.list().unwrap()[0].size, archive_bytes.len() as u64);
+    q.tick().unwrap();
+    assert_eq!(q.list().unwrap()[0].offset, CHUNK as u64);
+    q.control(&id, "pause").unwrap();
+    assert!(archive_path.exists());
+    fs::remove_dir_all(&folder).unwrap(); // Committed ZIP is now the immutable source.
+    drop(q);
+    let q = Queue::open(root.clone()).unwrap();
+    assert_eq!(fs::read(&archive_path).unwrap(), archive_bytes);
+    q.control(&id, "resume").unwrap();
+    q.tick().unwrap();
+    assert_eq!(q.list().unwrap()[0].status, "complete");
+    assert!(!archive_path.exists());
+    {
+        let state = server.state.lock().unwrap();
+        assert_eq!(state.bytes, archive_bytes);
+        assert!(state
+            .upload_metadata
+            .contains(&format!("filetype {}", STANDARD.encode("application/zip"))));
+        assert!(state
+            .upload_metadata
+            .contains(&format!("kind {}", STANDARD.encode("file"))));
+        assert!(state
+            .upload_metadata
+            .contains(&format!("sourceDeviceId {}", STANDARD.encode(sender))));
+        assert!(state.upload_metadata.contains(&format!(
+            "targetDeviceIds {}",
+            STANDARD.encode(serde_json::to_vec(&vec![target]).unwrap())
+        )));
+        assert_eq!(state.registration.as_ref().unwrap()["label"], "test");
+        assert!(state.chunks.iter().all(|n| *n <= CHUNK));
+    }
+    let destination = tmp.path().join("received.zip");
+    q.download("item".into(), "家 folder.zip".into(), destination.clone())
+        .unwrap();
+    q.tick().unwrap();
+    q.tick().unwrap();
+    assert_eq!(fs::read(&destination).unwrap(), archive_bytes);
+    let mut zip = zip::ZipArchive::new(fs::File::open(destination).unwrap()).unwrap();
+    assert_eq!(zip.len(), 6);
+    assert!(zip.by_name("家 folder/nested/empty/").unwrap().is_dir());
+    let mut received = vec![];
+    zip.by_name("家 folder/nested/noextension")
+        .unwrap()
+        .read_to_end(&mut received)
+        .unwrap();
+    assert_eq!(received, binary);
+    assert_eq!(zip.by_name("家 folder/zero.bin").unwrap().size(), 0);
+    let mut text = String::new();
+    zip.by_name("家 folder/雪.md")
+        .unwrap()
+        .read_to_string(&mut text)
+        .unwrap();
+    assert_eq!(text, "text 🏠\n");
+}
+
+#[test]
+fn folder_release_ordinary_files_stay_opaque_for_every_extension() {
+    let server = Server::new();
+    let tmp = tempfile::tempdir().unwrap();
+    let q = Queue::open(tmp.path().join("queue")).unwrap();
+    q.configure(server.config()).unwrap();
+    let bytes = [0, 255, 128, 254, 13, 10, 0];
+    for name in [
+        "noextension",
+        "installer.exe",
+        "code.rs",
+        "unknown.custom",
+        "invalid-utf8.txt",
+    ] {
+        let source = tmp.path().join(name);
+        fs::write(&source, bytes).unwrap();
+        q.enqueue_upload(&source, "file").unwrap();
+        q.tick().unwrap();
+        assert_eq!(q.list().unwrap().last().unwrap().status, "complete");
+        let state = server.state.lock().unwrap();
+        assert_eq!(state.bytes, bytes);
+        assert_eq!(state.upload_kind, "file");
+        assert!(state
+            .upload_metadata
+            .contains(&format!("filename {}", STANDARD.encode(name))));
+    }
+}
+
+#[test]
+fn folder_cleanup_failure_after_remote_confirmation_retries_without_network() {
+    for terminal in ["complete", "cancelled"] {
+        let server = Server::new();
+        let temp = tempfile::tempdir().unwrap();
+        let root = temp.path().join("queue");
+        let folder = temp.path().join("folder");
+        fs::create_dir(&folder).unwrap();
+        fs::write(
+            folder.join("file"),
+            if terminal == "complete" {
+                b"bytes".to_vec()
+            } else {
+                data()
+            },
+        )
+        .unwrap();
+        let q = Queue::open(root.clone()).unwrap();
+        q.configure(server.config()).unwrap();
+        q.enqueue_upload(&folder, "file").unwrap();
+        q.tick().unwrap();
+        let id = q.list().unwrap()[0].id.clone();
+        let part = root.join("staging").join(format!("{id}.zip.part"));
+        if terminal == "complete" {
+            let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+            let (release_tx, release_rx) = std::sync::mpsc::channel();
+            server.state.lock().unwrap().metadata_gate = Some((entered_tx, release_rx));
+            let worker = q.clone();
+            let tick = thread::spawn(move || worker.tick().unwrap());
+            entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+            fs::create_dir(&part).unwrap();
+            release_tx.send(()).unwrap();
+            assert!(tick.join().unwrap());
+        } else {
+            q.tick().unwrap();
+            assert_eq!(q.list().unwrap()[0].offset, CHUNK as u64);
+            fs::create_dir(&part).unwrap();
+            q.control(&id, "cancel").unwrap();
+            q.tick().unwrap();
+        }
+        assert_eq!(q.list().unwrap()[0].status, "error");
+        assert!(q.list().unwrap()[0]
+            .error
+            .as_ref()
+            .unwrap()
+            .contains("Local cleanup failed"));
+        {
+            let state = server.state.lock().unwrap();
+            assert_eq!(state.creations, 1);
+            assert_eq!(state.delete, terminal == "cancelled");
+        }
+        drop(server); // Any repeated upload, metadata request or DELETE now fails.
+        drop(q);
+        let q = Queue::open(root.clone()).unwrap();
+        assert_eq!(q.list().unwrap()[0].status, "error");
+        fs::remove_dir(&part).unwrap();
+        q.control(&id, "resume").unwrap();
+        q.tick().unwrap();
+        assert_eq!(q.list().unwrap()[0].status, terminal);
+        assert!(!q.tick().unwrap());
+        assert_eq!(fs::read_dir(root.join("staging")).unwrap().count(), 0);
     }
 }

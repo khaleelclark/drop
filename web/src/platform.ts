@@ -20,7 +20,7 @@ export interface PlatformAdapter {
   download(request: DownloadRequest): Promise<void>;
   transfers: TransferStore;
   /** Native pickers must enqueue into transfers without reading a whole file into JS. */
-  chooseFiles?(kind: 'file' | 'text', sourceDevice: string, targetDeviceIds?: string[]): Promise<void>;
+  chooseFiles?(kind: 'file' | 'text' | 'folder', sourceDevice: string, targetDeviceIds?: string[]): Promise<void>;
   onFileDrop?(receive:(event:FileDrop)=>void):Promise<()=>void|Promise<void>>;
   enqueuePaths?(paths:string[],targetDeviceIds:string[]):Promise<void>;
   /** Native runtime may supply an authenticated streaming fetch bridge. */

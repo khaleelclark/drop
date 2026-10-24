@@ -14,7 +14,7 @@ fn run() -> Result<(), String> {
         "enqueue" => {
             let paths: Vec<_> = args.collect();
             if paths.is_empty() {
-                return Err("Specify one or more file paths".into());
+                return Err("Specify one or more file or folder paths".into());
             }
             for path in paths {
                 println!(

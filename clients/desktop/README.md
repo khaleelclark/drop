@@ -1,5 +1,45 @@
 # Installed desktop client
 
+## Folders and arbitrary files (0.2.4 source)
+
+Add files accepts every extension and files without an extension as opaque bytes.
+Add folder, a native directory drop, and the existing capture helper's `enqueue`
+command prepare one ZIP, including a top-level folder, nested/empty directories,
+Unicode and zero-byte files. No source bytes enter the WebView. The native worker
+shows Checking during bounded preparation, then uploads the finished managed ZIP
+through the existing durable queue. Closing the window keeps preparation running;
+Quit pauses it. Before preparation finishes, pause/restart rebuilds from the
+selected directory. After it finishes, changing/removing that directory does not
+change the retained ZIP used for upload resume. Cancel cleans local output, while
+successful cleanup waits for the server's ready acknowledgement.
+If local archive deletion fails, the queue keeps a visible error and the confirmed
+server outcome. Resume retries local cleanup only, including after restart; it
+does not upload again or repeat server cancellation. Missing files count as
+already cleaned. Failed preparation also reports any partial-file cleanup error.
+
+The ZIP is Stored (without compression), so local free space must cover its source
+bytes plus headers and a 64 MiB reserve. The existing 20 GiB transfer limit applies
+to the resulting ZIP, including metadata. The Rust `zip` 9.1.0 writer uses ZIP64
+file headers (`large_file(true)`), 64 KiB buffers and bounded metadata: 10,000 entries,
+1 MiB aggregate entry-name bytes, 4,096 bytes per relative name and 64 levels.
+The worker checks local space while writing, hashes inputs before and during the
+copy, and rechecks tree membership/identity before committing. A changed source,
+symlink (including cycles), device/socket/FIFO, non-UTF-8 name or unsafe ZIP path
+produces a named error; unsupported entries are never skipped. Folder replacement
+between capture and preparation is rejected by native device/inode identity.
+Mac app bundles are ordinary directories; bundles containing symlinks fail and
+need a user-created archive instead. Resource forks, xattrs, ownership and original
+permissions are not preserved. Archives are never auto-extracted or executed.
+
+Focused Linux fixtures cover archive/opaque-byte round trips, local ZIP64 headers,
+source mutation, safe paths, budgets, cancellation, durable preparation and
+loopback upload/download resume/routing. These are source checks: native desktop
+picker/drop delivery, Mac Finder/Shortcuts, installed lifecycle and large physical
+transfers remain unperformed for this change. See
+`clients/validation/files-folders/` for the exact source receipt. Maintained writer
+API: [zip FileOptions](https://docs.rs/zip/9.1.0/zip/write/struct.FileOptions.html).
+
+
 The Drop Tauri 2 shell bundles `web/dist`; a Rust transfer worker owns file bytes, HTTP and persisted queue state. It stays resident when its window closes. The tray/menu offers **Open Drop** and **Pause transfers and Quit Drop**; `Ctrl/Command+Shift+H` opens the window. Explicit Quit checkpoints active transfers as paused. Reopen and Resume to continue. Sleep, logout, shutdown, OS kill and unavailable Tailscale can interrupt work; the next run reconciles confirmed offsets.
 
 The macOS menu-bar icon uses the transparent monochrome [Drop drag-and-drop mark](../../branding/drop-mark.svg) as an OS template; Linux uses the app icon for contrast on light and dark panels. Regenerate both the checked-in 32 px template and 512 px launcher with `python3 clients/desktop/src-tauri/icons/generate-tray.py` from the project root. This uses Python's standard library and checks the canonical SVG geometry before writing. The launcher uses the white file/pointer/tray with the shared centered 0.75 inset on navy (`#244C6A`), matching the [user-approved nautical palette](../../branding/README.md) without extra red icon detail. Installed appearance requires release acceptance.

@@ -7,7 +7,7 @@ if [[ ! -x "$cli" ]]; then
   exit 1
 fi
 if (( $# == 0 )); then
-  printf '%s\n' 'No files were supplied.' >&2
+  printf '%s\n' 'No files or folders were supplied.' >&2
   exit 1
 fi
 exec "$cli" enqueue "$@"

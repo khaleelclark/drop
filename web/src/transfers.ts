@@ -1,3 +1,4 @@
+import { archiveDirectory, archiveFile, removeArchive, requireFolderStorage, type FolderEntry } from './folders'
 import { DetailedError, Upload, type UploadOptions } from 'tus-js-client'
 import { createSHA256 } from 'hash-wasm'
 import { errorMessage } from './types'
@@ -7,12 +8,14 @@ export interface Transfer {
   id: string; direction?: 'upload' | 'download'; name: string; size: number; lastModified: number; kind: 'file' | 'text'; sourceDevice: string;
   destination: string; state: TransferState; confirmed: number; sent: number;
   phase?: string; hash?: string; uploadURL?: string; itemId?: string; error?: string; checked?: number;
+  managedArchive?:string; archiveReady?:boolean; cleanupPending?:boolean;
   sourceDeviceId?: string; targetDeviceIds?: string[];
 }
 export interface TransferStore {
   getSnapshot(): Transfer[];
   subscribe(listener: () => void): () => void;
   enqueue(files: File[], kind: 'file' | 'text', sourceDevice: string, maxBytes: number, routing?: SendRouting): void;
+  enqueueFolder?(folder:FolderEntry,sourceDevice:string,maxBytes:number,routing:SendRouting):void;
   pause(id: string): Promise<void>;
   resume(id: string): void;
   cancel(id: string): Promise<void>;
@@ -48,11 +51,28 @@ export class BrowserTransfers implements TransferStore {
   private uploads = new Map<string, UploadLike>()
   private running = new Set<string>()
   private storageWarning = false
+  private folders=new Map<string,{entry:FolderEntry;maxBytes:number}>()
+  private preparing=new Map<string,{abort:AbortController;done:Promise<void>}>()
+  private cleaning=new Map<string,Promise<void>>()
+  private recovering=new Map<string,Promise<void>>()
   constructor(private destination: string, private changed: () => void = () => {}, private factory: UploadFactory = (file, opts) => new Upload(file, opts)) {
     try {
       const saved: unknown = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]')
       if (Array.isArray(saved)) this.rows = saved.filter((r: Transfer) => r.destination === destination && typeof r.id === 'string' && typeof r.name === 'string' && Number.isSafeInteger(r.size) && r.size >= 0 && r.state !== 'complete').slice(0, 200).map((r: Transfer) => ({ ...r, state: 'needs-file', sent: r.confirmed || 0, error: undefined }))
     } catch { this.storageWarning = true }
+    for(const row of this.rows)if(row.managedArchive){
+      const restoring=this.restoreArchive(row);this.recovering.set(row.id,restoring);void restoring.finally(()=>this.recovering.delete(row.id))
+    }
+  }
+  private async restoreArchive(row:Transfer){
+    try{
+      if(row.cleanupPending){await this.completeArchive(row);return}
+      if(!row.archiveReady){await removeArchive(row.managedArchive!).catch(()=>{});throw new Error('Folder preparation was interrupted. Cancel and add the folder again.')}
+      const file=await archiveFile(row.managedArchive!)
+      if(file.size!==row.size||file.lastModified!==row.lastModified)throw new Error('The prepared ZIP changed. Cancel and add the folder again.')
+      if(!this.rows.some(current=>current.id===row.id))return
+      this.files.set(row.id,file);this.patch(row.id,{state:'paused',phase:undefined,error:undefined})
+    }catch(error){this.patch(row.id,{state:'failed',phase:undefined,error:errorMessage(error)})}
   }
   getSnapshot = () => this.rows
   subscribe = (fn: () => void) => { this.listeners.add(fn); return () => { this.listeners.delete(fn) } }
@@ -75,6 +95,37 @@ export class BrowserTransfers implements TransferStore {
       return { id, name: file.name, size: file.size, lastModified: file.lastModified, kind, sourceDevice, ...savedRouting, destination: this.destination, state: file.size > maxBytes ? 'failed' as const : 'queued' as const, confirmed: 0, sent: 0, error: file.size > maxBytes ? 'This file exceeds the server’s per-file limit.' : this.storageWarning ? 'Browser storage is unavailable; keep this tab open to retain progress.' : undefined }
     })
     this.rows = [...this.rows, ...additions]; this.notify(); this.schedule()
+  }
+  enqueueFolder(entry:FolderEntry,sourceDevice:string,maxBytes:number,routing:SendRouting){
+    requireFolderStorage()
+    if(this.rows.filter(row=>row.state!=='complete').length>=200)throw new Error('Finish or cancel existing transfers before adding another folder.')
+    const id=crypto.randomUUID()
+    this.folders.set(id,{entry,maxBytes})
+    this.rows=[...this.rows,{id,name:entry.name+'.zip',size:0,lastModified:0,kind:'file',sourceDevice,destination:this.destination,sourceDeviceId:routing.sourceDeviceId,targetDeviceIds:[...routing.targetDeviceIds],managedArchive:id+'.zip',archiveReady:false,state:'checking',phase:'Waiting to prepare folder',confirmed:0,sent:0}]
+    this.notify();this.prepareFolder()
+  }
+  private prepareFolder(){
+    if(this.preparing.size)return
+    const row=this.rows.find(row=>row.state==='checking'&&!row.archiveReady&&this.folders.has(row.id))
+    if(!row)return
+    const id=row.id,source=this.folders.get(id)!,abort=new AbortController()
+    const attempt={abort,done:Promise.resolve()}
+    this.preparing.set(id,attempt)
+    attempt.done=Promise.resolve().then(async()=>{
+      let prepared=false
+      try{
+        abort.signal.throwIfAborted()
+        const file=await archiveDirectory(source.entry,row.managedArchive!,source.maxBytes,abort.signal,(checked,size,phase)=>{if(!abort.signal.aborted)this.patch(id,{checked,size,phase})})
+        prepared=true;abort.signal.throwIfAborted()
+        this.files.set(id,file);this.folders.delete(id)
+        this.patch(id,{size:file.size,lastModified:file.lastModified,archiveReady:true,state:'queued',phase:undefined,checked:undefined,error:undefined});this.schedule()
+      }catch(error){
+        try{if(prepared)await removeArchive(row.managedArchive!).catch(failure=>{if(!(failure instanceof DOMException&&failure.name==='NotFoundError'))throw failure})}
+        catch(failure){this.patch(id,{state:'failed',phase:undefined,error:'Folder preparation stopped; local cleanup failed. Cancel to retry cleanup. '+errorMessage(failure)});return}
+        if(!abort.signal.aborted&&this.rows.find(row=>row.id===id)?.state==='checking')this.patch(id,{state:'failed',phase:undefined,error:errorMessage(error)})
+      }
+      finally{if(this.preparing.get(id)===attempt)this.preparing.delete(id);this.prepareFolder()}
+    })
   }
   private schedule() {
     for (const row of this.rows) {
@@ -103,7 +154,7 @@ export class BrowserTransfers implements TransferStore {
         onShouldRetry: error => error.originalRequest?.getMethod() !== 'POST' && (!error.originalResponse || [0,408,409,423,429].includes(error.originalResponse.getStatus()) || error.originalResponse.getStatus() >= 500),
         storeFingerprintForResuming: false,
         uploadUrl: row.uploadURL ? safeUploadURL(row.uploadURL, this.destination) : undefined,
-        metadata: { filename: file.name, filetype: row.kind === 'text' ? 'text/plain' : (file.type || 'application/octet-stream'), kind: row.kind, sourceDevice: row.sourceDevice, ...(row.sourceDeviceId ? {sourceDeviceId:row.sourceDeviceId,targetDeviceIds:JSON.stringify(row.targetDeviceIds || [])} : {}) },
+        metadata: { filename: row.name, filetype: row.managedArchive ? 'application/zip' : row.kind === 'text' ? 'text/plain' : (file.type || 'application/octet-stream'), kind: row.kind, sourceDevice: row.sourceDevice, ...(row.sourceDeviceId ? {sourceDeviceId:row.sourceDeviceId,targetDeviceIds:JSON.stringify(row.targetDeviceIds || [])} : {}) },
         onBeforeRequest: request => { const xhr = request.getUnderlyingObject(); if (xhr && 'withCredentials' in xhr) xhr.withCredentials = true },
         onAfterResponse: (_request, response) => {
           const itemId = response.getHeader('X-Item-ID'); const upload = this.uploads.get(id)
@@ -113,7 +164,11 @@ export class BrowserTransfers implements TransferStore {
         onProgress: sent => { if (this.rows.find(r => r.id === id)?.state === 'uploading') this.patch(id, { sent }) },
         onChunkComplete: (_chunk, confirmed) => this.patch(id, { confirmed }),
         onError: error => { this.patch(id, { state: 'failed', error: errorMessage(error) }); this.release(id) },
-        onSuccess: () => { this.patch(id, { state: 'complete', confirmed: file.size, sent: file.size }); this.files.delete(id); this.uploads.delete(id); this.changed(); this.release(id) },
+        onSuccess: () => {
+          this.uploads.delete(id);this.changed()
+          if(row.managedArchive){this.patch(id,{cleanupPending:true,confirmed:file.size,sent:file.size,phase:'Cleaning local ZIP'});void this.completeArchive({...row,cleanupPending:true}).finally(()=>this.release(id))}
+          else{this.patch(id,{state:'complete',confirmed:file.size,sent:file.size});this.files.delete(id);this.release(id)}
+        },
       }
       const upload = this.factory(file, options); this.uploads.set(id, upload); upload.start()
     } catch (error) {
@@ -121,9 +176,20 @@ export class BrowserTransfers implements TransferStore {
       this.release(id)
     }
   }
+  private completeArchive(row:Transfer):Promise<void>{
+    const active=this.cleaning.get(row.id);if(active)return active
+    const cleaning=(async()=>{
+      try{await removeArchive(row.managedArchive!).catch(error=>{if(!(error instanceof DOMException&&error.name==='NotFoundError'))throw error});this.files.delete(row.id);this.patch(row.id,{state:'complete',phase:undefined,cleanupPending:false,error:undefined})}
+      catch(error){this.patch(row.id,{state:'failed',phase:'Upload sent; local cleanup needed',cleanupPending:true,error:'The upload succeeded. '+errorMessage(error)+' Resume to retry local cleanup.'})}
+      finally{this.cleaning.delete(row.id)}
+    })()
+    this.cleaning.set(row.id,cleaning);return cleaning
+  }
   async pause(id: string) {
     const row = this.rows.find(r => r.id === id); if (!row || !['queued', 'checking', 'uploading'].includes(row.state)) return
-    this.patch(id, { state: 'paused', sent: row.confirmed })
+    this.patch(id, { state: 'paused', phase:undefined, sent: row.confirmed })
+    const preparing=this.preparing.get(id)
+    if(preparing){preparing.abort.abort();await preparing.done;return}
     await this.uploads.get(id)?.abort(false)
     this.uploads.delete(id)
     // Hashing releases its slot after the current bounded read returns.
@@ -131,6 +197,9 @@ export class BrowserTransfers implements TransferStore {
   }
   resume(id: string) {
     const row = this.rows.find(r => r.id === id); if (!row || !['paused', 'failed'].includes(row.state)) return
+    if(this.recovering.has(id))return
+    if(row.cleanupPending){void this.completeArchive(row);return}
+    if(this.folders.has(id)&&!row.archiveReady){this.patch(id,{state:'checking',phase:'Waiting to prepare folder',error:undefined});this.prepareFolder();return}
     if (!this.files.has(id)) { this.patch(id, { state: 'needs-file' }); return }
     this.patch(id, { state: 'queued', error: undefined }); this.schedule()
   }
@@ -143,7 +212,11 @@ export class BrowserTransfers implements TransferStore {
     const row = this.rows.find(r => r.id === id); if (!row) return
     this.patch(id, { state: 'cancelling' })
     try {
-      const active = this.uploads.get(id)
+      const preparing=this.preparing.get(id)
+      if(preparing){preparing.abort.abort();await preparing.done}
+      await this.recovering.get(id)
+      await this.cleaning.get(id)
+      const active = row.cleanupPending?undefined:this.uploads.get(id)
       if (active) {
         try { await active.abort(true) }
         catch (error) {
@@ -151,10 +224,12 @@ export class BrowserTransfers implements TransferStore {
           if (status !== 404 && status !== 410) throw error
         }
       }
-      else if (row.uploadURL) {
+      else if (row.uploadURL&&!row.cleanupPending) {
         const response = await fetch(safeUploadURL(row.uploadURL, this.destination), { method: 'DELETE', headers: { 'Tus-Resumable': '1.0.0' }, credentials: 'include' })
         if (!response.ok && response.status !== 404 && response.status !== 410) throw new Error('Could not cancel on the server. Retry when connected.')
       }
+      if(row.managedArchive)await removeArchive(row.managedArchive).catch(error=>{if(!(error instanceof DOMException&&error.name==='NotFoundError'))throw error})
+      this.folders.delete(id)
       this.rows = this.rows.filter(r => r.id !== id); this.files.delete(id); this.uploads.delete(id); this.notify(); this.changed()
     } catch (error) { this.patch(id, { state: 'failed', error: errorMessage(error) }); throw error }
     finally { if (row.state !== 'checking') this.release(id) }

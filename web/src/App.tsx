@@ -16,6 +16,7 @@ import { ItemMenu } from './ItemMenu'
 import { ZingMark } from './ZingMark'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { TransferQueue } from './TransferQueue'
+import { droppedEntries, pickFolder, type FolderEntry } from './folders'
 import { textFileAccept } from './text-files'
 import { errorMessage, formatBytes, type Device, type SendRouting, type Item, type ItemAction, type ItemActionResult, type StorageInfo, type TrashSummary } from './types'
 function stored(key: string, fallback: string) { try { return localStorage.getItem(key) || fallback } catch { return fallback } }
@@ -355,12 +356,32 @@ export function App() {
       platform.transfers.enqueue(files, kind, selected?.sourceDevice||device, storage.maxFileBytes,selected?.routing||sendRouting(deviceId,targets,devices))
     } catch (error) { setError(errorMessage(error)) }
   }
-  const choose = (kind: 'file' | 'text') => {
+  const enqueueFolder=(folder:FolderEntry,selected:{routing:SendRouting;sourceDevice:string;origin:string})=>{
+    if(selected.origin!==currentApi.current.baseURL)throw new Error('The server changed. Add the folder again for this server.')
+    if(!storage)throw new Error('Wait for the server’s storage limits before adding a folder.')
+    if(!platform.transfers.enqueueFolder)throw new Error('Folder sharing is unavailable in this app. Send a ZIP instead.')
+    platform.transfers.enqueueFolder(folder,selected.sourceDevice,storage.maxFileBytes,selected.routing)
+  }
+  const browserDrop=(data:DataTransfer)=>{
+    try{
+      if(!connected){openConnection();return}
+      const selected={routing:sendRouting(deviceId,targets,devices),sourceDevice:device,origin:api.baseURL}
+      void droppedEntries(data).then(entries=>{
+        if(selected.origin!==currentApi.current.baseURL)throw new Error('The server changed. Drop the sources again for this server.')
+        for(const entry of entries)if(entry instanceof File)enqueue([entry],'file',selected);else enqueueFolder(entry,selected)
+      }).catch(error=>setError(errorMessage(error)))
+    }catch(error){setError(errorMessage(error))}
+  }
+  const choose = (kind: 'file' | 'text' | 'folder') => {
     if (!connected) { openConnection(); return }
     try{
       const routing=sendRouting(deviceId,targets,devices)
       pickerRouting.current={routing,sourceDevice:device,origin:api.baseURL}
       if (platform.chooseFiles) { void platform.chooseFiles(kind,device,routing.targetDeviceIds).catch(error => setError(errorMessage(error))); return }
+      if(kind==='folder'){
+        const selected=pickerRouting.current
+        void pickFolder().then(folder=>enqueueFolder(folder,selected)).catch(error=>{if(!(error instanceof DOMException&&error.name==='AbortError'))setError(errorMessage(error))});return
+      }
     }catch(error){setError(errorMessage(error));return}
     if (kind === 'text') textFileInput.current?.click(); else input.current?.click()
   }
@@ -417,7 +438,7 @@ export function App() {
       void platform.enqueuePaths!(paths,routing.targetDeviceIds).catch(error=>setError(errorMessage(error)))
     }catch(error){setError(errorMessage(error))}
   }
-  const fileIntake=useRef({enqueue,dropBlocked,nativeDrop});fileIntake.current={enqueue,dropBlocked,nativeDrop}
+  const fileIntake=useRef({browserDrop,dropBlocked,nativeDrop});fileIntake.current={browserDrop,dropBlocked,nativeDrop}
   useEffect(()=>{
     let depth=0
     const clear=()=>{depth=0;setDragging(false)}
@@ -429,7 +450,7 @@ export function App() {
     const drop=(event:globalThis.DragEvent)=>{
       if(!hasFiles(event))return
       event.preventDefault();clear()
-      if(!fileIntake.current.dropBlocked()&&!platform.onFileDrop)fileIntake.current.enqueue(Array.from(event.dataTransfer?.files||[]),'file')
+      if(!fileIntake.current.dropBlocked()&&!platform.onFileDrop&&event.dataTransfer)fileIntake.current.browserDrop(event.dataTransfer)
     }
     window.addEventListener('dragenter',enter);window.addEventListener('dragover',over);window.addEventListener('dragleave',leave);window.addEventListener('drop',drop);window.addEventListener('dragend',clear);window.addEventListener('blur',clear)
     let stopped=false,unlisten:(()=>void|Promise<void>)|undefined
@@ -554,7 +575,7 @@ export function App() {
           const pasted = event.clipboardData.getData('text/plain'); const start = event.currentTarget.selectionStart; const end = event.currentTarget.selectionEnd
           setText(previous => insertPlainText(previous, start, end, pasted))
           requestAnimationFrame(() => { const caret = start + textareaText(pasted).length; composer.current?.setSelectionRange(caret, caret) })
-        }} onKeyDown={event => { if (!event.nativeEvent.isComposing && event.keyCode!==229 && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void sendText() } }} disabled={!connected || !deviceId || sending} /><div className="composer-bottom"><div className="composer-tools"><button className="button action-button add-files" aria-label="Add files" title="Add files" onClick={() => choose('file')}><Paperclip size={18} /><span className="add-files-label">Add files</span></button><ItemMenu name="sharing">{close => <button role="menuitem" tabIndex={0} onClick={() => { choose('text'); close() }}><FileText size={17}/>Upload text file</button>}</ItemMenu></div><RecipientPicker devices={devices} currentId={deviceId} targets={targets} onChange={setTargets} onRefresh={refresh} disabled={!connected||!deviceId}/><button className="button primary send-button" aria-label={sending?'Sharing…':'Share text'} title="Share text" disabled={!connected || !deviceId || !text.length || sending} onClick={() => void sendText()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}<span>Send</span></button>{mobile&&mobileEditing&&<button className="icon-button finish-editing" aria-label="Done editing" onClick={finishMobileEditing}><Check size={18}/></button>}</div>{composerError && <p role="alert" className="inline-error">{composerError}</p>}</section>
+        }} onKeyDown={event => { if (!event.nativeEvent.isComposing && event.keyCode!==229 && event.key === 'Enter' && !event.shiftKey) { event.preventDefault(); void sendText() } }} disabled={!connected || !deviceId || sending} /><div className="composer-bottom"><div className="composer-tools"><button className="button action-button add-files" aria-label="Add files" title="Add files" onClick={() => choose('file')}><Paperclip size={18} /><span className="add-files-label">Add files</span></button><ItemMenu name="sharing">{close => <><button role="menuitem" onClick={()=>{choose('folder');close()}}><UploadCloud size={17}/>Add folder</button><button role="menuitem" tabIndex={0} onClick={() => { choose('text'); close() }}><FileText size={17}/>Upload text file</button></>}</ItemMenu></div><RecipientPicker devices={devices} currentId={deviceId} targets={targets} onChange={setTargets} onRefresh={refresh} disabled={!connected||!deviceId}/><button className="button primary send-button" aria-label={sending?'Sharing…':'Share text'} title="Share text" disabled={!connected || !deviceId || !text.length || sending} onClick={() => void sendText()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}<span>Send</span></button>{mobile&&mobileEditing&&<button className="icon-button finish-editing" aria-label="Done editing" onClick={finishMobileEditing}><Check size={18}/></button>}</div>{composerError && <p role="alert" className="inline-error">{composerError}</p>}</section>
         </div>
       </main>
     </div>

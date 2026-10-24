@@ -8,7 +8,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main, build/drop-0.2.3-bottom-composer-20261024]
+    branches: [main, build/drop-0.2.4-files-folders-20261024]
     paths:
       - '.github/workflows/macos-dmg.yml'
       - 'integrations/macos/**'

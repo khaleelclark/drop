@@ -14,7 +14,7 @@ with tempfile.TemporaryDirectory() as tmp:
     helper.chmod(0o700)
     result=root/'result.json'
     env=dict(os.environ,HOUSEHOLD_CLI=str(helper),CAPTURE_RESULT=str(result))
-    paths=['/tmp/spaces 🏠.txt','/tmp/$(touch SHOULD_NOT_EXIST); `echo no`','/tmp/new\nline','-option-like']
+    paths=['/tmp/spaces 🏠.txt','/tmp/folder 家','/tmp/$(touch SHOULD_NOT_EXIST); `echo no`','/tmp/new\nline','-option-like']
     subprocess.run(['bash',str(HERE/'send-files.sh'),*paths],env=env,input=b'',check=True)
     assert json.loads(result.read_text())=={'args':['enqueue',*paths],'stdin':''}
     text='  full text\nUnicode: 家 🏠\n$() `touch no`\n'*5000

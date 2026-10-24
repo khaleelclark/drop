@@ -81,15 +81,37 @@ async fn native_pick_uploads(
     let q = state.inner().clone();
     tauri::async_runtime::spawn_blocking(move || {
         let context = q.prepare_send(source_device, target_device_ids)?;
-        if let Some(files) = app
-            .dialog()
-            .file()
-            .set_title("Send with Drop")
-            .blocking_pick_files()
-        {
-            for file in files {
-                let path = file.into_path().map_err(|e| e.to_string())?;
-                q.enqueue_prepared(&path, kind.as_deref().unwrap_or("file"), &context)?;
+        let kind = kind.as_deref().unwrap_or("file");
+        if kind == "folder" {
+            if let Some(folder) = app
+                .dialog()
+                .file()
+                .set_title("Send folder with Drop")
+                .blocking_pick_folder()
+            {
+                q.enqueue_prepared(
+                    &folder.into_path().map_err(|e| e.to_string())?,
+                    "file",
+                    &context,
+                )?;
+            }
+        } else {
+            if !matches!(kind, "file" | "text") {
+                return Err("Invalid item kind".into());
+            }
+            if let Some(files) = app
+                .dialog()
+                .file()
+                .set_title("Send with Drop")
+                .blocking_pick_files()
+            {
+                for file in files {
+                    q.enqueue_prepared(
+                        &file.into_path().map_err(|e| e.to_string())?,
+                        kind,
+                        &context,
+                    )?;
+                }
             }
         }
         Ok(())

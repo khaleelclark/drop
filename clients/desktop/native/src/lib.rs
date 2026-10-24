@@ -17,6 +17,7 @@ use std::{
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 use url::Url;
+mod archive;
 mod devices;
 pub use devices::{ArrivalBanner, ArrivalSettings, ArrivalTarget, SendContext};
 
@@ -28,6 +29,16 @@ const TEXT_LIMIT: u64 = 8 * 1024 * 1024;
 const METADATA_LIMIT: u64 = 2 * 1024 * 1024;
 fn err(e: impl std::fmt::Display) -> String {
     e.to_string()
+}
+fn remove_managed_file(path: &Path) -> Result<()> {
+    match fs::remove_file(path) {
+        Ok(()) => Ok(()),
+        Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(()),
+        Err(e) => Err(format!(
+            "Local cleanup failed for {}: {e}. Check local access, then Resume to retry cleanup",
+            path.file_name().unwrap_or_default().to_string_lossy()
+        )),
+    }
 }
 fn now() -> u64 {
     SystemTime::now()
@@ -84,7 +95,7 @@ impl Config {
     }
 }
 
-#[derive(Clone, Serialize, Deserialize, Debug)]
+#[derive(Clone, Serialize, Deserialize, Debug, PartialEq)]
 struct Source {
     path: PathBuf,
     len: u64,
@@ -176,6 +187,10 @@ struct Transfer {
     retry_at: u64,
     #[serde(default)]
     routing: Option<devices::Routing>,
+    #[serde(default)]
+    folder: Option<archive::FolderSource>,
+    #[serde(default)]
+    cleanup_status: Option<String>,
 }
 #[derive(Clone, Serialize, Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
@@ -210,6 +225,12 @@ struct DiskState {
 #[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "camelCase")]
 enum Inbox {
+    Folder {
+        folder: archive::FolderSource,
+        name: String,
+        config: Config,
+        routing: devices::Routing,
+    },
     Upload {
         source: Source,
         kind: String,
@@ -341,6 +362,30 @@ fn spool_prepared(root: &Path, path: &Path, kind: &str, context: &SendContext) -
     if kind != "file" && kind != "text" {
         return Err("Invalid item kind".into());
     }
+    let metadata = fs::symlink_metadata(path).map_err(err)?;
+    if metadata.is_dir() {
+        if kind != "file" {
+            return Err("Select folders as files, not text".into());
+        }
+        let folder = archive::FolderSource::inspect(path)?;
+        let name = format!("{}.zip", archive::folder_name(&folder.path)?);
+        let dir = root.join("inbox");
+        private_dir(&dir)?;
+        let id = uuid::Uuid::new_v4().to_string();
+        atomic_json(
+            &dir.join(format!("{id}.json")),
+            &Inbox::Folder {
+                folder,
+                name,
+                config,
+                routing: context.routing.clone(),
+            },
+        )?;
+        return Ok(id);
+    }
+    if metadata.file_type().is_symlink() && path.is_dir() {
+        return Err(format!("Unsupported symlink folder: {}", path.display()));
+    }
     let source = Source::inspect(path)?;
     let name = source
         .path
@@ -471,6 +516,36 @@ impl Queue {
             _lock: lock,
         });
         initialize_config(&q.root, default_origin)?;
+        {
+            let mut state = q.state.lock().map_err(err)?;
+            for t in &mut state.transfers {
+                if t.folder.is_some() {
+                    if t.cleanup_status.is_some()
+                        || matches!(t.status.as_str(), "complete" | "cancelled")
+                    {
+                        if t.cleanup_status.is_none() {
+                            t.cleanup_status = Some(t.status.clone());
+                        }
+                        if let Err(e) = q.retry_cleanup(t) {
+                            t.status = "error".into();
+                            t.error = Some(e);
+                        }
+                    } else if t.source.is_none() {
+                        if let Err(e) = q.cleanup_staged(t) {
+                            t.status = "error".into();
+                            t.error = Some(e);
+                        }
+                    } else {
+                        if let Err(e) = remove_managed_file(
+                            &q.root.join("staging").join(format!("{}.zip.part", t.id)),
+                        ) {
+                            t.status = "error".into();
+                            t.error = Some(e);
+                        }
+                    }
+                }
+            }
+        }
         q.save()?;
         Ok(q)
     }
@@ -612,7 +687,21 @@ impl Queue {
                 continue;
             }
             let message: Inbox = read_json(&path)?;
-            let (source, kind, name, source_device, config, routing) = match message {
+            let (source, kind, name, source_device, config, routing, folder) = match message {
+                Inbox::Folder {
+                    folder,
+                    name,
+                    config,
+                    routing,
+                } => (
+                    None,
+                    "file".into(),
+                    name,
+                    None,
+                    config,
+                    Some(routing),
+                    Some(folder),
+                ),
                 Inbox::Upload {
                     source,
                     kind,
@@ -620,13 +709,29 @@ impl Queue {
                     source_device,
                     config,
                     routing,
-                } => (source, kind, name, source_device, config, routing),
+                } => (
+                    Some(source),
+                    kind,
+                    name,
+                    source_device,
+                    config,
+                    routing,
+                    None,
+                ),
                 Inbox::Text {
                     source,
                     name,
                     config,
                     routing,
-                } => (source, "text".into(), name, None, config, routing),
+                } => (
+                    Some(source),
+                    "text".into(),
+                    name,
+                    None,
+                    config,
+                    routing,
+                    None,
+                ),
             };
             let mut config = config.validate()?;
             // Captures never inherit a newly paired server or persist a token in the spool.
@@ -645,7 +750,7 @@ impl Queue {
                 direction: "upload".into(),
                 name,
                 kind,
-                size: source.len,
+                size: source.as_ref().map_or(0, |s| s.len),
                 offset: 0,
                 status: if bound { "queued" } else { "paused" }.into(),
                 error: if bound {
@@ -654,7 +759,7 @@ impl Queue {
                     Some("Reconnect the captured household server, then Resume".into())
                 },
                 config,
-                source: Some(source),
+                source,
                 upload_url: None,
                 item_id: None,
                 destination: None,
@@ -662,6 +767,8 @@ impl Queue {
                 retries: 0,
                 retry_at: 0,
                 routing,
+                folder,
+                cleanup_status: None,
             };
             state.transfers.push(t);
             self.save_locked(&state)?;
@@ -710,6 +817,8 @@ impl Queue {
             retries: 0,
             retry_at: 0,
             routing: None,
+            folder: None,
+            cleanup_status: None,
         };
         let mut state = self.state.lock().map_err(err)?;
         state.transfers.push(t);
@@ -787,13 +896,38 @@ impl Queue {
             t
         };
         let cancellation = t.status == "cancelling";
-        let outcome = if cancellation {
+        let cleanup_only = t.cleanup_status.is_some();
+        let mut outcome = if cleanup_only {
+            self.retry_cleanup(&mut t)
+        } else if cancellation {
             self.cancel_step(&mut t)
         } else if t.direction == "upload" {
-            self.upload_step(&mut t)
+            if t.folder.is_some() && t.source.is_none() {
+                self.prepare_folder(&mut t)
+            } else {
+                (|| {
+                    if t.folder.is_some() {
+                        remove_managed_file(
+                            &self.root.join("staging").join(format!("{}.zip.part", t.id)),
+                        )?;
+                    }
+                    self.upload_step(&mut t)
+                })()
+            }
         } else {
             self.download_step(&mut t)
         };
+        if !cleanup_only
+            && outcome.is_ok()
+            && t.direction == "upload"
+            && matches!(t.status.as_str(), "complete" | "cancelled")
+        {
+            // Persist the confirmed remote outcome before local deletion or a process exit.
+            t.cleanup_status = Some(t.status.clone());
+            t.status = "checking".into();
+            self.checkpoint(&t)?;
+            outcome = self.retry_cleanup(&mut t);
+        }
         if let Err(e) = outcome {
             t.error = Some(e.clone());
             // Retry transport/server failures, retain all source and protocol errors for review.
@@ -820,7 +954,8 @@ impl Queue {
             .find(|x| x.id == t.id)
             .ok_or("Transfer disappeared")?;
         // A UI pause/cancel wins over an in-flight successful step. Preserve confirmed offset.
-        if (current.status == "paused" || current.status == "cancelling")
+        if t.cleanup_status.is_none()
+            && (current.status == "paused" || current.status == "cancelling")
             && current.status
                 != if cancellation {
                     "cancelling"
@@ -835,9 +970,6 @@ impl Queue {
         t.config = current.config.clone();
         *current = t.clone();
         self.save_locked(&state)?;
-        if t.status == "complete" && t.direction == "upload" {
-            self.cleanup_staged(&t);
-        }
         Ok(true)
     }
     fn request(
@@ -1011,7 +1143,9 @@ impl Queue {
             let mut meta = format!(
                 "filename {},filetype {},kind {},sourceDevice {}",
                 B64.encode(t.name.as_bytes()),
-                B64.encode(if t.kind == "text" {
+                B64.encode(if t.folder.is_some() {
+                    "application/zip"
+                } else if t.kind == "text" {
                     "text/plain"
                 } else {
                     "application/octet-stream"
@@ -1112,12 +1246,75 @@ impl Queue {
         }
         Ok(())
     }
-    fn cleanup_staged(&self, t: &Transfer) {
-        if let Some(source) = &t.source {
-            if source.path.parent() == Some(self.root.join("staging").as_path()) {
-                let _ = fs::remove_file(&source.path);
+    fn prepare_folder(&self, t: &mut Transfer) -> Result<()> {
+        t.status = "checking".into();
+        t.offset = 0;
+        t.size = 0;
+        self.checkpoint(t)?;
+        let folder = t.folder.as_ref().ok_or("Missing folder source")?.clone();
+        let mut checkpoint = 0;
+        let id = t.id.clone();
+        let source = archive::prepare(&self.root, &folder, &id, |done, total| {
+            if self.stopping.load(Ordering::SeqCst) {
+                return Err("Folder preparation paused".into());
+            }
+            {
+                let state = self.state.lock().map_err(err)?;
+                if state
+                    .transfers
+                    .iter()
+                    .find(|x| x.id == t.id)
+                    .is_some_and(|x| x.status == "paused" || x.status == "cancelling")
+                {
+                    return Err("Folder preparation paused".into());
+                }
+            }
+            if total != t.size || done.saturating_sub(checkpoint) >= 1024 * 1024 {
+                t.size = total;
+                t.offset = done;
+                checkpoint = done;
+                self.checkpoint(t)?;
+            }
+            Ok(())
+        })?;
+        t.size = source.len;
+        t.offset = 0;
+        t.source = Some(source);
+        t.status = "queued".into();
+        self.checkpoint(t)
+    }
+    fn cleanup_staged(&self, t: &Transfer) -> Result<()> {
+        let mut paths = Vec::new();
+        if t.folder.is_some() {
+            for suffix in ["zip", "zip.part"] {
+                paths.push(self.root.join("staging").join(format!("{}.{suffix}", t.id)));
             }
         }
+        if let Some(source) = &t.source {
+            if source.path.parent() == Some(self.root.join("staging").as_path()) {
+                if !paths.contains(&source.path) {
+                    paths.push(source.path.clone());
+                }
+            }
+        }
+        let failures: Vec<_> = paths
+            .iter()
+            .filter_map(|p| remove_managed_file(p).err())
+            .collect();
+        if failures.is_empty() {
+            Ok(())
+        } else {
+            Err(failures.join("; "))
+        }
+    }
+    fn retry_cleanup(&self, t: &mut Transfer) -> Result<()> {
+        self.cleanup_staged(t)?;
+        t.status = t
+            .cleanup_status
+            .take()
+            .ok_or("Missing confirmed cleanup outcome")?;
+        t.error = None;
+        Ok(())
     }
     fn partial(t: &Transfer) -> Result<PathBuf> {
         Ok(t.destination
@@ -1312,7 +1509,6 @@ impl Queue {
                     return Err(format!("HTTP {}", response.status().as_u16()));
                 }
             }
-            self.cleanup_staged(t);
         } else {
             let path = Self::partial(t)?;
             if path.exists() {

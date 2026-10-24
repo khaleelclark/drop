@@ -579,9 +579,10 @@ main>.banner, main>.device-name-prompt { flex-shrink: 0; margin-bottom: 0; max-h
   .workspace { left: 0; --tabs-space: calc(var(--mobile-tabs-height) + var(--safe-area-bottom)); }
   .workspace.is-editing { --tabs-space: 0px; }
   .topbar { max-width: none; }
-  main, main:has(.selection-bar) { max-width: none; padding: 8px max(12px, var(--safe-area-right)) calc(8px + var(--tabs-space)) max(12px, var(--safe-area-left)); gap: 8px; }
-  .feed { padding: 0 4px; margin: 0; border-radius: 0; }
-  .composer { border-radius: 14px; }
+  main, main:has(.selection-bar) { max-width: none; padding: 0 0 var(--tabs-space); gap: 0; }
+  .feed { padding: 0 max(16px, var(--safe-area-right)) 0 max(16px, var(--safe-area-left)); margin: 0; border-radius: 0; }
+  .send-workspace { background: var(--surface); }
+  .composer { border: 0; border-top: 1px solid var(--line); border-radius: 0; padding-inline: max(6px, var(--safe-area-left)) max(6px, var(--safe-area-right)); }
   .composer textarea, .composer.has-draft textarea { max-height: min(160px, 25dvh); }
   .selection-actions { position: static; padding: 0; border: 0; border-radius: 0; display: flex; }
   .selection-bar { max-height: 160px; overflow: auto; }

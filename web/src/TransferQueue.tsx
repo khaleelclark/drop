@@ -1,16 +1,26 @@
-import { useRef, useSyncExternalStore } from 'react'
+import { useEffect, useRef, useState, useSyncExternalStore } from 'react'
 import { Check, FileUp, LoaderCircle, Pause, Play, RotateCcw, X } from 'lucide-react'
 import type { TransferStore } from './transfers'
 import { errorMessage, formatBytes } from './types'
 export function TransferQueue({ store, onError }: {store: TransferStore; onError: (error: string) => void}) {
   const rows = useSyncExternalStore(store.subscribe, store.getSnapshot, store.getSnapshot)
+  const [hidden,setHidden]=useState<{store:TransferStore;ids:Set<string>}>(()=>({store,ids:new Set()}))
+  const completed=useRef(new Map<string,ReturnType<typeof setTimeout>>())
+  useEffect(()=>{setHidden({store,ids:new Set()});return()=>{completed.current.forEach(clearTimeout);completed.current.clear()}},[store])
+  useEffect(()=>{
+    const done=new Set(rows.filter(row=>row.state==='complete').map(row=>row.id))
+    for(const [id,timer] of completed.current)if(!done.has(id)){clearTimeout(timer);completed.current.delete(id)}
+    for(const id of done)if(!completed.current.has(id))completed.current.set(id,setTimeout(()=>setHidden(previous=>({store,ids:new Set([...(previous.store===store?previous.ids:[]),id])})),3000))
+    setHidden(previous=>previous.store===store&&[...previous.ids].some(id=>!done.has(id))?{store,ids:new Set([...previous.ids].filter(id=>done.has(id)))}:previous)
+  },[rows,store])
+  const visible=rows.filter(row=>hidden.store!==store||!hidden.ids.has(row.id))
   const picker = useRef<HTMLInputElement>(null); const target = useRef<string | undefined>(undefined)
-  if (!rows.length) return null
+  if (!visible.length) return null
   const run = (action: Promise<void>) => { void action.catch(error => onError(errorMessage(error))) }
   return <section className="transfer-panel" aria-labelledby="transfer-title">
-    <div className="section-title"><h2 id="transfer-title"><FileUp size={17} /> Transfers <span className="count-pill">{rows.filter(row => row.state !== 'complete').length}</span></h2>{rows.some(row => row.state === 'complete') && <button className="text-button" onClick={() => store.clearCompleted()}>Clear finished</button>}</div>
+    <div className="section-title"><h2 id="transfer-title"><FileUp size={17} /> Transfers <span className="count-pill">{rows.filter(row => row.state !== 'complete').length}</span></h2>{visible.some(row => row.state === 'complete') && <button className="text-button" onClick={() => store.clearCompleted()}>Clear finished</button>}</div>
     <input className="sr-only" type="file" ref={picker} aria-label="Reselect original file" onChange={event => { const file = event.currentTarget.files?.[0]; if (file && target.current) run(store.reattach(target.current, file)); event.currentTarget.value = '' }} />
-    <div className="transfer-list">{rows.map(row => {
+    <div className="transfer-list">{visible.map(row => {
       const percent = row.size > 0 ? Math.min(100, Math.round((row.state === 'checking' ? row.checked || 0 : row.sent) / row.size * 100)) : row.state === 'complete' ? 100 : 0
       const state = row.phase || { queued: 'Waiting', checking: 'Checking source', uploading: row.direction === 'download' ? 'Downloading' : 'Uploading', paused: 'Paused', 'needs-file': 'Select original file to resume', failed: 'Needs attention', complete: row.direction === 'download' ? 'Saved on this device' : 'Upload sent', cancelling: 'Cancelling' }[row.state]
       const direction = row.direction === 'download' ? 'To this device' : 'To household'

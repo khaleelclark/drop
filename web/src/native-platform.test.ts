@@ -80,6 +80,8 @@ describe('native adapter contract', () => {
     const adapter = await nativePlatform(invoke)
     await adapter.chooseFiles!('text','Kitchen Mac')
     expect(invoke).toHaveBeenCalledWith('native_pick_uploads',{kind:'text',sourceDevice:'Kitchen Mac'})
+    await adapter.chooseFiles!('folder','Kitchen Mac',['2'.repeat(32)])
+    expect(invoke).toHaveBeenCalledWith('native_pick_uploads',{kind:'folder',sourceDevice:'Kitchen Mac',targetDeviceIds:['2'.repeat(32)]})
     await adapter.download({url:'https://private.example/api/items/file/download',name:'huge.zip',itemId:'file'})
     expect(invoke).toHaveBeenCalledWith('native_download',{itemId:'file',name:'huge.zip'})
     expect(() => adapter.transfers.enqueue([new File([],'file')],'file','Mac',1)).toThrow('Add files')
