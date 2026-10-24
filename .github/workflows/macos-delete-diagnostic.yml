@@ -8,6 +8,7 @@ on:
       - '.github/mac-delete-baseline-sha256.json'
       - 'integrations/macos/test-delete-webview.*'
       - 'integrations/macos/delete-webview-fixture.js'
+      - 'scripts/macos-delete-webkit.cjs'
 
 permissions:
   contents: read
@@ -67,14 +68,23 @@ jobs:
           console.log('All nine baseline assets match the verified 0.1.4 installer receipts.');
           NODE
 
-      - name: Observe real WebKit baseline and explicit tabindex differential
+      - name: Install project-local WebKit test browser
         shell: bash
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/zing-webkit
+        run: |
+          "$RUNNER_TEMP/zing-diagnostic-tools/node_modules/.bin/pnpm" --dir baseline-src/web exec playwright install webkit
+
+      - name: Observe Mac WebKit baseline and explicit tabindex differential
+        shell: bash
+        env:
+          PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/zing-webkit
         run: |
           mkdir -p diagnostic-results
           set +e
-          bash integrations/macos/test-delete-webview.sh baseline-src/web/dist diagnostic-results/baseline baseline
+          node scripts/macos-delete-webkit.cjs baseline-src/web/dist diagnostic-results/baseline baseline
           baseline_status=$?
-          bash integrations/macos/test-delete-webview.sh baseline-src/web/dist diagnostic-results/tabindex tabindex
+          node scripts/macos-delete-webkit.cjs baseline-src/web/dist diagnostic-results/tabindex tabindex
           tabindex_status=$?
           set -e
           printf 'baseline=%s\ntabindex=%s\n' "$baseline_status" "$tabindex_status" > diagnostic-results/exit-status.txt
