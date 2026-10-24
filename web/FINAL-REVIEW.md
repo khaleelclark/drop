@@ -1,4 +1,155 @@
-# Current web freeze — desktop delete and first-use naming
+# Current reviewed UI + Mac menu production freeze
+
+24 October 2026. Root accepted the actual desktop and phone renders, then
+explicitly authorized the exact Mac menu correction and **one combined build**.
+The assigned web source/assets handoff is now frozen. This supersedes the
+historical visibility-only and 0.1.4 sections below. Root owns packaging and
+installed acceptance; this is not final project/device acceptance.
+
+The composer now groups files, Send to and Send; repeated heading/help bands
+are removed. Shared edges, a 192 px desktop rail, one history toolbar, full-width
+phone search and continuous rows retain the approved navy/white/red Ribbon Z.
+The compact desktop device picker becomes a phone sheet. Actual fixture renders
+move the first phone share from y=436 to **y=308**, with **four complete shares**
+above tabs at 390×844. Desktop first share moves from y=434 to y=268.
+[UI-REFRESH-REVIEW.md](UI-REFRESH-REVIEW.md) contains renders, measurements and
+behavioral validation. No external design assets/source were copied.
+
+## Mac diagnosis and exact correction
+
+Read directly: `.tools/mac-delete-ci/run-40053889772/extracted/{baseline,tabindex}/report.json`.
+Root's macOS arm64 Playwright WebKit run used the same nine hashed 0.1.4 assets
+in each mode (source `3dfbd083aa0b6c57501485a361309c72572897d2`, artifact
+12543943857). Default/last baseline trusted Delete mousedown moves focus to
+`DIV#share-native-{note,last}` tabindex=-1; focusout unmounts the menu before
+pointerup, so no confirmation or DELETE follows. Explicit tabindex=0 retains
+focus on Delete, delivers click and opens confirmation in both cases. Keep
+retains the item with zero mutations; Escape closes and returns focus.
+
+Both differential reports still end `observed_failures`: baseline confirmation
+visibility/safe Keep focus fail, and the tabindex mode later times out with the
+structured 500 error below the viewport. This isolates the lost-menu-click
+correction, **not a complete passing Mac flow or installed Tauri acceptance**.
+Earlier Swift/AppKit diagnostics failed setup/input and establish no app result.
+
+As directed, `tabIndex={0}` is added to the shared ItemMenu trigger and every
+FeedCard role=menuitem button. The existing pointer/null-focus guard remains;
+no broader timing change was made. Existing safe Keep focus and confirmation
+scrolling above phone tabs remain. Final Delete is still explicit. The new
+narrow error check passes without extra error-scroll logic.
+
+## Validation actually executed and retained
+
+- Final focused Chromium selection: **4/4 passed in 6.4 s**. Command from web/:
+  `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/home/phoenix/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome pnpm test:browser --grep 'native desktop delete confirmation|native delete confirmation clears|secondary text and sharing actions' --output=test-runs/ui-refresh-final-delete-before-error-scroll --reporter=line`.
+- Narrow 390×600 test was then extended to assert unobscured structured-500
+  error plus both buttons, enabled retry and no false success: **1/1 passed in
+  2.8 s**, same command with `--grep 'native delete confirmation clears'` and
+  `--output=test-runs/ui-refresh-final-delete-phone-before-error-scroll`.
+  Unaffected passed cases were not repeated. Retained current captures/check
+  receipts: `test-results/ui-refresh/final-delete/` (six files).
+- Coverage: explicit tabindex on trigger/all five text actions; ordinary and
+  controlled null-blur activation; visible confirmation/safe Keep; zero DELETE
+  on cancel; structured 500/visible retry; bodyless 204; failed post-delete feed
+  refresh with Retry and no duplicate mutation; keyboard menu/Escape and sharing
+  action. The synthetic null-blur case is Chromium diagnostic coverage.
+- Final `pnpm typecheck` passed. **One `pnpm build` passed**: TypeScript + Vite
+  6.4.5, 1620 modules, 1.93 s Vite build. No repeated production build.
+- Retained earlier UI checks: **36 unit/component passes** (22 FeedCard/edit,
+  14 bootstrap/native UI) and **20 relevant browser cases** across focused
+  correction runs; not rerun during this finalization. See the visual report
+  for their scope and corrected failures. Browser/native API fixtures do not
+  establish OS keyboard, device notifications or installed behavior.
+- Postbuild consistency: **20/20** local application sources embedded in JS
+  source map exactly equal current source bytes; JS map reference/map filename
+  agree; both HTML bundle references resolve; all five public files exactly
+  match dist copies. No application source changed after the build.
+- New desktop confirmation/500 and phone 500 renders were visually inspected.
+  The root-accepted populated before/after renders and all existing state
+  captures are preserved. All ten immutable baseline files remain unchanged.
+
+## Exact handoff
+
+Fourteen combined authored source/test/config/report paths are recorded with
+bytes/SHA256 in `test-results/ui-refresh/final-freeze.json`: `.gitignore`,
+`playwright.config.ts`, `src/App.tsx`, `src/FeedCard.tsx`, `src/ItemMenu.tsx`,
+`src/RecipientPicker.tsx`, `src/styles.css`, `src/bootstrap.test.tsx`,
+`src/native-platform-ui.test.tsx`, `e2e/browser.spec.ts`,
+`e2e/ui-refresh.spec.ts`, `README.md`, `UI-REFRESH-REVIEW.md`, and this report.
+Generated TypeScript state is `tsconfig.tsbuildinfo`; new diagnostic receipts
+and captures stay in the separately ignored evidence directory. No dependency,
+logo/palette, API, native, version, CI, Android, server or packaging change was
+made in this finalization. Root handles package integration.
+
+| Production file | Bytes | SHA256 |
+| --- | ---: | --- |
+| assets/index-8QCwuAnd.js | 400154 | `bac70db5940e78530e0b32abbe19633b8b94305d286d69c2a3574d88887c99ed` |
+| assets/index-8QCwuAnd.js.map | 1811498 | `d62fe5554cc15cbe32ea34e307506f3f6d3a7f11e218c8915581439b1e2f5618` |
+| assets/index-CJq1Hml4.css | 28077 | `c1579ec4882826529767143a83736692de5b249e4544586b3d7eaf3770ef9ccf` |
+| icon-192.png | 920 | `4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e` |
+| icon-512.png | 3392 | `c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641` |
+| icon.svg | 243 | `da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128` |
+| index.html | 704 | `071ef1d8634ba5137aae15bbda6a46b6d7fa2864677db13875a3ceb6f2a4b727` |
+| manifest.webmanifest | 619 | `34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f` |
+| sw.js | 2153 | `dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543` |
+
+Current freeze receipt: [final-freeze.json](test-results/ui-refresh/final-freeze.json).
+The old nine-asset baseline remains under `.tools/mac-delete-baseline/`.
+
+## Evidence gaps and remaining acceptance
+
+Direct root-required file audit finds **22 irrecoverable historical web evidence
+paths**, preserved verbatim in `test-results/ui-refresh/missing-historical-evidence.json`.
+Root reports the read-only reviewer exhausted permissible archives. No missing
+original is recreated or claimed recovered. The three previously required hashed
+JS/map/CSS names are separately superseded by this build; their frozen originals
+remain in the immutable baseline. Root must update its required-deliverable
+inventory/package integration; no claim that all historical project evidence is
+present is made. Every current named source, nine assets, retained UI render,
+new final check receipt and report was checked directly.
+
+Installed Tauri Mac Delete/name flow, matching Linux/Android packages, real
+keyboard/Back/Done/safe area, physical devices, OS notifications, full browser
+zoom/system text scaling/screen readers, a full accessibility audit and a 20 GB
+transfer remain outside this web handoff. No system install, deployment or live
+household deletion was performed.
+
+---
+
+# Historical visibility-only source handoff — superseded by the current freeze
+
+This is the corrected **visibility SOURCE/tests/diagnostic handoff** following root's delayed direction. **ItemMenu and App are restored byte-for-byte to 0.1.4; menu focus changes are pending root's actual Mac WKWebView diagnosis.** No tests or builds were rerun merely for handoff. No production build ran. `web/dist` and the immutable `.tools/mac-delete-baseline` remain unchanged. The separate queued reference UI task can proceed; root will direct the menu correction after its Mac trace, before the combined visual review and one final build.
+
+The user reports **Mac 0.1.4 Delete item does nothing/no confirmation**, while Android works. Installed Mac Delete acceptance remains failed. The visibility correction below cannot repair a menu action that never reaches confirmation, and no affected-Mac success is claimed.
+
+## Current source correction
+
+Ordinary Chromium pointer clicks, without focus/event injection, reproduced a confirmation group entirely below an1100x800 window: top800, bottom869; Delete/Keep813–857. The strengthened existing default-viewport test also failed with only0.636 of Delete visible. Once confirmation exists, it now focuses safe **Keep** and scrolls the group into view with margin for phone tabs. Keep retains its original cancellation behavior. Final Delete remains explicit; existing bridge204 handling, visible error/retry and feed-refresh recovery are unchanged.
+
+Authored functional paths are only `web/src/FeedCard.tsx`, `web/src/styles.css`, and `web/e2e/browser.spec.ts`, plus `web/README.md` and this report. Current functional files match the earlier visibility receipt exactly. The test strengthens the existing normal/null-blur fixture with unobscured controls/Keep focus and adds a narrow390x600 keyboard-Keep cancellation case. Screenshots now use per-test output paths to prevent replacing historical evidence on future runs. The forced-null-blur case is only controlled Chromium coverage, not actual Mac evidence.
+
+Retained validation, without rerunning:
+
+- Earlier ordinary-pointer pre-fix regression: **1 failed**, Delete viewport ratio0.636.
+- Earlier visibility-source check: **3/3 passed,5.2s**. It covered safe visible controls, normal and controlled-null-focus interactions, Keep without DELETE, structured500/visible retry/no false success, bodyless204 and feed-refresh error/recovery without duplicate mutation. Metadata is `web/test-results/zing-mac-confirm-viewport-after/.last-run.json`.
+- `pnpm typecheck` passed on this same visibility production source.
+- The last e2e edit after that run only changed screenshot destinations. No validation claim is inferred from a new run.
+
+Exact commands, current hashes and evidence are in `web/test-results/zing-mac-delete-source-ready.json`; the original visibility receipt remains `web/test-results/zing-mac-confirm-viewport-source.json`. The reinvestigation events/ordinary-pointer bounds remain `web/test-results/zing-mac-delete-reinvestigation.json`.
+
+## Withdrawn candidate and pending Mac diagnosis
+
+A later explicit-tabindex candidate removed pointer timing state and passed8 Chromium checks plus14 unit checks. Root's delayed answer specifically required ItemMenu to remain unchanged pending its actual Mac trace, so that candidate was withdrawn and those results are **historical candidate evidence, not current-source acceptance**. The exact candidate diff is retained in `web/test-results/zing-mac-menu-candidate-withdrawn.patch`, and its previous source/evidence receipt is `web/test-results/zing-mac-menu-candidate-historical.json`.
+
+The source-supported hypothesis remains that WebKit can move mouse focus from a button without explicit tabindex to the enclosing focusable card, producing a non-null relatedTarget outside the menu and defeating the old null-only guard. Current primary sources are [WebKit form-control focus](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/html/HTMLFormControlElement.cpp), [WebKit mouse traversal](https://github.com/WebKit/WebKit/blob/main/Source/WebCore/page/EventHandler.cpp), and [WebKit bug229895 comment8](https://bugs.webkit.org/show_bug.cgi?id=229895#c8). The original controlled ancestor-focus diagnostic failed; this is not an actual installed-Mac cause established here.
+
+Root/native is producing the Swift/AppKit WKWebView harness and will run frozen0.1.4 baseline and explicit-tabindex differential using real native input, without another installer/full native rebuild. It owns the resulting menu correction direction. Local WebKit2359 cannot start because libevent and other system libraries are absent; no installation was attempted. The immutable baseline was only read.
+
+All named current files/evidence and root's required web manifest were directly checked before handoff. All9 dist files and all10 baseline files remain unchanged. No native/package/CI/server/Android/dependency/system-install/new-Agent work, production build, live deletion, corrected Mac acceptance, full accessibility or20GB transfer is claimed. Runtime diagnosis belongs to root/native; queued UI implementation and combined visual/build review remain separate tracked work.
+
+---
+
+# Historical 0.1.4 web freeze — desktop delete and first-use naming
 
 The web implementation is built and frozen for root’s Apple Silicon **0.1.4** integration. Current JavaScript is `index-9egpLsfx.js`, CSS is `index-4D-6AtoB.css`. This supersedes `index-D_HQx3BY.js` and earlier web freezes. The existing quality reviewer found no material blocker in its bounded current-source inspection, including the final saved-local-name recovery. This was source inspection only, without edits, test execution or installed/WebKit validation. All sections after the Historical heading describe prior source/evidence, not this freeze.
 

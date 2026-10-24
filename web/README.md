@@ -1,10 +1,10 @@
 # Zing browser client
 
-React + TypeScript + Vite client with a shared inbox, neutral white surfaces, navy typography/actions, and a restrained red wordmark detail. The original Ribbon Z replaces the house in the interface and install icons using root’s `branding/zing-mark.svg` geometry; the user approved the final navy, soft-white and signal-red preview after removing teal. A compact desktop sidebar gives way to three bottom scope tabs (All shares, For you, Pinned) on phones. Each text entry has a visible Copy action, and every file has Download. Text downloads and management live in a keyboard-accessible menu; long text has an inline Expand/Collapse control. Routine actions use light icon/label controls with no filled blocks. The compact mobile composer stays in document flow so it cannot cover the feed, menus or last action. New share returns focus to it. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
+React + TypeScript + Vite client with a shared inbox, neutral white surfaces, navy typography/actions, and a restrained red wordmark detail. The original Ribbon Z replaces the house in the interface and install icons using root’s `branding/zing-mark.svg` geometry; the user approved the final navy, soft-white and signal-red preview after removing teal. A compact desktop sidebar gives way to three bottom scope tabs (All shares, For you, Pinned) on phones. Each text entry has a visible Copy action, and every file has Download. Text downloads and management live in a keyboard-accessible menu; long text has an inline Expand/Collapse control. Routine actions use transparent icon/label controls; Send uses a small navy primary button. The compact composer stays in document flow. Files, recipient selection and Send form one group; phone search uses its own full-width row. The device picker is an anchored desktop dialog and a phone sheet. Browser transfer limits appear inside the composer before upload. Primary controls and menu actions are at least 44 px. The existing ItemMenu component serves both feed actions and the composer; no new runtime dependency was added, following the repository-local Ponytail guidance.
 
 Client for `docs/api-contract.md`. All items come from
 the connected API; the product interface has no demo feed or synthetic storage
-values. The Playwright tests use an explicitly isolated API fixture.
+values. The Playwright tests use an explicitly isolated API fixture. Test runner traces use `test-runs/`, separately from retained screenshots and reports in `test-results/`.
 
 ## Build and run
 
@@ -294,9 +294,15 @@ acceptance. Root owns final rendered/device acceptance and matching packages.
 
 ## Desktop delete and device naming follow-up
 
-The shared item menu retains a pointer-initiated action through a null-focus
-blur until the click can arrive. Normal keyboard focus departure, outside
-pointer dismissal and explicit destructive confirmation remain in place. Native
+The shared menu trigger and every feed menu action explicitly use `tabIndex=0`.
+Root's archived Playwright WebKit run on macOS reproduced the old lost Delete
+click and isolated explicit focusability as the correction on the same frozen
+assets. The existing pointer/null-focus guard stays unchanged. Confirmation
+scrolls into view above phone tabs and focuses **Keep**; keyboard navigation,
+outside dismissal and explicit final Delete remain. Focused Chromium checks
+also verify visible 500-error recovery. Installed Tauri Mac acceptance remains
+pending; the Mac differential was not a complete passing delete flow.
+Native
 DELETE uses the existing bridge and accepts an empty HTTP 204; failures keep the
 confirmation available for retry. A failed feed refresh after successful delete
 shows the feed error and Retry without issuing another delete.

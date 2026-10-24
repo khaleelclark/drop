@@ -1,6 +1,29 @@
+## Current UI refresh candidate — 24 October 2026
+
+The accepted navy/white/red layout and Mac Delete focus correction are frozen in
+`web/test-results/ui-refresh/final-freeze.json`. Current bundles are
+`index-8QCwuAnd.js`/map and `index-CJq1Hml4.css`. The interface owner ran one
+production build, focused deletion/recovery checks and typecheck; root verified
+79 recorded hashes. Desktop shell version is 0.1.5; Android Tauri is 0.1.7/code
+1007. Package and installed acceptance are separate and remain pending until
+version-specific evidence is recorded. No service deployment is part of this task.
+
+The macOS WebKit baseline/differential isolated focus moving to the parent
+before Delete click. Explicit tabindex=0 restores the click. Final candidate
+Mac WebKit and installed Tauri checks are pending; older diagnostic failures
+are not full-flow passes. See `docs/evidence/zing-mac-delete-webkit-diagnosis.json`
+and `web/UI-REFRESH-REVIEW.md`.
+
+Twenty-two required historical evidence files were lost and could not be
+recovered from permitted archives. They remain required and absent; no originals
+were fabricated. See `docs/evidence/historical-evidence-unavailable.json`. The
+aggregate `artifacts/package-manifest.json` and `artifacts/SHA256SUMS` are stale
+and must not be used for current downloads. Version-specific receipts and
+immutable Project downloads are the authority until packaging is finalized.
+
 # Build and validation evidence
 
-## Mac Delete and device naming follow-up — 0.1.4 pending
+## Mac Delete and device naming follow-up — 0.1.4 package accepted
 
 The user reported a missed Delete action and no opportunity to name the Mac in
 the final 0.1.3 household installer. A controlled null-focus menu boundary
@@ -21,10 +44,82 @@ locked cached dependencies. The final interface selection passed 16 focused brow
 43 unit/component cases, plus TypeScript and one production build. The bounded
 source review found no material blocker. Root directly verified the frozen
 source/assets and source-map contents before publication. WebKit could not launch with available host
-libraries; no system package was installed. Root has not yet built or accepted
-the replacement 0.1.4 DMG. Prior package records below remain historical evidence
-for their exact versions. Installed Mac Delete/naming behavior and actual
-in-flight network preservation remain unverified.
+libraries; no system package was installed.
+
+Native Apple Silicon CI run `40043743517`, source
+`92c60cd923da8e5952731740bcf15ee59de2c8b1`, passed 19 core and 23 protocol
+tests, app/helper architecture and system linkage checks, ad-hoc signatures,
+helper usage execution, and read-only DMG mount/verification. Root downloaded
+artifact `12540786949`, verified its ZIP digest/size/CRC and safe extraction,
+DMG checksum/UDIF trailer, all nine frozen frontend hashes, bundled instructions,
+four signed app/helper destination receipts, and all 352 required deliverables.
+The replacement `Zing_0.1.4_arm64_household.dmg` is 9,331,093 bytes, SHA-256
+`a6f9b140510e22fcc2b87164f74eed09eed751d3759c62d2e25f15d27166936b`.
+See `docs/evidence/zing-delete-name-macos-package.json`. The user's follow-up
+confirms the prior installer never displayed Delete confirmation; it does not
+establish the exact Mac focus event sequence. Prior package records below remain
+historical evidence for their exact versions. Installed Mac Delete/naming,
+Gatekeeper/GUI behavior, actual in-flight network preservation and 20 GB transfers
+remain unverified. No deployment or Intel package was performed.
+
+### Installed Mac follow-up — 2026-10-24
+
+After receiving 0.1.4, the user reports that choosing Delete item still does
+nothing and shows no confirmation. The user separately confirms deletion works
+on Android. This is a failed user-reported Mac Delete acceptance check; native
+package checks above remain valid and do not prove GUI behavior. The exact
+Mac event sequence has not been captured. The interface investigation is reopened;
+the previous controlled Chromium regression is insufficient evidence of a fix
+for this installed failure. No successful Mac deletion is claimed.
+
+The independently reproduced offscreen confirmation has an interim source
+correction: focus the safe Keep action and bring both confirmation controls
+into view. The interface owner records three focused Chromium cases and a
+TypeScript pass; no replacement production frontend is frozen yet.
+
+Root used an isolated diagnostic branch with the exact nine original frontend
+asset hashes. The first native WKWebView run (`40052378513`) stopped at a queue
+selector mismatch; the second (`40053492531`) loaded the app but did not deliver
+trusted mouse input through NSEvent. Neither supplies an application diagnosis.
+
+Run `40053889772`, source `3dfbd083aa0b6c57501485a361309c72572897d2`,
+used project-local Playwright WebKit on macOS arm64 with the synthetic native
+bridge and ordinary trusted browser mouse input. Root downloaded artifact
+`12543943857`, verified its ZIP SHA-256 and both nine-file asset manifests, and
+read the actual event logs. In both default and last-row cases, original Delete
+mousedown moves focus to the surrounding `tabindex=-1` card; the menu unmounts
+before click and no confirmation or DELETE occurs. With only explicit
+`tabindex=0` applied to the rendered menu buttons/trigger, the same original
+assets deliver the click and open both confirmations. Keep performs no mutation
+and Escape restores focus. Confirmation visibility and safe focus still fail in
+these original bytes. The subsequent synthetic 500 error is below the viewport
+and times out the visibility wait; this is not a complete recovery-flow pass.
+
+Root authorized the minimal explicit menu tabindex correction, retained safe
+Keep/confirmation scrolling, and one combined UI production build. A fixed-mode
+Mac WebKit run and package checks remain pending. These engine tests do not
+establish installed Tauri or user-household acceptance. See
+`docs/evidence/zing-mac-delete-webkit-diagnosis.json`.
+
+### Historical evidence and aggregate receipt availability
+
+The initial UI capture used Playwright's default output directory and removed
+22 older ignored files still named in the required-deliverables manifest.
+Read-only archive/workspace recovery found no verified originals. Their exact
+paths and recovery scope are retained in
+`docs/evidence/historical-evidence-unavailable.json`; old report links to these
+files are unavailable, and summary receipts do not substitute for original
+payloads. No historical screenshot or diagnostic was fabricated or relabelled.
+New UI evidence has distinct paths; original production/baseline assets survived.
+The 352-path audit above describes its original freeze date, not current presence.
+Whole-project/all-required-files completion cannot currently be claimed.
+
+`artifacts/package-manifest.json` and `artifacts/SHA256SUMS` also predate changes
+to the source archive and mutable Android output paths. Treat them as stale
+historical snapshots, not current checksum authority. Version-specific evidence
+retains the identity of previously delivered immutable packages. A current
+aggregate package will require fresh receipts and an explicit disposition of
+missing historical requirements.
 
 ## Latest nautical direction: navy, white and red — 2026-10-23
 

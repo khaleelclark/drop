@@ -1,8 +1,37 @@
+## Current UI refresh candidate — 24 October 2026
+
+The accepted navy/white/red layout and Mac Delete focus correction are frozen in
+`web/test-results/ui-refresh/final-freeze.json`. Current bundles are
+`index-8QCwuAnd.js`/map and `index-CJq1Hml4.css`. The interface owner ran one
+production build, focused deletion/recovery checks and typecheck; root verified
+79 recorded hashes. Desktop shell version is 0.1.5; Android Tauri is 0.1.7/code
+1007. Package and installed acceptance are separate and remain pending until
+version-specific evidence is recorded. No service deployment is part of this task.
+
+The macOS WebKit baseline/differential isolated focus moving to the parent
+before Delete click. Explicit tabindex=0 restores the click. Final candidate
+Mac WebKit and installed Tauri checks are pending; older diagnostic failures
+are not full-flow passes. See `docs/evidence/zing-mac-delete-webkit-diagnosis.json`
+and `web/UI-REFRESH-REVIEW.md`.
+
+Twenty-two required historical evidence files were lost and could not be
+recovered from permitted archives. They remain required and absent; no originals
+were fabricated. See `docs/evidence/historical-evidence-unavailable.json`. The
+aggregate `artifacts/package-manifest.json` and `artifacts/SHA256SUMS` are stale
+and must not be used for current downloads. Version-specific receipts and
+immutable Project downloads are the authority until packaging is finalized.
+
 # Zing
 
-The Mac Delete/device-name follow-up is being prepared as Apple Silicon 0.1.4.
-Source, focused fixture tests and the final web freeze are complete; native
-installer acceptance is pending. The verified packages below predate this fix.
+The Mac Delete/device-name follow-up has a verified Apple Silicon household
+0.1.4 installer. Native macOS CI passed 42 tests, ad-hoc signing, helper execution
+and read-only DMG checks; root matched the downloaded package and all nine frozen
+web assets. The user reports Delete still shows no confirmation on Mac 0.1.4,
+while Android deletion works; the Mac fix remains open. Naming acceptance is
+unverified. See
+[package evidence](docs/evidence/zing-delete-name-macos-package.json).
+
+The current UI refresh has accepted desktop and phone previews; its combined production build and replacement installers are pending. A macOS WebKit diagnostic reproduced the missed Delete click and isolated an explicit menu-focus correction. This is browser-engine evidence with synthetic data; installed Mac acceptance remains open. See [diagnostic evidence](docs/evidence/zing-mac-delete-webkit-diagnosis.json).
 
 The connection/navigation correction has verified **Apple Silicon household
 0.1.3** and **Android Tauri 0.1.6/code1006** packages. The Mac installer includes
@@ -104,7 +133,7 @@ different frontend. It requires both current Mac installers; while those are
 pending, `python3 scripts/package.py --allow-missing-macos` creates an explicitly
 incomplete candidate whose manifest lists the missing installers. Older Mac
 packages are never substituted. Check all included bytes from the project root
-with `sha256sum -c artifacts/SHA256SUMS`.
+with `sha256sum -c artifacts/SHA256SUMS`. The existing aggregate manifest and checksum file are stale snapshots and must be regenerated before they can validate a current release. Use version-specific evidence for previously delivered packages. The [historical evidence inventory](docs/evidence/historical-evidence-unavailable.json) records 22 unavailable older evidence files; no whole-project completion is claimed.
 
 ## Interaction
 

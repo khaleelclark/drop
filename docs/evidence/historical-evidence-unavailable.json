@@ -1,0 +1,40 @@
+{
+  "date": "2026-10-24",
+  "status": "historical evidence unavailable; no replacements fabricated",
+  "cause": "Initial capture used Playwright default outputDir before it was separated from retained evidence. No missing historical file is recreated or relabelled as original evidence.",
+  "missingRequiredPaths": [
+    "web/test-results/household-compact-desktop.png",
+    "web/test-results/household-compact-mobile.png",
+    "web/test-results/household-editing-overlay-layout.png",
+    "web/test-results/household-empty.png",
+    "web/test-results/household-long-text.png",
+    "web/test-results/household-mobile.png",
+    "web/test-results/household-pairing.png",
+    "web/test-results/household-row-error.png",
+    "web/test-results/household-transfers.png",
+    "web/test-results/zing-arrival-denied.png",
+    "web/test-results/zing-arrival-settings-desktop.png",
+    "web/test-results/zing-arrival-settings-native.png",
+    "web/test-results/zing-arrival-settings-phone.png",
+    "web/test-results/zing-for-you-desktop.png",
+    "web/test-results/zing-for-you-phone.png",
+    "web/test-results/zing-tailscale-settings.png",
+    "web/test-results/zing-text-candidate-recovery-phone.png",
+    "web/test-results/zing-configured-native-401-phone.png",
+    "web/test-results/zing-configured-native-403-phone.png",
+    "web/test-results/zing-configured-native-offline-phone.png",
+    "web/test-results/zing-preconfigured-native-desktop.png",
+    "web/test-results/zing-mac-web-freeze.json"
+  ],
+  "recovery": "Read-only reviewer searched current/previous source archives, server/Mac archive indexes, publication payloads, retained normal tooling receipts and normal workspace temporary copies. No original payload found. Existing summary hashes do not replace original evidence. Ponderosa private storage was not enumerated.",
+  "currentEvidence": "New UI refresh renders use web/test-results/ui-refresh/ names; new Mac diagnostics have distinct source/run receipts. Original nine production assets and immutable baseline copies survived.",
+  "requiredManifestDisposition": "The 22 historical paths remain named and absent. Whole-project/all-required-deliverables completion is not claimed.",
+  "aggregatePackageReceiptStatus": {
+    "status": "stale, not a current download checksum authority",
+    "files": [
+      "artifacts/package-manifest.json",
+      "artifacts/SHA256SUMS"
+    ],
+    "reason": "Source archive has changed since receipt; mutable Android output paths now contain a newer version. Use version-specific package evidence and immutable imports. Regenerate only after current release packaging and explicit historical requirement disposition."
+  }
+}

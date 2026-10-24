@@ -48,7 +48,7 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
     // Keep pointer activation through a null-focus blur until its click arrives.
     if(!event.currentTarget.contains(event.relatedTarget as Node)&&!(event.relatedTarget===null&&pointerInside.current))setOpen(false)
   }}>
-    <button className="icon-button more-actions" ref={trigger} aria-label={`More actions for ${name}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open?id:undefined} onClick={()=>setOpen(!open)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}><Ellipsis size={20}/></button>
+    <button className="icon-button more-actions" tabIndex={0} ref={trigger} aria-label={`More actions for ${name}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open?id:undefined} onClick={()=>setOpen(!open)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}><Ellipsis size={20}/></button>
     {open&&<div className="item-menu-popover" ref={menu} role="menu" id={id} aria-label={`Actions for ${name}`} onKeyDown={event=>{
       const elements=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'))
       const current=elements.indexOf(document.activeElement as HTMLButtonElement)

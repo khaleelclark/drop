@@ -22,8 +22,8 @@ android {
         applicationId = "net.household.share.mobile"
         minSdk = 26
         targetSdk = 36
-        versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1006").toInt()
-        versionName = tauriProperties.getProperty("tauri.android.versionName", "0.1.6")
+        versionCode = tauriProperties.getProperty("tauri.android.versionCode", "1007").toInt()
+        versionName = tauriProperties.getProperty("tauri.android.versionName", "0.1.7")
     }
     buildTypes {
         getByName("debug") {

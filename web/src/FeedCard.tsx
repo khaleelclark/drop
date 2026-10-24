@@ -12,6 +12,7 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
   const [body, setBody] = useState<string | undefined>(); const [loading, setLoading] = useState(false)
   const previewElement=useRef<HTMLPreElement>(null);const [clipped,setClipped]=useState(false)
+  const confirmation=useRef<HTMLDivElement>(null);const keep=useRef<HTMLButtonElement>(null)
   const [expanded, setExpanded] = useState(false); const [copied, setCopied] = useState(false)
   const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [deleting, setDeleting] = useState(false)
   const [editor, setEditor] = useState<{name:string;text?:string;version:string}|null>(null)
@@ -30,6 +31,7 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
   }, [api, item.id, item.updatedAt, item.kind, item.status, item.size])
   useEffect(() => () => editPreparation.current?.abort(), [api, item.id])
   useEffect(() => { if (editor) nameInput.current?.focus({preventScroll:true}) }, [Boolean(editor)])
+  useEffect(() => { if (deleting) { keep.current?.focus({preventScroll:true});confirmation.current?.scrollIntoView({block:'nearest'}) } }, [deleting])
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 2500); return () => clearTimeout(timer) }, [copied])
   const prepare = async () => {
     if(item.size>COPY_LIMIT) return
@@ -107,13 +109,13 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
         <span aria-hidden="true">·</span><time dateTime={item.createdAt} title={when.toLocaleString()}>{when.toDateString() === new Date().toDateString() ? when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</time>
       </div><div className="card-actions">
         {textual && <button className={`button action-button ${copied ? 'copied' : ''}`} aria-label={copied?'Copied':body===undefined&&item.size<=COPY_LIMIT?'Prepare copy':'Copy text'} title={item.size>COPY_LIMIT?'Exceeds 8 MiB copy budget; download the full text':body===undefined?'Prepare the full text before copying':'Copy the full text'} onClick={() => void copy()} disabled={item.status !== 'ready' || item.size>COPY_LIMIT || loading || busy}>{loading || busy ? <LoaderCircle className="spin" size={16} /> : copied ? <Check size={16} /> : <Copy size={16} />}<span>{copied?'Copied':item.kind==='file'&&body===undefined?'Prepare copy':'Copy'}</span></button>}
-        {item.kind==='file' && <button className="icon-button" aria-label="Download" title="Download file" onClick={()=>void download()} disabled={item.status!=='ready'}><ArrowDownToLine size={18}/></button>}
-        {item.kind==='text' && item.size>COPY_LIMIT && <button className="icon-button" aria-label="Download .txt" title="Download .txt" onClick={()=>void download('txt')} disabled={item.status!=='ready'}><ArrowDownToLine size={18}/></button>}
+        {item.kind==='file' && <button className="button action-button download-action" aria-label="Download" title="Download file" onClick={()=>void download()} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
+        {item.kind==='text' && item.size>COPY_LIMIT && <button className="button action-button download-action" aria-label="Download .txt" title="Download .txt" onClick={()=>void download('txt')} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
         <ItemMenu name={item.name}>{close=><>
-          {item.kind==='text'&&(['txt','md'] as const).map(format=><button key={format} role="menuitem" onClick={()=>{void download(format);close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download .{format}</button>)}
-          <button role="menuitem" disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
-          <button role="menuitem" onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
-          <button role="menuitem" className="menu-danger" onClick={()=>{setDeleting(!deleting);close()}}><Trash2 size={17}/>Delete item</button>
+          {item.kind==='text'&&(['txt','md'] as const).map(format=><button key={format} role="menuitem" tabIndex={0} onClick={()=>{void download(format);close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download .{format}</button>)}
+          <button role="menuitem" tabIndex={0} disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
+          <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
+          <button role="menuitem" tabIndex={0} className="menu-danger" onClick={()=>{setDeleting(!deleting);close()}}><Trash2 size={17}/>Delete item</button>
         </>}</ItemMenu>
       </div></div>
       {item.status !== 'ready' && <span className={`item-status status-${item.status}`}>{item.status === 'failed' ? 'Upload failed' : <><LoaderCircle className="spin" size={12} /> Uploading — not ready yet</>}</span>}
@@ -121,7 +123,7 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
     {(loading||editLoading)&&<button className="text-button" onClick={()=>{preparation.current?.abort();setLoading(false);editPreparation.current?.abort();setEditLoading(false)}}>Cancel preparation</button>}
     {expanded && rendered?.truncated && <p className="inline-note">Showing the first 256 KiB. Copy text uses the full prepared body; download .txt or .md to read everything.</p>}
     {textual && item.size > COPY_LIMIT && <p className="inline-note">This text exceeds the 8 MiB copy budget. Download {item.kind==='text'?'.txt or .md':'the file'} to open or copy the full text in another app.</p>}
-    {deleting && <div className="delete-confirm" role="group" aria-label="Confirm deletion"><span>Delete for everyone? This cannot be undone.</span><button className="button compact danger" onClick={() => void remove()} disabled={busy}>Delete</button><button className="button compact secondary" onClick={() => setDeleting(false)}>Keep</button></div>}
+    {deleting && <div className="delete-confirm" ref={confirmation} role="group" aria-label="Confirm deletion"><span>Delete for everyone? This cannot be undone.</span><button className="button compact danger" onClick={() => void remove()} disabled={busy}>Delete</button><button className="button compact secondary" ref={keep} onClick={() => setDeleting(false)}>Keep</button></div>}
     {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
     {error && <p className="inline-error" role="alert">{error}</p>}
   </article>

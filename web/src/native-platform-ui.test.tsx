@@ -32,7 +32,7 @@ describe('shared native fixture at the interface boundary', () => {
     window.householdPlatform = await nativePlatform(invoke)
     render(<App />)
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-    expect(screen.getByRole('heading',{name:'Shared inbox'})).toBeInTheDocument()
+    expect(screen.getByRole('heading',{name:'All shares'})).toBeInTheDocument()
     expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
     fireEvent.click(screen.getByRole('button',{name:'Configure connection'}))
     const dialog = screen.getByRole('dialog',{name:'Connection settings'})

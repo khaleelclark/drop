@@ -3,7 +3,7 @@ const port = process.env.HOUSEHOLD_TEST_PORT || '18173'
 const baseURL = `http://127.0.0.1:${port}`
 const downloadPort = process.env.HOUSEHOLD_DOWNLOAD_TEST_PORT || '18174'
 export default defineConfig({
-  testDir: './e2e', fullyParallel: false, workers: 1, timeout: 30_000,
+  testDir: './e2e', outputDir: './test-runs/browser', fullyParallel: false, workers: 1, timeout: 30_000,
   use: {
     baseURL, browserName: 'chromium',
     launchOptions: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH ? { executablePath: process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH } : {},

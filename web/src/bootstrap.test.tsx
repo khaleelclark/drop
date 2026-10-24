@@ -25,7 +25,7 @@ describe('safe-area ownership at startup', () => {
       if(runtime==='browser')expect(screen.getByRole('dialog', {name:'Connect to Zing'})).toBeInTheDocument()
       else {
         expect(screen.queryByRole('dialog')).not.toBeInTheDocument()
-        expect(screen.getByRole('heading',{name:'Shared inbox'})).toBeInTheDocument()
+        expect(screen.getByRole('heading',{name:'All shares'})).toBeInTheDocument()
         expect(screen.getByRole('button',{name:'Configure connection'})).toBeEnabled()
         expect(invoke.mock.calls.some(([command])=>command==='native_api')).toBe(false)
       }

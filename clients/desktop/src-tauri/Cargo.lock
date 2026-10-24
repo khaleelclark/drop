@@ -1630,7 +1630,7 @@ dependencies = [
 
 [[package]]
 name = "household-share"
-version = "0.1.4"
+version = "0.1.5"
 dependencies = [
  "household-native",
  "serde_json",

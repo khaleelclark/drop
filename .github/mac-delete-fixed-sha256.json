@@ -1,0 +1,47 @@
+[
+  {
+    "path": "web/dist/assets/index-8QCwuAnd.js",
+    "bytes": 400154,
+    "sha256": "bac70db5940e78530e0b32abbe19633b8b94305d286d69c2a3574d88887c99ed"
+  },
+  {
+    "path": "web/dist/assets/index-8QCwuAnd.js.map",
+    "bytes": 1811498,
+    "sha256": "d62fe5554cc15cbe32ea34e307506f3f6d3a7f11e218c8915581439b1e2f5618"
+  },
+  {
+    "path": "web/dist/assets/index-CJq1Hml4.css",
+    "bytes": 28077,
+    "sha256": "c1579ec4882826529767143a83736692de5b249e4544586b3d7eaf3770ef9ccf"
+  },
+  {
+    "path": "web/dist/icon-192.png",
+    "bytes": 920,
+    "sha256": "4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e"
+  },
+  {
+    "path": "web/dist/icon-512.png",
+    "bytes": 3392,
+    "sha256": "c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641"
+  },
+  {
+    "path": "web/dist/icon.svg",
+    "bytes": 243,
+    "sha256": "da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128"
+  },
+  {
+    "path": "web/dist/index.html",
+    "bytes": 704,
+    "sha256": "071ef1d8634ba5137aae15bbda6a46b6d7fa2864677db13875a3ceb6f2a4b727"
+  },
+  {
+    "path": "web/dist/manifest.webmanifest",
+    "bytes": 619,
+    "sha256": "34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f"
+  },
+  {
+    "path": "web/dist/sw.js",
+    "bytes": 2153,
+    "sha256": "dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543"
+  }
+]

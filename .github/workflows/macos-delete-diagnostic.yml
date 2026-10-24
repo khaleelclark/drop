@@ -1,11 +1,12 @@
-name: Mac Delete WebView diagnostic
+name: Mac Delete WebKit acceptance
 
 on:
   push:
     branches: [diagnostics/mac-delete-webview]
     paths:
       - '.github/workflows/macos-delete-diagnostic.yml'
-      - '.github/mac-delete-baseline-sha256.json'
+      - '.github/mac-delete-fixed-sha256.json'
+      - 'web/**'
       - 'integrations/macos/test-delete-webview.*'
       - 'integrations/macos/delete-webview-fixture.js'
       - 'scripts/macos-delete-webkit.cjs'
@@ -23,30 +24,23 @@ jobs:
         with:
           persist-credentials: false
 
-      - name: Checkout exact reported 0.1.4 source
-        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
-        with:
-          ref: 92c60cd923da8e5952731740bcf15ee59de2c8b1
-          path: baseline-src
-          persist-credentials: false
-
       - name: Set up pinned Node
         uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: '24.16.0'
 
-      - name: Prepare exact frontend baseline
+      - name: Reproduce frozen candidate frontend
         shell: bash
         run: |
           npm install --prefix "$RUNNER_TEMP/zing-diagnostic-tools" --no-audit --no-fund pnpm@11.10.0
           export PATH="$RUNNER_TEMP/zing-diagnostic-tools/node_modules/.bin:$PATH"
-          pnpm --dir baseline-src/web install --frozen-lockfile
-          pnpm --dir baseline-src/web build
+          pnpm --dir web install --frozen-lockfile
+          pnpm --dir web build
           node <<'NODE'
           const fs = require('node:fs');
           const path = require('node:path');
           const crypto = require('node:crypto');
-          const expected = JSON.parse(fs.readFileSync('.github/mac-delete-baseline-sha256.json', 'utf8'));
+          const expected = JSON.parse(fs.readFileSync('.github/mac-delete-fixed-sha256.json', 'utf8'));
           const files = [];
           function walk(dir) {
             for (const entry of fs.readdirSync(dir, {withFileTypes: true})) {
@@ -56,16 +50,16 @@ jobs:
               else throw Error('Non-regular baseline asset');
             }
           }
-          walk('baseline-src/web/dist');
-          if (files.length !== expected.length) throw Error('Baseline asset count changed');
+          walk('web/dist');
+          if (files.length !== expected.length) throw Error('Candidate asset count changed');
           for (const asset of expected) {
-            const file = path.join('baseline-src', asset.path);
+            const file = asset.path;
             const bytes = fs.readFileSync(file);
             if (bytes.length !== asset.bytes || crypto.createHash('sha256').update(bytes).digest('hex') !== asset.sha256) {
-              throw Error('Baseline bytes do not match reported 0.1.4: ' + asset.path);
+              throw Error('Candidate bytes do not match accepted freeze: ' + asset.path);
             }
           }
-          console.log('All nine baseline assets match the verified 0.1.4 installer receipts.');
+          console.log('All nine candidate assets match the accepted frontend freeze.');
           NODE
 
       - name: Install project-local WebKit test browser
@@ -73,23 +67,15 @@ jobs:
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/zing-webkit
         run: |
-          "$RUNNER_TEMP/zing-diagnostic-tools/node_modules/.bin/pnpm" --dir baseline-src/web exec playwright install webkit
+          "$RUNNER_TEMP/zing-diagnostic-tools/node_modules/.bin/pnpm" --dir web exec playwright install webkit
 
-      - name: Observe Mac WebKit baseline and explicit tabindex differential
+      - name: Verify fixed Mac WebKit behavior without DOM override
         shell: bash
         env:
           PLAYWRIGHT_BROWSERS_PATH: ${{ runner.temp }}/zing-webkit
         run: |
           mkdir -p diagnostic-results
-          set +e
-          node scripts/macos-delete-webkit.cjs baseline-src/web/dist diagnostic-results/baseline baseline
-          baseline_status=$?
-          node scripts/macos-delete-webkit.cjs baseline-src/web/dist diagnostic-results/tabindex tabindex
-          tabindex_status=$?
-          set -e
-          printf 'baseline=%s\ntabindex=%s\n' "$baseline_status" "$tabindex_status" > diagnostic-results/exit-status.txt
-          test "$baseline_status" -eq 0
-          test "$tabindex_status" -eq 0
+          node scripts/macos-delete-webkit.cjs web/dist diagnostic-results/fixed fixed
 
       - name: Upload diagnostic traces and snapshots
         if: always()
