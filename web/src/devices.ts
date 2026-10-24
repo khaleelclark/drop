@@ -8,7 +8,7 @@ export function deviceRecord<T>(key: string, update: (previous: T | undefined) =
     const open = indexedDB.open('household.devices.v1', 1)
     open.onupgradeneeded = () => open.result.createObjectStore('state')
     open.onerror = () => reject(new Error('Device storage is unavailable. Allow browser storage and retry.'))
-    open.onblocked = () => reject(new Error('Device storage is busy. Close older Zing tabs and retry.'))
+    open.onblocked = () => reject(new Error('Device storage is busy. Close older Drop tabs and retry.'))
     open.onsuccess = () => {
       const db = open.result; const transaction = db.transaction('state', 'readwrite'); const store = transaction.objectStore('state')
       let value: T

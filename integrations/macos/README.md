@@ -1,3 +1,24 @@
+## Drop rename — next release source
+
+The user selected Drop on 24 October 2026. Current source packaging creates
+`Drop.app` and `Drop_<version>_<arch>.dmg`. Matching new installers are pending;
+existing published Zing and Household Share packages remain historical.
+The unchanged `net.household.share` identifier, helper name and per-user state
+paths preserve the existing connection, identity and queue.
+
+For the new Drop app, the bundled helper is
+`/Applications/Drop.app/Contents/Helpers/household-share-cli`. Update an existing
+user-owned helper symlink to that installed path, or set `HOUSEHOLD_CLI` in the
+capture scripts. For a per-user installation use `~/Applications/Drop.app/`.
+The bundled scripts remain `send-files.sh`, `send-text.sh` and `send-clipboard.sh`.
+Name a newly created Finder action **Send with Drop**. Quit and move aside the
+old Zing or Household Share app bundle before installing; retain private app
+state and avoid two copies with the same bundle ID. Existing optional Quick
+Actions/symlinks may still point to the previous app name and need updating.
+
+The instructions and version-specific evidence below retain their original
+Zing scope; substitute the Drop app path only for an actual new Drop installer.
+
 # macOS capture
 
 These scripts make durable **local queue** captures. They never make a whole-file HTTP request or block for upload completion. Text streams into one owned staging file; file sends preserve the original path and identity rather than duplicating a large file. Keep original files in place until their transfer completes.
@@ -16,7 +37,7 @@ ln -s "/Applications/Zing.app/Contents/Helpers/household-share-cli" \
 
 If that destination already exists, inspect it and explicitly choose whether to keep or replace it. Alternatively, replace the `cli=...` line in each pasted script with `cli="/Applications/Zing.app/Contents/Helpers/household-share-cli"`. For a per-user installation use `$HOME/Applications/Zing.app/...` instead. Copying the scripts from `Contents/Resources/capture` does not install a Quick Action automatically. The bundle helper is already ad-hoc signed; a symlink does not modify its signature.
 
-Before upgrading, quit the old Household Share app and move its bundle out of Applications yourself; keep private user data/queues. Install Zing.app and update the optional helper symlink. Do not keep competing copies with the same app ID. Captures default to Everyone, using the native identity shared with the GUI. They preserve that source, recipient choice and server through later configuration changes.
+Before upgrading, quit the old Zing or Household Share app and move its bundle out of Applications yourself; keep private user data/queues. Install Zing.app and update the optional helper symlink. Do not keep competing copies with the same app ID. Captures default to Everyone, using the native identity shared with the GUI. They preserve that source, recipient choice and server through later configuration changes.
 
 ## Finder Quick Action
 
@@ -39,7 +60,7 @@ The app global shortcut `Command+Shift+H` opens its composer; the explicit clipb
 
 Zing source implements branding, device routing and opt-in arrivals. See [release validation](../../docs/validation.md) for current package status. The verified **0.1.1** packages below are historical and contain **Household Share.app**; their acceptance does not cover later source or packages. Zing packaging emits `Zing_<version>_<arch>.dmg`, `Zing.app` and volume **Zing** without changing `net.household.share`, helper/CLI names, ad-hoc signing or user data paths.
 
-The `.github/workflows/macos-dmg.yml` workflow builds separate Apple Silicon/Intel installers using the existing app. A push affecting Mac/desktop/web build inputs on `main`, or **Actions → macOS DMG → Run workflow**, starts the native Mac jobs. Each build records the source commit and generated frontend hashes. Download the matching `household-share-macos-arm64` or `household-share-macos-x86_64` artifact for the accepted source, verify `SHA256SUMS`, open its DMG, drag the app to Applications and eject the image before launching it. Read `INSTALL.txt` inside the image.
+The household `.github/workflows/macos-dmg.yml` workflow currently builds Apple Silicon only, as requested, and supplies the household HTTPS destination without a token. Generic local packaging still supports Apple Silicon and Intel; omit the build default to obtain a generic inbox with explicit Configure connection/Settings. A push affecting Mac/desktop/web build inputs on `main`, or **Actions → macOS DMG → Run workflow**, starts the native Mac jobs. Each build records the source commit and generated frontend hashes. Download the matching `household-share-macos-arm64` or `household-share-macos-x86_64` artifact for the accepted source, verify `SHA256SUMS`, open its DMG, drag the app to Applications and eject the image before launching it. Read `INSTALL.txt` inside the image.
 
 The historical **0.1.1 Apple Silicon and Intel packages** were accepted against clean source `57e26b4e8707eff13dabb5725d15b1ec7c67c6e4`, successful run `39878431406` / jobs `120169690452` (ARM64) and `120169690572` (Intel). The retained installers are:
 
@@ -52,7 +73,7 @@ Both packages use the approved CS6EIQOV/DVPjc1UT frontend freeze, including the 
 
 No Apple developer account is required. The Tauri configuration and packaging script use local ad-hoc signing (`signingIdentity: "-"`), without notarization. If macOS blocks the verified downloaded **DMG**, click **Done**, then use **System Settings → Privacy & Security → Open Anyway** for that DMG, confirm **Open** and authenticate if asked. Reopen the image if needed, drag the app to Applications and eject the image. If macOS also blocks the installed **Zing.app**, repeat the same per-file approval for the app. Follow [Apple's instructions](https://support.apple.com/en-us/102445) and the source `INSTALL.txt`; leave Gatekeeper enabled. These instructions do not establish successful installation or Gatekeeper approval on a household Mac. For a separate source-built CLI only, sign locally as needed using `codesign --force --sign - ~/.local/bin/household-share-cli` after building it on that Mac.
 
-To build the DMG locally, use `bash integrations/macos/build-dmg.sh aarch64-apple-darwin` on Apple Silicon or `x86_64-apple-darwin` on Intel from the repository root. For a private household build, export `HOUSEHOLD_DEFAULT_ORIGIN` with the real HTTPS origin in the private build environment before running that script; it passes the same value to native tests, helper compilation and Tauri app compilation. An unset or empty value produces a generic build with manual setup. Do not commit a household address or token. The default contains only an HTTPS origin (optional trailing `/`), with no credentials, path, query or fragment; native first-run validation rejects invalid values before writing config/identity. Build logs record only the presence of the default. Existing config or a Disconnect marker always takes precedence. The compiled default does not bypass server authentication, and changing the launch environment does not reconfigure an installed app.
+To build the DMG locally, use `bash integrations/macos/build-dmg.sh aarch64-apple-darwin` on Apple Silicon or `x86_64-apple-darwin` on Intel from the repository root. For a private household build, export `HOUSEHOLD_DEFAULT_ORIGIN` with the real HTTPS origin in the private build environment before running that script; it passes the same value to native tests, helper compilation and Tauri app compilation. An unset or empty value produces a generic build with manual setup. Keep tokens and authentication credentials out of source; the household-specific workflow supplies only its non-secret HTTPS destination. The default contains only an HTTPS origin (optional trailing `/`), with no credentials, path, query or fragment; native first-run validation rejects invalid values before writing config/identity. Build logs record only the presence of the default. Existing config or a Disconnect marker always takes precedence. The compiled default does not bypass server authentication, and changing the launch environment does not reconfigure an installed app.
 
 Prerequisites must already be installed: Xcode command-line tools/SDK, Node 24.16.0, pnpm 11.10.0 and Rust 1.99.1 (exact pins in `versions.env`). The script installs only locked project dependencies. Hosted CI provisions pinned project tools in the disposable runner and reuses its Apple SDK; no system package/SDK install is performed on the Linux workspace. See `clients/desktop/README.md` for artifact paths, verification commands and the native build/test/signing details.
 

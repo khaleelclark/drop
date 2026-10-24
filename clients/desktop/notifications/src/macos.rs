@@ -57,7 +57,7 @@ impl Notifier {
         }
         match unsafe { zing_notifications_permission() } {
             1 => Ok(()),
-            0 => Err("Allow Zing notifications in System Settings, then enable again".into()),
+            0 => Err("Allow Drop notifications in System Settings, then enable again".into()),
             _ => Err("Notification permission request failed or timed out; try again".into()),
         }
     }

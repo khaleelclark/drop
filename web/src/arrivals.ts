@@ -31,7 +31,7 @@ export async function processArrivals(api: ApiClient, deviceId: string, key: str
     if(latest){
       if (!active()) return
       // Batch catch-up into one generic banner; all items remain in For you.
-      await show('Zing', {body:'New share available',tag:`${key}:${latest.sequence}`,data:{itemId:latest.itemId},icon:'/icon-192.png'})
+      await show('Drop', {body:'New share available',tag:`${key}:${latest.sequence}`,data:{itemId:latest.itemId},icon:'/icon-192.png'})
       // OS posting and local persistence are not atomic; stable tags reduce duplicate banners after a crash.
       localStorage.setItem(`${key}:cursor`,page.nextCursor)
     }

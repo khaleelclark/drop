@@ -9,7 +9,7 @@ verify_app() {
   local app=$1 arch=$2 binary signature dependencies line dependency
   [[ -d "$app" ]] || die "Missing app bundle: $app"
   plutil -lint "$app/Contents/Info.plist"
-  [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app/Contents/Info.plist")" == Zing ]] || die 'Unexpected app display name.'
+  [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleName' "$app/Contents/Info.plist")" == Drop ]] || die 'Unexpected app display name.'
   [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleIdentifier' "$app/Contents/Info.plist")" == net.household.share ]] || die 'Unexpected app identifier.'
   [[ "$(/usr/libexec/PlistBuddy -c 'Print :CFBundleExecutable' "$app/Contents/Info.plist")" == household-share ]] || die 'Unexpected main executable.'
   [[ "$(/usr/libexec/PlistBuddy -c 'Print :LSMinimumSystemVersion' "$app/Contents/Info.plist")" == 11.0 ]] || die 'Unexpected deployment target.'
@@ -93,7 +93,7 @@ hdiutil attach -readonly -nobrowse -noautoopen -mountpoint "$mountpoint" "$dmg"
 mounted=1
 [[ -L "$mountpoint/Applications" && "$(readlink "$mountpoint/Applications")" == /Applications ]] || die 'Missing Applications drag-install link.'
 [[ -s "$mountpoint/INSTALL.txt" ]] || die 'Missing installation instructions.'
-verify_app "$mountpoint/Zing.app" "$arch"
+verify_app "$mountpoint/Drop.app" "$arch"
 hdiutil detach "$mountpoint"
 mounted=0
 printf 'Read-only DMG mount, app signatures and drag-install layout verified. GUI launch and household-device checks were not run.\n'

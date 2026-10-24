@@ -49,7 +49,7 @@ describe('native adapter contract', () => {
     expect(response.headers.get('content-length')).toBe('123')
     expect(response.headers.get('etag')).toBe('"fixture"')
     invoke.mockResolvedValueOnce(fixture.noContentResponse)
-    const empty = await adapter.request!(`${fixture.config.baseUrl}/api/items/note`,{method:'DELETE'})
+    const empty = await adapter.request!(`${fixture.config.baseUrl}/api/items/note/trash`,{method:'POST'})
     expect(empty.status).toBe(204)
     expect(empty.body).toBeNull()
   })
@@ -154,5 +154,19 @@ describe('optional desktop naming',()=>{
       expect((await nativePlatform(invoke)).renameDevice).toBeUndefined()
       expect(invoke).toHaveBeenCalledTimes(1)
     }
+  })
+})
+
+describe('optional local appearance dispatch',()=>{
+  const settings={appearance:'system' as const,resolvedTheme:'light' as const,canvas:'#F7F8FA',header:'#18334A',navigation:'#FFFFFF'}
+  it('uses the exact Android flat command, validates independent OS preference and never uses HTTP',async()=>{
+    const invoke=vi.fn<NativeInvoke>(async command=>command==='native_get_config'?{platform:'android'}:{systemTheme:'dark'})
+    const adapter=await nativePlatform(invoke);expect(await adapter.setAppearance!(settings)).toEqual({systemTheme:'dark'});expect(invoke).toHaveBeenLastCalledWith('native_set_appearance',settings)
+    for(const invalid of [{...settings,header:'transparent'},{...settings,canvas:'#abc'},{...settings,appearance:'os'},{...settings,resolvedTheme:'system'},{...settings,appearance:'dark',resolvedTheme:'light'}])await expect(adapter.setAppearance!(invalid as typeof settings)).rejects.toThrow('Invalid native appearance')
+    expect(invoke).toHaveBeenCalledTimes(2);invoke.mockResolvedValueOnce({systemTheme:'invalid'});await expect(adapter.setAppearance!(settings)).rejects.toThrow('invalid system appearance')
+  })
+  it('leaves older desktops without a global window setter as CSS-only',async()=>{
+    const invoke=vi.fn<NativeInvoke>().mockResolvedValue({platform:'macos'});expect((await nativePlatform(invoke)).setAppearance).toBeUndefined();expect(invoke).toHaveBeenCalledTimes(1)
+    window.__TAURI__={core:{invoke},window:{getCurrentWindow(){throw new Error('No window namespace')}}};try{expect((await nativePlatform(invoke)).setAppearance).toBeUndefined()}finally{delete window.__TAURI__}
   })
 })

@@ -142,7 +142,7 @@ impl Client {
             .map(|((_, id), _)| *id)
             .unwrap_or(0);
         if replaces == 0 && shown.len() >= MAX_SHOWN {
-            return Err("Close old Zing alerts before retrying arrivals".into());
+            return Err("Close old Drop alerts before retrying arrivals".into());
         }
         let hints: HashMap<&str, zbus::zvariant::Value<'_>> = HashMap::new();
         let reply = self
@@ -153,12 +153,12 @@ impl Client {
                 Some(SERVICE),
                 "Notify",
                 &(
-                    "Zing",
+                    "Drop",
                     replaces,
                     "household-share",
-                    "Zing",
+                    "Drop",
                     body(banner.multiple),
-                    vec!["default", "Open Zing"],
+                    vec!["default", "Open Drop"],
                     hints,
                     -1i32,
                 ),
@@ -452,11 +452,11 @@ mod tests {
         assert_eq!(
             requests[1],
             (
-                "Zing".into(),
+                "Drop".into(),
                 0,
-                "Zing".into(),
+                "Drop".into(),
                 "New share available".into(),
-                vec!["default".into(), "Open Zing".into()]
+                vec!["default".into(), "Open Drop".into()]
             )
         );
     }

@@ -1,9 +1,13 @@
 import { BrowserTransfers, type TransferStore } from './transfers'
 import type { ArrivalSettings, DevicePlatform } from './types'
 export interface DownloadRequest { url: string; name: string; itemId: string }
+export type AppearanceChoice = 'light' | 'dark' | 'system'
+export type ResolvedTheme = 'light' | 'dark'
+export interface AppearanceRequest { appearance:AppearanceChoice; resolvedTheme:ResolvedTheme; canvas:string; header:string; navigation:string }
 export interface PlatformAdapter {
   kind: 'browser' | 'native';
   requiresConnection?: boolean;
+  setAppearance?(request:AppearanceRequest):Promise<{systemTheme:ResolvedTheme}|void>;
   defaultDeviceName?: string;
   renameDevice?(name: string): Promise<void>;
   deviceIdentity?: {id: string; platform: DevicePlatform};

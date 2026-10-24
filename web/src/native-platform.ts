@@ -1,12 +1,13 @@
-import type { PlatformAdapter } from './platform'
+import type { AppearanceChoice, AppearanceRequest, PlatformAdapter, ResolvedTheme } from './platform'
 import type { Transfer, TransferState, TransferStore } from './transfers'
 import type { ArrivalSettings, DevicePlatform } from './types'
 export type NativeInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>
+interface NativeWindowAppearance {setTheme(value:ResolvedTheme|null):Promise<void>;setBackgroundColor?(value:string):Promise<void>}
 interface NativeTransfer { id: string; direction: 'upload' | 'download'; name: string; size: number; offset: number; status: string; error?: string; itemId?: string }
 interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform; canRenameDevice?: boolean }
 declare global {
   interface Window {
-    __TAURI__?: { core: { invoke: NativeInvoke } };
+    __TAURI__?: { core: { invoke: NativeInvoke }; window?:{getCurrentWindow():NativeWindowAppearance} };
     __HOUSEHOLD_NATIVE__?: { platform: string; invoke: NativeInvoke };
   }
 }
@@ -62,6 +63,29 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
   try { config = await invoke('native_get_config') as NativeConfig } catch { /* Older bridge: onboarding supplies the origin. */ }
   let origin = config.baseUrl || 'http://127.0.0.1:8787'
   const transfers = new NativeTransfers(invoke, () => origin)
+  const android=config.platform==='android'||window.__HOUSEHOLD_NATIVE__?.platform==='android'
+  let nativeWindow:NativeWindowAppearance|undefined
+  try{if(!android){const candidate=window.__TAURI__?.window?.getCurrentWindow();if(typeof candidate?.setTheme==='function')nativeWindow=candidate}}catch{/* Older shells can keep CSS-only appearance. */}
+  let unsupportedAppearance=false,desktopChoice:AppearanceChoice|undefined,desktopCanvas=''
+  const setAppearance:PlatformAdapter['setAppearance']=android||nativeWindow?async(request:AppearanceRequest)=>{
+    if((request.appearance!=='system'&&request.appearance!==request.resolvedTheme)||!['light','dark','system'].includes(request.appearance)||!['light','dark'].includes(request.resolvedTheme)||[request.canvas,request.header,request.navigation].some(color=>!/^#[a-f0-9]{6}$/i.test(color)))throw new Error('Invalid native appearance settings.')
+    if(android){
+      if(unsupportedAppearance)throw new Error('This installed app does not support native appearance. The app theme still applies.')
+      let result:unknown
+      try{result=await invoke('native_set_appearance',{appearance:request.appearance,resolvedTheme:request.resolvedTheme,canvas:request.canvas,header:request.header,navigation:request.navigation})}
+      catch(error){if(/unsupported|not found|unknown command/i.test(String(error)))unsupportedAppearance=true;throw error}
+      const theme=(result as {systemTheme?:unknown}|null)?.systemTheme
+      if(theme!=='light'&&theme!=='dark')throw new Error('The installed app returned an invalid system appearance. The app theme still applies.')
+      return{systemTheme:theme}
+    }
+    if(!nativeWindow)return
+    if(desktopChoice!==request.appearance){await nativeWindow.setTheme(request.appearance==='system'?null:request.appearance);desktopChoice=request.appearance}
+    // Release a forced native theme before consulting the WebView's OS preference.
+    const systemTheme=request.appearance==='system'?(window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light'):undefined
+    if((!systemTheme||systemTheme===request.resolvedTheme)&&desktopCanvas!==request.canvas&&nativeWindow.setBackgroundColor){await nativeWindow.setBackgroundColor(request.canvas);desktopCanvas=request.canvas}
+    if(systemTheme)return{systemTheme}
+  }:undefined
+
   const request: typeof fetch = async (input, init) => {
     if (!config.baseUrl || config.connected === false) throw new Error('Configure your household connection in Settings first.')
     const signal=init?.signal
@@ -82,7 +106,7 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
     } finally { if(signal&&abort)signal.removeEventListener('abort',abort) }
   }
   return {
-    kind:'native',get baseURL(){return config.baseUrl ? origin : undefined},get defaultDeviceName(){return config.sourceDevice},
+    kind:'native',...(setAppearance?{setAppearance}:{}),get baseURL(){return config.baseUrl ? origin : undefined},get defaultDeviceName(){return config.sourceDevice},
     ...(config.canRenameDevice===true&&['macos','linux'].includes(config.platform||'')?{async renameDevice(name:string){await invoke('native_rename_device',{sourceDevice:name});config={...config,sourceDevice:name}}}:{}),
     get requiresConnection(){return !config.baseUrl || config.connected === false},transfers,request,
     get deviceIdentity() { return config.deviceId && config.platform ? {id:config.deviceId,platform:config.platform} : undefined },

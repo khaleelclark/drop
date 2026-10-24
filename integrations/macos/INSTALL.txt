@@ -1,16 +1,16 @@
-Zing for macOS
+Drop for macOS
 
 1. Choose arm64 for an Apple Silicon Mac, or x86_64 for an Intel Mac.
    Verify the DMG's SHA-256 against its published SHA256SUMS.
 2. Open the verified DMG. If macOS blocks it, click Done, then go to
    System Settings > Privacy & Security > Open Anyway for that DMG.
    Confirm Open and authenticate if asked; reopen the DMG if needed.
-3. For an upgrade, quit the old Household Share app. Move that old app
-   bundle out of Applications yourself before installing Zing.app; keep
+3. For an upgrade, quit the old Zing or Household Share app. Move that old app
+   bundle out of Applications yourself before installing Drop.app; keep
    user data and queues. Do not keep two apps with net.household.share.
-   Drag Zing.app onto Applications, then eject the DMG.
+   Drag Drop.app onto Applications, then eject the DMG.
 4. Open the installed app from Applications. If macOS blocks the app,
-   repeat step 2 for Zing.app, then open it again if needed.
+   repeat step 2 for Drop.app, then open it again if needed.
    The DMG and app use ad-hoc signatures without notarization. These are
    separate per-file exceptions; leave Gatekeeper enabled.
    See https://support.apple.com/en-us/102445 for Apple's instructions.
@@ -35,7 +35,7 @@ Sleep, logout, shutdown and force-quit can interrupt work.
 
 Optional Finder/Shortcuts capture:
 The signed helper is inside the installed app:
-  /Applications/Zing.app/Contents/Helpers/household-share-cli
+  /Applications/Drop.app/Contents/Helpers/household-share-cli
 The three capture scripts are in Contents/Resources/capture.
 A private household build can capture before the GUI has been opened; its
 helper initializes the same connection and device identity automatically.
@@ -52,7 +52,7 @@ establish physical Mac installation, Gatekeeper approval, Finder or
 Shortcuts behavior, or transfers continuing after window close or sleep.
 The package targets macOS 11 or newer; older-system acceptance is untested.
 
-Arrivals are disabled until Enable in Zing settings. While enabled, this
+Arrivals are disabled until Enable in Drop settings. While enabled, this
 resident app checks about every 5 seconds (backing off on errors). Close
 keeps it running; explicit Quit, sleep and process exit stop checks.
 Banners are generic and may be suppressed by OS settings. A notification

@@ -40,7 +40,7 @@ work="$(mktemp -d "${TMPDIR:-/tmp}/household-dmg.XXXXXX")"
 trap 'rm -rf -- "$work"' EXIT
 version="$(node -p "require('./clients/desktop/src-tauri/tauri.conf.json').version")"
 [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die 'Expected a numeric app version.'
-name="Zing_${version}_${arch}"
+name="Drop_${version}_${arch}"
 if [[ -n "${HOUSEHOLD_DEFAULT_ORIGIN:-}" ]]; then
   name="${name}_household"
 fi
@@ -75,13 +75,22 @@ fi
 } > "$out/build-environment.log"
 
 # Each dependency tree has its own checked-in lockfile. Never update them in CI.
-pnpm --dir web install --frozen-lockfile 2>&1 | tee "$out/dependencies.log"
+tauri_config=()
+if [[ "${HOUSEHOLD_USE_FROZEN_WEB:-}" == 1 ]]; then
+  node scripts/verify-frozen-web.cjs | tee "$out/dependencies.log"
+  tauri_config=(--config '{"build":{"beforeBuildCommand":""}}')
+else
+  pnpm --dir web install --frozen-lockfile 2>&1 | tee "$out/dependencies.log"
+fi
 pnpm --dir clients/desktop install --frozen-lockfile 2>&1 | tee -a "$out/dependencies.log"
 cargo test --locked --manifest-path clients/desktop/native/Cargo.toml --target "$target" 2>&1 | tee "$out/native-tests.log"
 cargo build --locked --release --manifest-path clients/desktop/native/Cargo.toml --target "$target" --bin household-share-cli 2>&1 | tee "$out/helper-build.log"
 # Build only the .app with the existing CSP/native bridge; hdiutil creates the DMG below.
 # The arguments after -- are passed through to cargo by the pinned Tauri CLI.
-pnpm --dir clients/desktop exec tauri build --ci --target "$target" --bundles app -- --locked 2>&1 | tee "$out/app-build.log"
+pnpm --dir clients/desktop exec tauri build --ci --target "$target" "${tauri_config[@]}" --bundles app -- --locked 2>&1 | tee "$out/app-build.log"
+if [[ "${HOUSEHOLD_USE_FROZEN_WEB:-}" == 1 ]]; then
+  node scripts/verify-frozen-web.cjs | tee -a "$out/app-build.log"
+fi
 
 # Record the exact source UI built by Tauri. CI outputs are packaging candidates;
 # the integration owner selects the final redesign/source commit before shipping.
@@ -106,8 +115,8 @@ NODE
 stage="$work/volume"
 mkdir -p "$stage"
 chmod 755 "$stage"
-app="$stage/Zing.app"
-ditto "$root/clients/desktop/src-tauri/target/$target/release/bundle/macos/Zing.app" "$app"
+app="$stage/Drop.app"
+ditto "$root/clients/desktop/src-tauri/target/$target/release/bundle/macos/Drop.app" "$app"
 mkdir -p "$app/Contents/Helpers" "$app/Contents/Resources/capture"
 cp "$root/clients/desktop/native/target/$target/release/household-share-cli" "$app/Contents/Helpers/household-share-cli"
 chmod 755 "$app/Contents/Helpers/household-share-cli"
@@ -130,7 +139,7 @@ set -e
 [[ "$helper_status" == 1 ]] || die "Helper usage returned unexpected status $helper_status."
 [[ "$(cat "$out/helper-execution.log")" == Usage:\ household-share-cli* ]] || die 'Helper failed before showing its usage.'
 
-hdiutil create -volname 'Zing' -srcfolder "$stage" -fs HFS+ -format UDZO "$out/$name.dmg" 2>&1 | tee "$out/dmg-create.log"
+hdiutil create -volname 'Drop' -srcfolder "$stage" -fs HFS+ -format UDZO "$out/$name.dmg" 2>&1 | tee "$out/dmg-create.log"
 codesign --force --sign - --timestamp=none "$out/$name.dmg"
 bash "$here/verify-dmg.sh" "$out/$name.dmg" "$arch" 2>&1 | tee "$out/dmg-verification.log"
 cp "$here/INSTALL.txt" "$out/INSTALL.txt"

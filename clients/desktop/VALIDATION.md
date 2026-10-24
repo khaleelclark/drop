@@ -1,5 +1,19 @@
 # Desktop native validation
 
+## Drop drag-and-drop assets — source checks, 24 October 2026
+
+Current native assets use the adopted file/pointer/open-tray [canonical mark](../../branding/drop-mark.svg): two independent round-capped/joined 2-unit polylines plus a filled cursor polygon. Colored launchers use `translate(3,3) scale(0.75)` in 24 units; Android adaptive foreground retains its outer `translate(18,18) scale(3)`. The full mark remains in the monochrome tray and notification vector. White/navy and transparent corners are preserved; there is no red icon detail.
+
+The [current exact asset inventory](../shared/drop-drag-source.json) records 21 generated assets, both existing rasterizers, focused geometry/pixel checks and offline standalone/Tauri resource compilation. Prior ribbon-D assets and generators were snapshotted before editing; earlier reports/evidence below retain their original bytes and scope. Root separately aligned source to 0.2.0/code2000; this asset delta does not change any version, runtime/configuration, identifier, queue, connection, preference or notification-channel file.
+
+Source-ready only. No production frontend, APK/DEB/DMG/full native build, package or installed/device acceptance is claimed. Earlier records below describe their original check dates, geometry and versions; they do not describe the current mark.
+
+## Drop visible rename — source checks, 24 October 2026
+
+Current source uses **Drop** and the canonical closed ribbon D. The [native source/asset inventory](../shared/drop-source.json) records exact changed files, generated assets, focused commands/results and remaining acceptance. Bundle/application/package IDs, private connection/device/queue storage, notification channel IDs, versions and internal protocols remain compatible. The Linux bundler retains its internal Household Share override and legacy template/resource filenames to preserve installed package identity; the launcher displays Drop.
+
+No Drop package build, installation, native/device icon rendering or new transfer validation is claimed. Earlier reports and retained Zing artifacts below keep their original names and validation boundaries.
+
 Earlier Linux checks were recorded 2026-10-22 in the Linux build workspace. Historical Mac 0.1.1 package evidence for ARM64 and Intel is recorded separately below, followed by the earlier 0.1.0 ARM64 acceptance history. The native transfer engine, package checks and installed Tauri GUI behavior have distinct validation boundaries. See [release validation](../../docs/validation.md) for current package status.
 
 Desktop **0.1.4 adds a separate durable device-name save**, retaining the 0.1.3 first-run connection defaults for private household builds, Zing branding, registered identity, immutable recipient routing and opt-in arrivals. Root owns final UI integration, native package builds/acceptance and publication. The verified **0.1.1** packages below are historical; their retained bytes/evidence are unchanged and do not establish acceptance of the new source.

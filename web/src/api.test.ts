@@ -68,3 +68,69 @@ describe('shared editing and text exports',()=>{
     expect(JSON.parse(request.mock.calls[1][1].body)).toEqual({...device,label:'Explicit new name'})
   })
 })
+
+describe('recoverable deletion safety',()=>{
+  it('uses only explicit POST actions and a dedicated trash cursor; never legacy DELETE',async()=>{
+    const request=vi.fn().mockImplementation((url:string)=>Promise.resolve(new Response(url.includes('/trash?')?JSON.stringify({items:[],nextCursor:null}):null,{status:url.includes('/trash?')?200:204})))
+    const api=new ApiClient('https://household.example',request)
+    await api.trashPage('old notes','deleted+cursor/=');for(const action of ['trash','restore','purge'] as const)await api.itemAction(action,'note')
+    const url=new URL(request.mock.calls[0][0]);expect(url.pathname).toBe('/api/trash');expect(url.searchParams.get('before')).toBe('deleted+cursor/=')
+    expect(request.mock.calls.slice(1).map(([url,init])=>[url,init.method])).toEqual(['trash','restore','purge'].map(action=>[`https://household.example/api/items/note/${action}`,'POST']))
+  })
+  it('rejects old-server active-feed envelopes and unsupported routes without another request',async()=>{
+    const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({items:[{id:'active'}],nextCursor:null})))
+    const api=new ApiClient('https://household.example',request)
+    await expect(api.trashPage()).rejects.toThrow('Invalid Recently Deleted')
+    request.mockResolvedValue(new Response('not found',{status:404}))
+    await expect(api.itemAction('trash','note')).rejects.toThrow('Update your household server')
+    expect(request).toHaveBeenCalledTimes(2);expect(request.mock.calls.every(([,init])=>init.method!=='DELETE')).toBe(true)
+  })
+  it('validates the whole bounded batch before requesting and keeps ordered partial errors',async()=>{
+    const results=[{id:'a',ok:true},{id:'b',ok:false,error:{status:409,code:'upload_active',message:'Use transfer Cancel'}}]
+    const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({results})))
+    const api=new ApiClient('https://household.example',request)
+    for(const ids of [[],['a','a'],['bad/id'],Array.from({length:101},(_,i)=>String(i))])await expect(api.itemActions('trash',ids)).rejects.toThrow('1–100')
+    expect(request).not.toHaveBeenCalled();expect(await api.itemActions('trash',['a','b'])).toEqual(results)
+    expect(JSON.parse(request.mock.calls[0][1].body)).toEqual({action:'trash',ids:['a','b']})
+  })
+  it('treats malformed action receipts as unknown instead of reporting success',async()=>{
+    const request=vi.fn().mockResolvedValue(new Response(JSON.stringify({results:[{id:'b',ok:true},{id:'a',ok:true}]})))
+    await expect(new ApiClient('https://household.example',request).itemActions('purge',['a','b'])).rejects.toThrow('some items may have changed')
+    expect(request).toHaveBeenCalledTimes(1)
+  })
+})
+
+describe('shared retention and whole-folder deletion',()=>{
+  it('reads and explicitly persists the shared setting, rejects invalid days before requesting',async()=>{
+    const request=vi.fn().mockImplementation((_url,init)=>Promise.resolve(new Response(init.body||'{"retentionDays":30}')))
+    const api=new ApiClient('https://household.example',request)
+    expect(await api.trashSettings()).toEqual({retentionDays:30})
+    for(const days of [60,null,1,36500])expect(await api.trashSettings(days)).toEqual({retentionDays:days})
+    for(const days of [0,-1,36501,1.5,NaN,'30',true])await expect(api.trashSettings(days as number)).rejects.toThrow('whole days')
+    expect(request).toHaveBeenCalledTimes(5)
+    expect(request.mock.calls.slice(1).map(([,init])=>init.method)).toEqual(['PATCH','PATCH','PATCH','PATCH'])
+    request.mockResolvedValueOnce(new Response('{"retentionDays":60}'))
+    await expect(api.trashSettings(30)).rejects.toThrow('Refresh settings before saving again')
+  })
+  it('validates folder counts and bounded names, and keeps the exact nanosecond cutoff/cursor',async()=>{
+    const cutoff='2026-10-24T02:00:00.123456789Z',before='deleted+cursor/=='
+    const request=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({count:201,cutoff,names:['one','two']}))).mockImplementation(()=>Promise.resolve(new Response(JSON.stringify({results:[{id:'a',ok:true},{id:'b',ok:false,error:{status:409,code:'not_trashed',message:'Restored elsewhere'}}],nextCursor:null}))))
+    const api=new ApiClient('https://household.example',request)
+    expect((await api.trashSummary()).count).toBe(201)
+    const page=await api.purgeTrash(cutoff,before);expect(page.results[1].ok).toBe(false)
+    expect(JSON.parse(request.mock.calls[1][1].body)).toEqual({cutoff,before});expect(request.mock.calls[1][1].method).toBe('POST')
+  })
+  it('stops on malformed or oversized receipts without retry or compatibility DELETE',async()=>{
+    const request=vi.fn(),api=new ApiClient('https://household.example',request),cutoff='2026-10-24T02:00:00Z'
+    for(const data of [{count:-1,cutoff,names:[]},{count:1,cutoff,names:Array(6).fill('x')},{count:2**54,cutoff,names:[]},{count:1,cutoff:'2026-02-30T02:00:00Z',names:[]},{count:1,cutoff:'2026-10-24T02:00:00+01:00',names:[]}]){request.mockResolvedValueOnce(new Response(JSON.stringify(data)));await expect(api.trashSummary()).rejects.toThrow('Invalid folder summary')}
+    for(const data of [{results:Array.from({length:101},(_,n)=>({id:`n${n}`,ok:true})),nextCursor:null},{results:[{id:'a',ok:true},{id:'a',ok:true}],nextCursor:null},{results:[{id:'a',ok:false,error:{status:200,code:'bad',message:'bad'}}],nextCursor:null},{results:[],nextCursor:'same'}]){request.mockResolvedValueOnce(new Response(JSON.stringify(data)));await expect(api.purgeTrash(cutoff,'same')).rejects.toThrow('invalid folder deletion results')}
+    expect(request).toHaveBeenCalledTimes(9);expect(request.mock.calls.every(([,init])=>init.method!=='DELETE')).toBe(true)
+  })
+  it('reports old settings/summary/purge routes as update-required without another request',async()=>{
+    const request=vi.fn().mockImplementation(()=>Promise.resolve(new Response('missing',{status:404}))),api=new ApiClient('https://household.example',request)
+    await expect(api.trashSettings()).rejects.toThrow('Update your household server')
+    await expect(api.trashSummary()).rejects.toThrow('Update your household server')
+    await expect(api.purgeTrash('2026-10-24T02:00:00Z')).rejects.toThrow('Update your household server')
+    expect(request).toHaveBeenCalledTimes(3)
+  })
+})

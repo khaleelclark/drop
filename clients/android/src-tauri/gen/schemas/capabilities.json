@@ -1,1 +1,0 @@
-{"household-main":{"identifier":"household-main","description":"Bundled main interface may use the scoped household native plugin.","local":true,"windows":["main"],"permissions":["core:default","household:default"]}}

@@ -86,7 +86,7 @@ fn launch() {
         Command::new(executable).arg("--background").spawn()
     };
     if let Err(e) = result {
-        eprintln!("Capture is safely queued. Open Zing to process it ({e}).");
+        eprintln!("Capture is safely queued. Open Drop to process it ({e}).");
     }
 }
 fn main() {

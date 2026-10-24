@@ -16,7 +16,7 @@ export async function startApplication(element: HTMLElement) {
     }
   } catch (error) {
     root.render(<main className="startup-error"><section className="modal" role="alert" aria-labelledby="startup-title">
-      <h1 id="startup-title">Couldn’t start Zing</h1>
+      <h1 id="startup-title">Couldn’t start Drop</h1>
       <p>The installed client couldn’t connect to its native components. Reload the app to try again.</p>
       <p className="inline-error">{errorMessage(error)}</p>
       <button className="button primary" onClick={() => window.location.reload()}>Try again</button>

@@ -440,7 +440,7 @@ impl Queue {
             .open(root.join("queue.lock"))
             .map_err(err)?;
         lock.try_lock_exclusive()
-            .map_err(|_| "Zing queue is already running".to_string())?;
+            .map_err(|_| "Drop queue is already running".to_string())?;
         let path = root.join("queue.json");
         // A corrupt queue is an error. Never silently discard resumable transfers.
         let mut state: DiskState = if path.exists() {

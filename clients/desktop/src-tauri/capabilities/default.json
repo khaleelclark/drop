@@ -3,5 +3,5 @@
   "identifier": "main",
   "description": "Only bundled local household UI. No remote origins receive native IPC.",
   "windows": ["main"],
-  "permissions": ["core:default"]
+  "permissions": ["core:default", "core:window:allow-set-theme", "core:window:allow-set-background-color"]
 }

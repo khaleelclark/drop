@@ -8,7 +8,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main]
+    branches: [main, build/drop-0.2.0-frozen-20261024]
     paths:
       - '.github/workflows/macos-dmg.yml'
       - 'integrations/macos/**'
@@ -39,6 +39,7 @@ jobs:
       MACOSX_DEPLOYMENT_TARGET: '11.0'
       # No Apple account, certificate, token, or notarization credentials are used.
       APPLE_SIGNING_IDENTITY: '-'
+      HOUSEHOLD_USE_FROZEN_WEB: '1'
       # Household installer destination only; Tailscale still authenticates access.
       HOUSEHOLD_DEFAULT_ORIGIN: ${{ inputs.household_origin || 'https://pine.tail8187ff.ts.net:47443' }}
     defaults:

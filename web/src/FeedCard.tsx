@@ -7,14 +7,13 @@ import { isTextFileCandidate, textDownloadName } from './text-files'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { copyExactText, type PlatformAdapter } from './platform'
 import { errorMessage, formatBytes, type Item } from './types'
-interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void }
-export function FeedCard({ item, api, platform, refresh, notify }: Props) {
+interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; actionBusy?:boolean }
+export function FeedCard({ item, api, platform, refresh, notify, onTrash, actionBusy }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
   const [body, setBody] = useState<string | undefined>(); const [loading, setLoading] = useState(false)
   const previewElement=useRef<HTMLPreElement>(null);const [clipped,setClipped]=useState(false)
-  const confirmation=useRef<HTMLDivElement>(null);const keep=useRef<HTMLButtonElement>(null)
   const [expanded, setExpanded] = useState(false); const [copied, setCopied] = useState(false)
-  const [error, setError] = useState(''); const [busy, setBusy] = useState(false); const [deleting, setDeleting] = useState(false)
+  const [error, setError] = useState(''); const [busy, setBusy] = useState(false)
   const [editor, setEditor] = useState<{name:string;text?:string;version:string}|null>(null)
   const [editLoading, setEditLoading] = useState(false); const [saving, setSaving] = useState(false); const [editError, setEditError] = useState('')
   const editPreparation = useRef<AbortController | undefined>(undefined); const nameInput = useRef<HTMLInputElement>(null)
@@ -31,8 +30,6 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
   }, [api, item.id, item.updatedAt, item.kind, item.status, item.size])
   useEffect(() => () => editPreparation.current?.abort(), [api, item.id])
   useEffect(() => { if (editor) nameInput.current?.focus({preventScroll:true}) }, [Boolean(editor)])
-  useEffect(() => { if (deleting) keep.current?.focus({preventScroll:true}) }, [deleting])
-  useEffect(() => { if (deleting) confirmation.current?.scrollIntoView({block:'nearest'}) }, [deleting,error])
   useEffect(() => { if (!copied) return; const timer = setTimeout(() => setCopied(false), 2500); return () => clearTimeout(timer) }, [copied])
   const prepare = async () => {
     if(item.size>COPY_LIMIT) return
@@ -52,7 +49,7 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
     catch (error) { setError(errorMessage(error)) }
   }
   const pin = async () => { setBusy(true); try { await api.pin(item.id, !item.pinned); refresh() } catch (error) { setError(errorMessage(error)) } finally { setBusy(false) } }
-  const remove = async () => { setBusy(true); setError(''); try { await api.delete(item.id); notify('Item deleted.'); refresh() } catch (error) { setError(errorMessage(error)); setBusy(false) } }
+  const remove = async () => { if(busy||actionBusy)return;setBusy(true);setError('');try { if(onTrash)await onTrash();else {await api.itemAction('trash',item.id);notify('Moved to Recently Deleted.');refresh()} } catch(error){setError(errorMessage(error))} finally{setBusy(false)} }
   const openEditor = async (reload = false) => {
     // Capture the version before fetching bytes. A racing edit must conflict, not overwrite it.
     const controller = new AbortController(); editPreparation.current?.abort(); editPreparation.current = controller
@@ -116,16 +113,15 @@ export function FeedCard({ item, api, platform, refresh, notify }: Props) {
           {item.kind==='text'&&(['txt','md'] as const).map(format=><button key={format} role="menuitem" tabIndex={0} onClick={()=>{void download(format);close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download .{format}</button>)}
           <button role="menuitem" tabIndex={0} disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
           <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
-          <button role="menuitem" tabIndex={0} className="menu-danger" onClick={()=>{setDeleting(!deleting);close()}}><Trash2 size={17}/>Delete item</button>
+          <button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Move to Recently Deleted</button>
         </>}</ItemMenu>
       </div></div>
-      {item.status !== 'ready' && <span className={`item-status status-${item.status}`}>{item.status === 'failed' ? 'Upload failed' : <><LoaderCircle className="spin" size={12} /> Uploading — not ready yet</>}</span>}
+      {item.status !== 'ready' && <span className={`item-status status-${item.status}`}>{item.status === 'failed' ? 'Upload failed' : <><LoaderCircle className="spin" size={12} /> Uploading — use Cancel in Transfers</>}</span>}
     </div>}
     {(loading||editLoading)&&<button className="text-button" onClick={()=>{preparation.current?.abort();setLoading(false);editPreparation.current?.abort();setEditLoading(false)}}>Cancel preparation</button>}
     {expanded && rendered?.truncated && <p className="inline-note">Showing the first 256 KiB. Copy text uses the full prepared body; download .txt or .md to read everything.</p>}
     {textual && item.size > COPY_LIMIT && <p className="inline-note">This text exceeds the 8 MiB copy budget. Download {item.kind==='text'?'.txt or .md':'the file'} to open or copy the full text in another app.</p>}
-    {deleting && <div className="delete-confirm" ref={confirmation} role="group" aria-label="Confirm deletion"><span>Delete for everyone? This cannot be undone.</span><button className="button compact danger" onClick={() => void remove()} disabled={busy}>Delete</button><button className="button compact secondary" ref={keep} onClick={() => setDeleting(false)}>Keep</button>{error && <p className="inline-error" role="alert">{error}</p>}</div>}
     {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
-    {error && !deleting && <p className="inline-error" role="alert">{error}</p>}
+    {error && <p className="inline-error" role="alert">{error}</p>}
   </article>
 }

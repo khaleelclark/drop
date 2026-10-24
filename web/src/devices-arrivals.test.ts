@@ -28,7 +28,7 @@ describe('recipient and arrival boundaries',()=>{
     const api={arrivals:vi.fn(async(_id:string,after?:string)=>({notifications:after?[]:[{sequence:'9007199254740993',itemId:target,createdAt:''}],nextCursor:'9007199254740993',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>{expect(localStorage.getItem(`${key}:cursor`)).toBe('9007199254740993');if(fail)throw new Error('offline');return {ackCursor:'9007199254740993'}})}
     const show=vi.fn().mockResolvedValue(undefined)
     await expect(processArrivals(api as unknown as ApiClient,source,key,show,()=>true)).rejects.toThrow('offline')
-    expect(show).toHaveBeenCalledWith('Zing',expect.objectContaining({body:'New share available',tag:`${key}:9007199254740993`,data:{itemId:target}}))
+    expect(show).toHaveBeenCalledWith('Drop',expect.objectContaining({body:'New share available',tag:`${key}:9007199254740993`,data:{itemId:target}}))
     expect(JSON.stringify(show.mock.calls)).not.toContain('Phone')
     fail=false;await processArrivals(api as unknown as ApiClient,source,key,show,()=>true)
     expect(show).toHaveBeenCalledOnce();expect(api.arrivals).toHaveBeenLastCalledWith(source,'9007199254740993')
@@ -37,7 +37,7 @@ describe('recipient and arrival boundaries',()=>{
     const api={arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:'first',createdAt:''},{sequence:'2',itemId:'last',createdAt:''}],nextCursor:'2',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>({ackCursor:'2'}))}
     const show=vi.fn().mockResolvedValue(undefined);const key=arrivalKey('https://household.example',source)
     await processArrivals(api as unknown as ApiClient,source,key,show,()=>true)
-    expect(show).toHaveBeenCalledOnce();expect(show).toHaveBeenCalledWith('Zing',expect.objectContaining({data:{itemId:'last'},tag:`${key}:2`}))
+    expect(show).toHaveBeenCalledOnce();expect(show).toHaveBeenCalledWith('Drop',expect.objectContaining({data:{itemId:'last'},tag:`${key}:2`}))
     expect(api.acknowledge).toHaveBeenCalledWith(source,'2');expect(localStorage.getItem(`${key}:cursor`)).toBe('2')
   })
   it('does not ACK a failed OS post, malformed cursor or unsafe click target',async()=>{

@@ -84,7 +84,7 @@ async fn native_pick_uploads(
         if let Some(files) = app
             .dialog()
             .file()
-            .set_title("Send with Zing")
+            .set_title("Send with Drop")
             .blocking_pick_files()
         {
             for file in files {
@@ -114,7 +114,7 @@ async fn native_download(
         match app
             .dialog()
             .file()
-            .set_title("Save from Zing")
+            .set_title("Save from Drop")
             .set_file_name(safe)
             .blocking_save_file()
         {
@@ -238,11 +238,11 @@ fn main() {
             );
             app.manage(notifier.clone());
             queue.start_arrivals(move |banner| notifier.post(banner));
-            let show_item = MenuItem::with_id(app, "show", "Open Zing", true, None::<&str>)?;
+            let show_item = MenuItem::with_id(app, "show", "Open Drop", true, None::<&str>)?;
             let quit = MenuItem::with_id(
                 app,
                 "quit",
-                "Pause transfers and Quit Zing",
+                "Pause transfers and Quit Drop",
                 true,
                 None::<&str>,
             )?;
@@ -255,7 +255,7 @@ fn main() {
             TrayIconBuilder::new()
                 .icon(tauri::image::Image::from_bytes(icon)?)
                 .icon_as_template(cfg!(target_os = "macos"))
-                .tooltip("Zing")
+                .tooltip("Drop")
                 .menu(&menu)
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show(app),
@@ -286,7 +286,7 @@ fn main() {
             }
         })
         .build(tauri::generate_context!())
-        .expect("Unable to initialize Zing")
+        .expect("Unable to initialize Drop")
         .run(|app, event| {
             if let tauri::RunEvent::ExitRequested { .. } = event {
                 if let Some(q) = app.try_state::<NativeState>() {

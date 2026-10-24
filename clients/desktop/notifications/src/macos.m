@@ -69,7 +69,7 @@ int zing_notifications_post(const char *identifier, const char *origin, const ch
     @autoreleasepool {
         @try {
             UNMutableNotificationContent *content = [UNMutableNotificationContent new];
-            content.title = @"Zing";
+            content.title = @"Drop";
             content.body = multiple ? @"New shares available" : @"New share available";
             content.userInfo = @{@"zingOrigin": [NSString stringWithUTF8String:origin],
                                  @"zingItem": [NSString stringWithUTF8String:item]};
