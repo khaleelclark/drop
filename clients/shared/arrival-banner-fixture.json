@@ -1,0 +1,303 @@
+[
+  {
+    "name": "text",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "Lassen shared text",
+    "body": "Test"
+  },
+  {
+    "name": "file",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": "Holiday.zip",
+        "size": 21474836480
+      }
+    },
+    "title": "Lassen shared file",
+    "body": "Holiday.zip · 20.0 GiB"
+  },
+  {
+    "name": "batch-latest",
+    "itemId": "33333333333333333333333333333333",
+    "count": 50,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "50 new shares",
+    "body": "Lassen shared text: Test"
+  },
+  {
+    "name": "file-batch",
+    "itemId": "33333333333333333333333333333333",
+    "count": 2,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": "small.txt",
+        "size": 0
+      }
+    },
+    "title": "2 new shares",
+    "body": "Lassen shared file: small.txt · 0 B"
+  },
+  {
+    "name": "plain-unicode",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "  Las\u0000sen‮\t家  ",
+        "preview": "<b>A&B</b>\n 👋🏽\t é  test"
+      }
+    },
+    "title": "Las sen 家 shared text",
+    "body": "<b>A&B</b> 👋🏽 é test"
+  },
+  {
+    "name": "sender-missing",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": null,
+        "preview": "Test"
+      }
+    },
+    "title": "Someone shared text",
+    "body": "Test"
+  },
+  {
+    "name": "preview-empty",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": " \n\u0000 "
+      }
+    },
+    "title": "Lassen shared text",
+    "body": "Text share"
+  },
+  {
+    "name": "missing",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": null,
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "batch-missing",
+    "itemId": "33333333333333333333333333333333",
+    "count": 50,
+    "metadata": null,
+    "title": "Drop",
+    "body": "50 new shares available"
+  },
+  {
+    "name": "wrong-id",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "uploading",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "uploading",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "failed",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "failed",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "trashed",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "text",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "deletedAt": "2026-10-24T00:00:00Z"
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "unknown-kind",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "image",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test"
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "bad-name",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": 123,
+        "size": 12
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "negative-size",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": "file",
+        "size": -1
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "unsafe-size",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": "file",
+        "size": 9007199254740992
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "float-size",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "kind": "file",
+        "status": "ready",
+        "sourceDevice": "Lassen",
+        "preview": "Test",
+        "name": "file",
+        "size": 1.5
+      }
+    },
+    "title": "Drop",
+    "body": "New share available"
+  },
+  {
+    "name": "invisible-format-controls",
+    "itemId": "33333333333333333333333333333333",
+    "count": 1,
+    "metadata": {
+      "item": {
+        "id": "33333333333333333333333333333333",
+        "status": "ready",
+        "kind": "text",
+        "sourceDevice": "A؀B",
+        "preview": "C󠀁D"
+      }
+    },
+    "title": "A B shared text",
+    "body": "C D"
+  }
+]

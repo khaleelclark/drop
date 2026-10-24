@@ -65,12 +65,12 @@ int zing_notifications_permission(void) {
     }
 }
 
-int zing_notifications_post(const char *identifier, const char *origin, const char *item, bool multiple) {
+int zing_notifications_post(const char *identifier, const char *origin, const char *item, const char *title, const char *body) {
     @autoreleasepool {
         @try {
             UNMutableNotificationContent *content = [UNMutableNotificationContent new];
-            content.title = @"Drop";
-            content.body = multiple ? @"New shares available" : @"New share available";
+            content.title = [NSString stringWithUTF8String:title];
+            content.body = [NSString stringWithUTF8String:body];
             content.userInfo = @{@"zingOrigin": [NSString stringWithUTF8String:origin],
                                  @"zingItem": [NSString stringWithUTF8String:item]};
             UNNotificationRequest *request = [UNNotificationRequest requestWithIdentifier:[NSString stringWithUTF8String:identifier]

@@ -1,6 +1,6 @@
 import { ApiClient } from './api'
 import { deviceRecord, validItemId } from './devices'
-import type { ArrivalPage } from './types'
+import { formatBytes, type ArrivalPage, type Item } from './types'
 export const arrivalKey = (origin: string, deviceId: string) => `household.arrivals:${origin}:${deviceId}`
 export function browserArrivalPermission() { return typeof Notification === 'undefined' ? 'unavailable' : Notification.permission }
 export function browserArrivalsEnabled(key: string) { return localStorage.getItem(`${key}:enabled`) === 'true' }
@@ -15,7 +15,31 @@ export async function enableBrowserArrivals(key: string, enabled: boolean) {
   localStorage.setItem(`${key}:enabled`,'true')
 }
 const sequence = (value: string) => typeof value==='string' && /^(0|[1-9][0-9]{0,18})$/.test(value) && BigInt(value) <= 9223372036854775807n
-export async function processArrivals(api: ApiClient, deviceId: string, key: string, show: (title: string, options: NotificationOptions) => Promise<void>, active: () => boolean) {
+const plain=(value:unknown,limit:number)=>{
+  if(typeof value!=='string')return ''
+  const chars=Array.from(value.replace(/[\p{Cc}\p{Cf}\p{Cs}]/gu,' ').replace(/\s+/gu,' ').trim())
+  return chars.length>limit?`${chars.slice(0,limit-1).join('')}…`:chars.join('')
+}
+export function arrivalBody(item:Item|undefined,count:number) {
+  const generic=count>1?`${count} new shares available`:'New share available'
+  if(!item||item.status!=='ready'||item.deletedAt||!['text','file'].includes(item.kind)||!Number.isSafeInteger(item.size)||item.size<0)return generic
+  const sender=plain(item.sourceDevice,48)
+  const detail=item.kind==='text'?`Text${plain(item.preview,120)?` · ${plain(item.preview,120)}`:''}`:`${plain(item.name,96)||'File'} · ${formatBytes(item.size)}`
+  return `${count>1?`${count} new shares · `:''}${sender?`${sender}: `:''}${detail}`
+}
+async function arrivalDetails(api:ApiClient,id:string,signal?:AbortSignal) {
+  if(signal?.aborted)return
+  const controller=new AbortController()
+  let cancel:()=>void=()=>{}
+  const fallback=new Promise<undefined>(resolve=>{cancel=()=>{controller.abort();resolve(undefined)}})
+  const timer=setTimeout(cancel,1500)
+  signal?.addEventListener('abort',cancel,{once:true})
+  try{
+    const result=await Promise.race([api.item(id,controller.signal).catch(()=>undefined),fallback])
+    return result?.item?.id===id?result.item:undefined
+  }finally{clearTimeout(timer);signal?.removeEventListener('abort',cancel);controller.abort()}
+}
+export async function processArrivals(api: ApiClient, deviceId: string, key: string, show: (title: string, options: NotificationOptions) => Promise<void>, active: () => boolean, signal?:AbortSignal) {
   const saved = localStorage.getItem(`${key}:cursor`)
   let after = saved && sequence(saved) ? saved : undefined
   for (let pageIndex = 0; pageIndex < 10 && active(); pageIndex++) {
@@ -30,8 +54,9 @@ export async function processArrivals(api: ApiClient, deviceId: string, key: str
     const latest=page.notifications.at(-1)
     if(latest){
       if (!active()) return
-      // Batch catch-up into one generic banner; all items remain in For you.
-      await show('Drop', {body:'New share available',tag:`${key}:${latest.sequence}`,data:{itemId:latest.itemId},icon:'/icon-192.png'})
+      const item=await arrivalDetails(api,latest.itemId,signal)
+      if(!active())return
+      await show('Drop', {body:arrivalBody(item,page.notifications.length),tag:`${key}:${latest.sequence}`,data:{itemId:latest.itemId},icon:'/icon-192.png'})
       // OS posting and local persistence are not atomic; stable tags reduce duplicate banners after a crash.
       localStorage.setItem(`${key}:cursor`,page.nextCursor)
     }
@@ -45,8 +70,9 @@ export async function processArrivals(api: ApiClient, deviceId: string, key: str
 export class BrowserArrivals {
   private stopped = false
   private running = false
+  private controller=new AbortController()
   constructor(private api: ApiClient, private deviceId: string, private onError: (message: string) => void) {}
-  stop() { this.stopped = true }
+  stop() { this.stopped = true;this.controller.abort() }
   async check() {
     if (this.running || this.stopped) return
     this.running = true
@@ -55,7 +81,7 @@ export class BrowserArrivals {
     const process = async () => {
       if (!active()) return
       const registration = await navigator.serviceWorker.ready
-      await processArrivals(this.api,this.deviceId,key,(title,options) => registration.showNotification(title,options),active)
+      await processArrivals(this.api,this.deviceId,key,(title,options) => registration.showNotification(title,options),active,this.controller.signal)
     }
     try {
       if (!active()) return
@@ -65,7 +91,7 @@ export class BrowserArrivals {
         const lease = () => deviceRecord<{owner:string;expires:number}>(`lease:${key}`, prior => !prior || prior.expires < Date.now() || prior.owner === owner ? {owner,expires:Date.now()+30_000} : prior)
         if ((await lease()).owner !== owner) return
         const renew = setInterval(() => { void lease().then(value => { if (value.owner !== owner) owned=false }).catch(() => {owned=false}) },5000)
-        try { if (owned) await processArrivals(this.api,this.deviceId,key,async(title,options) => { if (!owned) throw new Error('Arrival ownership changed; retrying later.'); const registration=await navigator.serviceWorker.ready; await registration.showNotification(title,options) },() => owned && active()) }
+        try { if (owned) await processArrivals(this.api,this.deviceId,key,async(title,options) => { if (!owned) throw new Error('Arrival ownership changed; retrying later.'); const registration=await navigator.serviceWorker.ready; await registration.showNotification(title,options) },() => owned && active(),this.controller.signal) }
         finally { clearInterval(renew); await deviceRecord<{owner:string;expires:number}>(`lease:${key}`,prior => prior?.owner === owner ? {owner,expires:0} : prior!) }
       }
       if (!this.stopped) this.onError('')

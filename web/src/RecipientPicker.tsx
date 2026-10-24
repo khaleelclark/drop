@@ -3,7 +3,8 @@ import { Check, ChevronDown, Laptop, Search, Smartphone, Users, X } from 'lucide
 import type { Device } from './types'
 export function RecipientPicker({devices,currentId,targets,onChange,onRefresh,disabled}:{devices:Device[];currentId:string;targets:string[];onChange:(ids:string[])=>void;onRefresh:()=>void;disabled:boolean}) {
   const [open,setOpen]=useState(false); const [query,setQuery]=useState(''); const trigger=useRef<HTMLButtonElement>(null); const search=useRef<HTMLInputElement>(null); const dialog=useRef<HTMLDialogElement>(null)
-  const close=()=>{dialog.current?.close();setOpen(false);trigger.current?.focus({preventScroll:true})}
+  const keyboard=useRef(false)
+  const close=()=>{dialog.current?.close();setOpen(false);if(keyboard.current)trigger.current?.focus({preventScroll:true});else trigger.current?.blur()}
   useEffect(()=>{
     if (!open) return
     const sheet=dialog.current; if(!sheet)return
@@ -21,7 +22,7 @@ export function RecipientPicker({devices,currentId,targets,onChange,onRefresh,di
     return()=>{sheet.close();document.body.classList.remove('recipient-open');window.removeEventListener('resize',position);window.visualViewport?.removeEventListener('resize',position)}
   },[open])
   const selected=targets.length===0?'Everyone':targets.length===1?(devices.find(device=>device.id===targets[0])?.label || 'Unavailable device'):`${targets.length} devices`
-  return <div className="recipient-picker">
+  return <div className="recipient-picker" onPointerDownCapture={()=>{keyboard.current=false}} onKeyDownCapture={()=>{keyboard.current=true}}>
     <button ref={trigger} className="recipient-trigger" disabled={disabled} aria-haspopup="dialog" aria-expanded={open} aria-controls={open?'recipient-list':undefined} onClick={()=>{setOpen(!open);if(!open)onRefresh()}}><Users size={16}/><span>Send to <strong>{selected}</strong></span><ChevronDown size={14}/></button>
     {open&&<dialog ref={dialog} className="recipient-popover" id="recipient-list" aria-labelledby="recipient-title" onKeyDown={event=>{
       if(event.key!=='Tab')return

@@ -162,7 +162,115 @@ pub struct ArrivalSettings {
 pub struct ArrivalBanner {
     pub id: i32,
     pub target: ArrivalTarget,
-    pub multiple: bool,
+    pub title: String,
+    pub body: String,
+}
+
+// Plain bounded scalar values, including replacement of invisible formatting controls.
+fn banner_string(value: &str, limit: usize) -> String {
+    let mut result = String::new();
+    let mut space = false;
+    let mut count = 0;
+    for c in value.chars() {
+        if c.is_whitespace()
+            || c.is_control()
+            || matches!(c,
+            '\u{ad}' | '\u{600}'..='\u{605}' | '\u{61c}' | '\u{6dd}' | '\u{70f}' |
+            '\u{890}'..='\u{891}' | '\u{8e2}' | '\u{180e}' | '\u{200b}'..='\u{200f}' |
+            '\u{202a}'..='\u{202e}' | '\u{2060}'..='\u{206f}' | '\u{feff}' |
+            '\u{fff9}'..='\u{fffb}' | '\u{110bd}' | '\u{110cd}' | '\u{13430}'..='\u{1343f}' |
+            '\u{1bca0}'..='\u{1bca3}' | '\u{1d173}'..='\u{1d17a}' |
+            '\u{e0001}' | '\u{e0020}'..='\u{e007f}')
+        {
+            space = !result.is_empty();
+            continue;
+        }
+        if count + usize::from(space) + 1 > limit {
+            result.push('…');
+            break;
+        }
+        if space {
+            result.push(' ');
+            count += 1;
+            space = false;
+        }
+        result.push(c);
+        count += 1;
+    }
+    result
+}
+
+fn arrival_copy(id: &str, count: usize, metadata: Option<&serde_json::Value>) -> (String, String) {
+    let generic = || {
+        (
+            "Drop".into(),
+            if count > 1 {
+                format!("{count} new shares available")
+            } else {
+                "New share available".into()
+            },
+        )
+    };
+    let Some(item) = metadata.and_then(|v| v.get("item")) else {
+        return generic();
+    };
+    if item["id"].as_str() != Some(id) || item["status"] != "ready" || !item["deletedAt"].is_null()
+    {
+        return generic();
+    }
+    let sender = banner_string(item["sourceDevice"].as_str().unwrap_or(""), 48);
+    let sender = if sender.is_empty() {
+        "Someone"
+    } else {
+        &sender
+    };
+    let (kind, detail) = match item["kind"].as_str() {
+        Some("text") => {
+            let preview = banner_string(item["preview"].as_str().unwrap_or(""), 160);
+            (
+                "text",
+                if preview.is_empty() {
+                    "Text share".into()
+                } else {
+                    preview
+                },
+            )
+        }
+        Some("file") => {
+            let name = banner_string(item["name"].as_str().unwrap_or(""), 96);
+            let Some(size) = item["size"]
+                .as_u64()
+                .filter(|n| *n <= 9_007_199_254_740_991)
+            else {
+                return generic();
+            };
+            if name.is_empty() {
+                return generic();
+            }
+            let size = if size < 1024 {
+                format!("{size} B")
+            } else {
+                let (unit, divisor) = if size < 1024 * 1024 {
+                    ("KiB", 1024.)
+                } else if size < 1024 * 1024 * 1024 {
+                    ("MiB", 1048576.)
+                } else {
+                    ("GiB", 1073741824.)
+                };
+                format!("{:.1} {unit}", size as f64 / divisor)
+            };
+            ("file", format!("{name} · {size}"))
+        }
+        _ => return generic(),
+    };
+    if count > 1 {
+        (
+            format!("{count} new shares"),
+            format!("{sender} shared {kind}: {detail}"),
+        )
+    } else {
+        (format!("{sender} shared {kind}"), detail)
+    }
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -316,7 +424,7 @@ impl Queue {
         let d = identity(&self.root, &c.base_url)?;
         Ok(d.enabled && d.id == id)
     }
-    /// Single-flight, at most one 50-entry generic batch per cycle; ACK never removes For you.
+    /// Single-flight, one 50-entry batch per cycle; ACK never removes For you.
     pub fn poll_arrivals(&self, post: impl FnOnce(ArrivalBanner) -> Result<()>) -> Result<()> {
         let _flight = match self.arrival_flight.try_lock() {
             Ok(guard) => guard,
@@ -349,6 +457,20 @@ impl Queue {
             let page: ArrivalPage = serde_json::from_value(value).map_err(err)?;
             validate_page(&page, &d.cursor)?;
             if let Some(last) = page.notifications.last() {
+                if !self.arrival_current(&c, &d.id)? {
+                    return Ok(());
+                }
+                // Use only existing bounded authenticated metadata; failure must not block delivery.
+                let metadata = self
+                    .device_request(
+                        &c,
+                        reqwest::Method::GET,
+                        &format!("/api/items/{}", last.item_id),
+                        None,
+                    )
+                    .ok();
+                let (title, body) =
+                    arrival_copy(&last.item_id, page.notifications.len(), metadata.as_ref());
                 let _pairing = self.pairing_lock.lock().map_err(err)?;
                 if !self.arrival_current(&c, &d.id)? {
                     return Ok(());
@@ -362,7 +484,8 @@ impl Queue {
                         base_url: c.base_url.clone(),
                         item_id: last.item_id.clone(),
                     },
-                    multiple: page.notifications.len() > 1,
+                    title,
+                    body,
                 })?;
                 // OS display and durable write cannot be atomic: a crash can repeat this stable ID.
                 store(&self.root, |s| {
@@ -432,6 +555,36 @@ impl Queue {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[test]
+    fn arrival_copy_matches_shared_plain_metadata_fixture() {
+        let cases: serde_json::Value =
+            serde_json::from_str(include_str!("../../../shared/arrival-banner-fixture.json"))
+                .unwrap();
+        for case in cases.as_array().unwrap() {
+            let (title, body) = arrival_copy(
+                case["itemId"].as_str().unwrap(),
+                case["count"].as_u64().unwrap() as usize,
+                Some(&case["metadata"]),
+            );
+            assert_eq!(title, case["title"], "{}", case["name"]);
+            assert_eq!(body, case["body"], "{}", case["name"]);
+        }
+    }
+    #[test]
+    fn arrival_copy_bounds_unicode_without_controls_or_partial_utf8() {
+        let id = "3".repeat(32);
+        let metadata = serde_json::json!({"item":{"id":id,"kind":"text","status":"ready",
+            "sourceDevice":"🖥".repeat(100),"preview":"家👋".repeat(300)}});
+        let (title, body) = arrival_copy(&id, 50, Some(&metadata));
+        assert_eq!(title, "50 new shares");
+        assert_eq!(
+            body,
+            format!("{}… shared text: {}…", "🖥".repeat(48), "家👋".repeat(80))
+        );
+        assert!(body.chars().count() <= 260);
+        assert!(!body.chars().any(char::is_control));
+        assert_eq!(banner_string(" a\0b\n\u{202e}c \t", 8), "a b c");
+    }
     fn config(origin: &str) -> Config {
         Config {
             base_url: origin.into(),

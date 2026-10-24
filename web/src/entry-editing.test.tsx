@@ -82,13 +82,13 @@ describe('shared board entry editing',()=>{
     fireEvent.click(await screen.findByRole('button',{name:'Copy text'}));await waitFor(()=>expect(data.copyText).toHaveBeenCalledWith(full))
     expect(screen.getByRole('button',{name:'Download'})).toBeEnabled()
   })
-  it('saves original bytes as TXT or MD with safe suggested suffixes on both platforms',async()=>{
+  it('saves original bytes as TXT with safe suggested suffixes on both platforms',async()=>{
     const data=setup({name:'家.MD'})
-    fireEvent.click(screen.getByRole('button',{name:'More actions for 家.MD'}));fireEvent.click(screen.getByRole('menuitem',{name:'Download .txt'}))
+    fireEvent.click(screen.getByRole('button',{name:'More actions for 家.MD'}));fireEvent.click(screen.getByRole('menuitem',{name:'Download'}))
     expect(data.download).toHaveBeenCalledWith({url:'https://household.example/api/items/note/download?format=txt',name:'家.txt',itemId:'note'})
     data.platform.kind='native'
-    fireEvent.click(screen.getByRole('button',{name:'More actions for 家.MD'}));fireEvent.click(screen.getByRole('menuitem',{name:'Download .md'}))
-    expect(data.download).toHaveBeenLastCalledWith({url:'https://household.example/api/items/note/download?format=md',name:'家.md',itemId:'note'})
+    fireEvent.click(screen.getByRole('button',{name:'More actions for 家.MD'}));fireEvent.click(screen.getByRole('menuitem',{name:'Download'}))
+    expect(data.download).toHaveBeenLastCalledWith({url:'https://household.example/api/items/note/download?format=txt',name:'家.txt',itemId:'note'})
   })
 })
 

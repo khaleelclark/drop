@@ -103,6 +103,10 @@ struct State {
     ack_lost: bool,
     ack_calls: Vec<String>,
     arrival_queries: Vec<String>,
+    arrival_metadata: Option<serde_json::Value>,
+    metadata_status: Option<&'static str>,
+    metadata_queries: Vec<String>,
+    metadata_gate: Option<(std::sync::mpsc::Sender<()>, std::sync::mpsc::Receiver<()>)>,
     bad_cursor: bool,
     drop_creation: bool,
     creation_status: Option<u16>,
@@ -363,6 +367,22 @@ impl Server {
                         b"",
                         false,
                     ),
+                    ("GET", path) if path.starts_with("/api/items/") && path.len() == 43 => {
+                        s.metadata_queries.push(path.into());
+                        if let Some((entered, release)) = &s.metadata_gate {
+                            entered.send(()).unwrap();
+                            release.recv_timeout(Duration::from_secs(5)).unwrap();
+                        }
+                        let status = s
+                            .metadata_status
+                            .unwrap_or(if s.arrival_metadata.is_some() {
+                                "200 OK"
+                            } else {
+                                "404 Not Found"
+                            });
+                        let body = serde_json::to_vec(&s.arrival_metadata).unwrap();
+                        reply(&mut stream, status, &[], &body, false);
+                    }
                     _ => panic!("Unexpected {} {}", req.method, req.path),
                 }
             }
@@ -1020,7 +1040,8 @@ fn arrival_batches_dedupe_after_lost_ack_and_restart_and_keep_for_you() {
         })
         .is_err());
     assert_eq!(posted.len(), 1);
-    assert!(posted[0].multiple);
+    assert_eq!(posted[0].title, "Drop");
+    assert_eq!(posted[0].body, "2 new shares available");
     assert_eq!(posted[0].target.item_id, format!("{:032x}", 2));
     q.record_arrival_click(posted[0].target.clone()).unwrap();
     drop(q);
@@ -1040,7 +1061,12 @@ fn arrival_batches_dedupe_after_lost_ack_and_restart_and_keep_for_you() {
 #[test]
 fn arrival_failure_replays_stable_id_and_invalid_cursor_never_acks() {
     let server = Server::new();
-    server.state.lock().unwrap().arrivals = vec![arrival(3)];
+    {
+        let mut s = server.state.lock().unwrap();
+        s.arrivals = vec![arrival(3)];
+        s.arrival_metadata = Some(serde_json::json!({"item":{"id":format!("{:032x}",3),
+            "kind":"file","status":"ready","sourceDevice":"Lassen","name":"private.zip","size":1024}}));
+    }
     let tmp = tempfile::tempdir().unwrap();
     let q = Queue::open(tmp.path().into()).unwrap();
     q.configure(server.config()).unwrap();
@@ -1048,6 +1074,8 @@ fn arrival_failure_replays_stable_id_and_invalid_cursor_never_acks() {
     let mut ids = Vec::new();
     assert!(q
         .poll_arrivals(|b| {
+            assert_eq!(b.title, "Lassen shared file");
+            assert_eq!(b.body, "private.zip · 1.0 KiB");
             ids.push(b.id);
             Err("OS preparation failure".into())
         })
@@ -1095,6 +1123,71 @@ fn arrival_singleflight_and_quit_stop_work() {
     q.shutdown().unwrap();
     q.poll_arrivals(|_| panic!("Quit stops arrivals")).unwrap();
     assert_eq!(server.state.lock().unwrap().arrival_queries.len(), 1);
+}
+#[test]
+fn arrival_metadata_enriches_only_latest_and_unavailable_details_fall_back() {
+    for status in ["200 OK", "404 Not Found", "503 Service Unavailable"] {
+        let server = Server::new();
+        {
+            let mut s = server.state.lock().unwrap();
+            s.arrivals = (1..=50).map(arrival).collect();
+            s.metadata_status = Some(status);
+            s.arrival_metadata = Some(serde_json::json!({"item":{"id":format!("{:032x}",50),
+                "kind":"text","status":"ready","sourceDevice":"Lassen","preview":"Private\nTest"}}));
+        }
+        let tmp = tempfile::tempdir().unwrap();
+        let q = Queue::open(tmp.path().into()).unwrap();
+        q.configure(server.config()).unwrap();
+        q.set_arrival_enabled(true).unwrap();
+        q.poll_arrivals(|b| {
+            assert_eq!(b.target.item_id, format!("{:032x}", 50));
+            if status == "200 OK" {
+                assert_eq!(b.title, "50 new shares");
+                assert_eq!(b.body, "Lassen shared text: Private Test");
+            } else {
+                assert_eq!(b.title, "Drop");
+                assert_eq!(b.body, "50 new shares available");
+            }
+            assert!(server.state.lock().unwrap().ack_calls.is_empty());
+            Ok(())
+        })
+        .unwrap();
+        q.poll_arrivals(|_| panic!("dedupe after accepted post"))
+            .unwrap();
+        let s = server.state.lock().unwrap();
+        assert_eq!(s.metadata_queries, vec![format!("/api/items/{:032x}", 50)]);
+        assert_eq!(s.ack_calls, vec!["50", "50"]);
+        let persisted = fs::read_to_string(tmp.path().join("devices.json")).unwrap();
+        for content in ["Lassen", "Private", "Test", "preview"] {
+            assert!(!persisted.contains(content));
+        }
+    }
+}
+#[test]
+fn arrival_cancelled_during_metadata_never_posts_saves_or_acks() {
+    let server = Server::new();
+    let (entered_tx, entered_rx) = std::sync::mpsc::channel();
+    let (release_tx, release_rx) = std::sync::mpsc::channel();
+    {
+        let mut s = server.state.lock().unwrap();
+        s.arrivals = vec![arrival(1)];
+        s.metadata_gate = Some((entered_tx, release_rx));
+    }
+    let tmp = tempfile::tempdir().unwrap();
+    let q = Queue::open(tmp.path().into()).unwrap();
+    q.configure(server.config()).unwrap();
+    q.set_arrival_enabled(true).unwrap();
+    let poll = q.clone();
+    let worker =
+        thread::spawn(move || poll.poll_arrivals(|_| panic!("cancelled metadata must not post")));
+    entered_rx.recv_timeout(Duration::from_secs(5)).unwrap();
+    q.shutdown().unwrap();
+    release_tx.send(()).unwrap();
+    worker.join().unwrap().unwrap();
+    assert!(server.state.lock().unwrap().ack_calls.is_empty());
+    let state: serde_json::Value =
+        serde_json::from_slice(&fs::read(tmp.path().join("devices.json")).unwrap()).unwrap();
+    assert_eq!(state["origins"][&server.url]["cursor"], "0");
 }
 #[test]
 fn ambiguous_upload_creation_is_not_automatically_retried() {

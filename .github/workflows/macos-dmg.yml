@@ -8,7 +8,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main, build/drop-0.2.1-delete-ux-20261024]
+    branches: [main, build/drop-0.2.2-mobile-20261024]
     paths:
       - '.github/workflows/macos-dmg.yml'
       - 'integrations/macos/**'

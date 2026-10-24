@@ -2,9 +2,9 @@ import { describe, expect, it, vi } from 'vitest'
 import { readFileSync } from 'node:fs'
 import { runInNewContext } from 'node:vm'
 import { ApiClient } from './api'
-import { arrivalKey, enableBrowserArrivals, processArrivals } from './arrivals'
+import { arrivalBody, arrivalKey, enableBrowserArrivals, processArrivals } from './arrivals'
 import { sendRouting, validItemId } from './devices'
-import type { Device } from './types'
+import type { Device, Item } from './types'
 const source='1'.repeat(32),target='2'.repeat(32)
 const devices:Device[]=[{id:target,label:'Phone',platform:'android',createdAt:''}]
 describe('recipient and arrival boundaries',()=>{
@@ -25,7 +25,7 @@ describe('recipient and arrival boundaries',()=>{
   })
   it('persists exact 64-bit progress before ACK and retries ACK without reposting',async()=>{
     const key=arrivalKey('https://household.example',source);let fail=true
-    const api={arrivals:vi.fn(async(_id:string,after?:string)=>({notifications:after?[]:[{sequence:'9007199254740993',itemId:target,createdAt:''}],nextCursor:'9007199254740993',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>{expect(localStorage.getItem(`${key}:cursor`)).toBe('9007199254740993');if(fail)throw new Error('offline');return {ackCursor:'9007199254740993'}})}
+    const api={item:vi.fn().mockRejectedValue(new Error('unavailable')),arrivals:vi.fn(async(_id:string,after?:string)=>({notifications:after?[]:[{sequence:'9007199254740993',itemId:target,createdAt:''}],nextCursor:'9007199254740993',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>{expect(localStorage.getItem(`${key}:cursor`)).toBe('9007199254740993');if(fail)throw new Error('offline');return {ackCursor:'9007199254740993'}})}
     const show=vi.fn().mockResolvedValue(undefined)
     await expect(processArrivals(api as unknown as ApiClient,source,key,show,()=>true)).rejects.toThrow('offline')
     expect(show).toHaveBeenCalledWith('Drop',expect.objectContaining({body:'New share available',tag:`${key}:9007199254740993`,data:{itemId:target}}))
@@ -34,14 +34,14 @@ describe('recipient and arrival boundaries',()=>{
     expect(show).toHaveBeenCalledOnce();expect(api.arrivals).toHaveBeenLastCalledWith(source,'9007199254740993')
   })
   it('batches catch-up without dropping For you history or losing preceding cursors',async()=>{
-    const api={arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:'first',createdAt:''},{sequence:'2',itemId:'last',createdAt:''}],nextCursor:'2',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>({ackCursor:'2'}))}
+    const api={item:vi.fn().mockRejectedValue(new Error('unavailable')),arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:'first',createdAt:''},{sequence:'2',itemId:'last',createdAt:''}],nextCursor:'2',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>({ackCursor:'2'}))}
     const show=vi.fn().mockResolvedValue(undefined);const key=arrivalKey('https://household.example',source)
     await processArrivals(api as unknown as ApiClient,source,key,show,()=>true)
     expect(show).toHaveBeenCalledOnce();expect(show).toHaveBeenCalledWith('Drop',expect.objectContaining({data:{itemId:'last'},tag:`${key}:2`}))
-    expect(api.acknowledge).toHaveBeenCalledWith(source,'2');expect(localStorage.getItem(`${key}:cursor`)).toBe('2')
+    expect(api.item).toHaveBeenCalledOnce();expect(api.item).toHaveBeenCalledWith('last',expect.any(AbortSignal));expect(show.mock.calls[0][1].body).toBe('2 new shares available');expect(api.acknowledge).toHaveBeenCalledWith(source,'2');expect(localStorage.getItem(`${key}:cursor`)).toBe('2')
   })
   it('does not ACK a failed OS post, malformed cursor or unsafe click target',async()=>{
-    const api={arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:target,createdAt:''}],nextCursor:'1',ackCursor:'0',hasMore:false})),acknowledge:vi.fn()}
+    const api={item:vi.fn().mockRejectedValue(new Error('unavailable')),arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:target,createdAt:''}],nextCursor:'1',ackCursor:'0',hasMore:false})),acknowledge:vi.fn()}
     const key=arrivalKey('https://household.example',source)
     await expect(processArrivals(api as unknown as ApiClient,source,key,vi.fn().mockRejectedValue(new Error('permission denied')),()=>true)).rejects.toThrow('permission denied')
     expect(api.acknowledge).not.toHaveBeenCalled();expect(localStorage.getItem(`${key}:cursor`)).toBeNull()
@@ -74,5 +74,40 @@ describe('recipient and arrival boundaries',()=>{
     const respondWith=vi.fn();handlers.fetch({request:{url:'https://household.example/api/items',method:'GET'},respondWith});expect(respondWith).not.toHaveBeenCalled()
     const focus=vi.fn().mockResolvedValue(undefined),postMessage=vi.fn();self.clients.matchAll.mockResolvedValueOnce([{url:'https://household.example/',focus,postMessage}] as never)
     click(target);await pending;expect(focus).toHaveBeenCalled();expect(postMessage).toHaveBeenCalledWith({type:'zing-arrival',itemId:target})
+  })
+})
+
+const detail:Item={id:target,kind:'text',name:'note.txt',size:40,preview:'  Hello\r\n\tworld <b>plain</b> \u0000\u202e',sourceDevice:' Kitchen\n Mac ',status:'ready',pinned:false,createdAt:'',updatedAt:''}
+describe('informative browser arrivals',()=>{
+  it('bounds inert Unicode strings and gives honest batch/file details with safe fallbacks',()=>{
+    expect(arrivalBody(detail,1)).toBe('Kitchen Mac: Text · Hello world <b>plain</b>')
+    expect(arrivalBody({...detail,kind:'file',name:'  report\n final.pdf ',size:2048},3)).toBe('3 new shares · Kitchen Mac: report final.pdf · 2 KiB')
+    const body=arrivalBody({...detail,sourceDevice:'😀'.repeat(80),preview:'𐐀'.repeat(200)},1)
+    expect(Array.from(body.split(':')[0])).toHaveLength(48)
+    expect(Array.from(body.split(' · ')[1])).toHaveLength(120)
+    expect(body).not.toMatch(/[\uD800-\uDBFF](?![\uDC00-\uDFFF])|(?<![\uD800-\uDBFF])[\uDC00-\uDFFF]/u)
+    for(const item of [undefined,{...detail,status:'uploading' as const},{...detail,deletedAt:'2026-10-24T00:00:00Z'},{...detail,size:-1}])expect(arrivalBody(item,2)).toBe('2 new shares available')
+  })
+  it('looks up only the latest metadata and posts before cursor/ACK, never a text body',async()=>{
+    const key=arrivalKey('https://household.example',source),order:string[]=[]
+    const api={item:vi.fn(async()=>({item:detail})),text:vi.fn(),arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:'first',createdAt:''},{sequence:'2',itemId:target,createdAt:''}],nextCursor:'2',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>{order.push('ack');expect(localStorage.getItem(`${key}:cursor`)).toBe('2');return {ackCursor:'2'}})}
+    await processArrivals(api as unknown as ApiClient,source,key,async(_title,options)=>{order.push('show');expect(localStorage.getItem(`${key}:cursor`)).toBeNull();expect(options.body).toBe('2 new shares · Kitchen Mac: Text · Hello world <b>plain</b>')},()=>true)
+    expect(api.item).toHaveBeenCalledOnce();expect(api.item).toHaveBeenCalledWith(target,expect.any(AbortSignal));expect(api.text).not.toHaveBeenCalled();expect(order).toEqual(['show','ack'])
+  })
+  it('a stalled metadata read times out and aborts without delaying the generic post forever',async()=>{
+    vi.useFakeTimers()
+    try{
+      const api={item:vi.fn(()=>new Promise(()=>{})),arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:target,createdAt:''}],nextCursor:'1',ackCursor:'0',hasMore:false})),acknowledge:vi.fn(async()=>({ackCursor:'1'}))},show=vi.fn().mockResolvedValue(undefined)
+      const processing=processArrivals(api as unknown as ApiClient,source,arrivalKey('https://household.example',source),show,()=>true)
+      await vi.advanceTimersByTimeAsync(1500);await processing
+      expect(show).toHaveBeenCalledWith('Drop',expect.objectContaining({body:'New share available'}));expect((api.item.mock.calls[0] as unknown as [string,AbortSignal])[1].aborted).toBe(true);expect(api.acknowledge).toHaveBeenCalledOnce()
+    }finally{vi.useRealTimers()}
+  })
+  it('cancels lookup when stopped and does not post or checkpoint',async()=>{
+    const controller=new AbortController(),key=arrivalKey('https://household.example',source)
+    const api={item:vi.fn(()=>new Promise(()=>{})),arrivals:vi.fn(async()=>({notifications:[{sequence:'1',itemId:target,createdAt:''}],nextCursor:'1',ackCursor:'0',hasMore:false})),acknowledge:vi.fn()},show=vi.fn()
+    const processing=processArrivals(api as unknown as ApiClient,source,key,show,()=>!controller.signal.aborted,controller.signal)
+    await Promise.resolve();controller.abort();await processing
+    expect(show).not.toHaveBeenCalled();expect(api.acknowledge).not.toHaveBeenCalled();expect(localStorage.getItem(`${key}:cursor`)).toBeNull()
   })
 })

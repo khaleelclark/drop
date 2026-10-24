@@ -61,7 +61,13 @@ export function App() {
   const currentApi=useRef(api);currentApi.current=api
   useEffect(()=>setFolderProgress(null),[api])
   const [contentKind,setContentKind]=useState<ContentKind>('all')
-  const [mobileEditing, setMobileEditing] = useState(false); const mobileNav = useRef<HTMLElement>(null)
+  const [mobileEditing, setMobileEditing] = useState(false)
+  const [nativeKeyboard,setNativeKeyboard]=useState(false)
+  const [mobile,setMobile]=useState(()=>window.matchMedia?.('(max-width: 800px)').matches??false)
+  const [composerOpen,setComposerOpen]=useState(false)
+  const sheetActive=mobile&&composerOpen
+  const sheet=useRef<HTMLDivElement>(null),composerTrigger=useRef<HTMLElement|null>(null)
+  const inputMode=useRef<'pointer'|'keyboard'>('pointer')
   const [loading, setLoading] = useState(true); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState('')
   const [live, setLive] = useState(false); const [offline, setOffline] = useState(!navigator.onLine)
   const [toast, setToast] = useState(''); const [text, setText] = useState(''); const [sending, setSending] = useState(false)
@@ -70,17 +76,59 @@ export function App() {
   const sequence = useRef(0); const dragDepth = useRef(0)
   const notify = useCallback((message: string) => setToast(message), [])
   const startMobileEditing = () => { if (window.matchMedia('(max-width: 800px)').matches) setMobileEditing(true) }
+  const openComposer=()=>{
+    if(mobile){composerTrigger.current=document.activeElement as HTMLElement|null;setComposerOpen(true)}
+    else composer.current?.focus()
+  }
+  const closeComposer=()=>{setComposerOpen(false);setMobileEditing(false)}
   const finishMobileEditing = useCallback(() => {
     const active = document.activeElement
     if (active instanceof HTMLElement && active.closest('.workspace') && ['INPUT','TEXTAREA'].includes(active.tagName)) active.blur()
     setMobileEditing(false)
-    requestAnimationFrame(() => mobileNav.current?.querySelector<HTMLButtonElement>('[aria-current]')?.focus({preventScroll:true}))
   }, [])
+  useEffect(()=>{
+    const media=window.matchMedia?.('(max-width: 800px)');if(!media)return
+    const change=()=>setMobile(media.matches)
+    media.addEventListener('change',change);return()=>media.removeEventListener('change',change)
+  },[])
+  useEffect(()=>{
+    if(!sheetActive||!sheet.current)return
+    const node=sheet.current,viewport=window.visualViewport
+    const position=()=>{
+      node.style.setProperty('--sheet-top',`${viewport?.offsetTop??0}px`)
+      node.style.setProperty('--sheet-height',`${viewport?.height??innerHeight}px`)
+    }
+    position();window.addEventListener('resize',position);viewport?.addEventListener('resize',position);viewport?.addEventListener('scroll',position)
+    const siblings:HTMLElement[]=[]
+    // Keep this composer mounted; only the surrounding page becomes inert.
+    for(let branch:HTMLElement=node;branch.parentElement;branch=branch.parentElement){
+      for(const sibling of branch.parentElement.children)if(sibling!==branch&&sibling instanceof HTMLElement&&!sibling.inert){sibling.inert=true;siblings.push(sibling)}
+      if(branch.parentElement.classList.contains('app-shell'))break
+    }
+    document.body.classList.add('composer-open')
+    const frame=requestAnimationFrame(()=>composer.current?.focus({preventScroll:true}))
+    return()=>{
+      cancelAnimationFrame(frame);siblings.forEach(sibling=>sibling.inert=false);document.body.classList.remove('composer-open')
+      window.removeEventListener('resize',position);viewport?.removeEventListener('resize',position);viewport?.removeEventListener('scroll',position)
+      if(window.matchMedia('(max-width: 800px)').matches){
+        if(node.contains(document.activeElement))(document.activeElement as HTMLElement).blur()
+        if(inputMode.current==='keyboard'&&composerTrigger.current?.isConnected)composerTrigger.current.focus({preventScroll:true})
+      }
+    }
+  },[sheetActive])
+  useEffect(()=>{
+    if(!highlight)return
+    const clear=()=>{pendingArrivalFocus.current='';setHighlight('')}
+    const timer=setTimeout(clear,5000)
+    window.addEventListener('pointerdown',clear,{once:true});window.addEventListener('keydown',clear,{once:true})
+    return()=>{clearTimeout(timer);window.removeEventListener('pointerdown',clear);window.removeEventListener('keydown',clear)}
+  },[highlight])
   useEffect(() => {
     const leave = () => setMobileEditing(false)
     const visibility = () => { if (document.visibilityState === 'hidden') leave() }
     const keyboard = (event: Event) => {
       if (platform.kind !== 'native' || !document.documentElement.hasAttribute('data-native-android') || !(event instanceof CustomEvent) || typeof event.detail?.visible !== 'boolean') return
+      setNativeKeyboard(event.detail.visible)
       if (!event.detail.visible) leave()
       else if (document.activeElement?.closest('.workspace') && document.activeElement.matches('input:not([type=checkbox]):not([type=file]), textarea') && window.matchMedia('(max-width: 800px)').matches) setMobileEditing(true)
     }
@@ -184,17 +232,21 @@ export function App() {
     void api.item(arrivalTarget).then(({item})=>{
       if(cancelled)return
       if(item.status!=='ready')throw new Error('This share is not ready. Try again later.')
-      openedItem.current=item;pendingArrivalFocus.current=item.id;setConnectionOpen(false);setHelpOpen(false);setMobileEditing(false);setView('you');setContentKind('all');setQuery('');setSearch('');setHighlight(item.id)
+      setLoading(true);refresh()
+      openedItem.current=item;pendingArrivalFocus.current=item.id;setConnectionOpen(false);setHelpOpen(false);setComposerOpen(false);setMobileEditing(false);setView('you');setContentKind('all');setQuery('');setSearch('');setHighlight(item.id)
       setItems(previous=>[item,...previous.filter(row=>row.id!==item.id)])
       setArrivalTarget('')
       const url=new URL(window.location.href);url.searchParams.delete('item');window.history.replaceState(null,'',url)
     }).catch(error=>{if(!cancelled)setTargetError(error instanceof ApiError&&error.status===404?'This share was deleted or is no longer available.':errorMessage(error))})
     return()=>{cancelled=true}
-  },[api,connected,deviceId,arrivalTarget,refreshTick])
+  },[api,connected,deviceId,arrivalTarget,refreshTick,refresh])
   useEffect(()=>{
     if(!highlight||loading||pendingArrivalFocus.current!==highlight)return
-    const node=document.getElementById(`share-${highlight}`)
-    if(node){pendingArrivalFocus.current='';node.scrollIntoView({block:'center'});node.focus({preventScroll:true})}
+    const frame=requestAnimationFrame(()=>{
+      const node=document.getElementById(`share-${highlight}`)
+      if(node){pendingArrivalFocus.current='';node.scrollIntoView({block:'center'});node.focus({preventScroll:true})}
+    })
+    return()=>cancelAnimationFrame(frame)
   },[highlight,items,loading])
   useEffect(() => {
     if (!connected) return
@@ -216,11 +268,12 @@ export function App() {
     const handler = (event: KeyboardEvent) => {
       if (event.defaultPrevented || event.isComposing || event.keyCode === 229) return
       const target = event.target as HTMLElement
-      if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.isContentEditable) { event.preventDefault(); document.getElementById('feed-search')?.focus() }
-      if (event.key === 'Escape') { setConnectionOpen(false); setHelpOpen(false); if (mobileEditing && target.closest('.workspace')) finishMobileEditing() }
+      if(target.closest('dialog[open]'))return
+      if (event.key === '/' && !sheetActive && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.isContentEditable) { event.preventDefault(); document.getElementById('feed-search')?.focus() }
+      if (event.key === 'Escape') { setConnectionOpen(false); setHelpOpen(false); if(sheetActive){setComposerOpen(false);setMobileEditing(false)}else if (mobileEditing && target.closest('.workspace')) finishMobileEditing() }
     }
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler)
-  }, [mobileEditing, finishMobileEditing])
+  }, [mobileEditing, finishMobileEditing, sheetActive])
   useEffect(() => {
     if (!connectionOpen && !helpOpen) return
     const previous = connectionOpen ? connectionTrigger.current : document.activeElement as HTMLElement | null
@@ -235,7 +288,7 @@ export function App() {
     }
     document.addEventListener('keydown', trap)
     document.body.classList.add('modal-open')
-    return () => { clearTimeout(timer); document.removeEventListener('keydown', trap); document.body.classList.remove('modal-open'); if(previous?.isConnected)previous.focus() }
+    return () => { clearTimeout(timer); document.removeEventListener('keydown', trap); document.body.classList.remove('modal-open'); if(inputMode.current==='keyboard'&&previous?.isConnected)previous.focus({preventScroll:true}) }
   }, [connectionOpen, helpOpen])
   const connect = async (event: FormEvent) => {
     event.preventDefault(); setConnecting(true); setConnectionError('')
@@ -373,7 +426,7 @@ export function App() {
       setFolderSummary(null);setActionBusy(false);actionLock.current=false
     }
   }
-  return <div className={`app-shell ${connected ? 'is-connected' : ''}`} onDragEnter={event => drag(event, true)} onDragLeave={event => drag(event, false)} onDragOver={event => { if (Array.from(event.dataTransfer.types).includes('Files')) event.preventDefault() }} onDrop={drop}>
+  return <div className={`app-shell ${connected ? 'is-connected' : ''}`} onPointerDownCapture={()=>{inputMode.current='pointer'}} onKeyDownCapture={()=>{inputMode.current='keyboard'}} onDragEnter={event => drag(event, true)} onDragLeave={event => drag(event, false)} onDragOver={event => { if (Array.from(event.dataTransfer.types).includes('Files')) event.preventDefault() }} onDrop={drop}>
     <a className="skip-link" href="#feed">Skip to feed</a>
     <aside className="sidebar" inert={connectionOpen || helpOpen}>
       <a className="brand" href="/" aria-label="Drop home"><ZingMark className="brand-mark" /><span className="brand-wordmark">Drop<span className="brand-signal" aria-hidden="true" /></span></a>
@@ -392,27 +445,36 @@ export function App() {
         {(nativeNeedsConnection || (checked && !connected && !connectionOpen && !configuredNative)) && <div className="banner"><Link2 size={17} /><span>{nativeNeedsConnection ? 'Choose a server in Settings.' : 'Connect to share items.'}</span><button className="text-button" disabled={actionBusy} onClick={() => openConnection()}>{nativeNeedsConnection ? 'Configure connection' : 'Connect'} <ArrowRight size={14} /></button></div>}
         {deviceError&&<div className="banner error-banner" role="alert"><span>{deviceError}</span><button className="text-button" onClick={()=>setIdentityTick(value=>value+1)}>Retry registration</button></div>}
         {targetError&&<div className="banner error-banner" role="alert"><span>{targetError}</span><button className="text-button" onClick={refresh}>Retry opening share</button><button className="icon-button" aria-label="Dismiss opening error" onClick={()=>{setTargetError('');setArrivalTarget('')}}><X size={15}/></button></div>}
-        <nav ref={mobileNav} className="mobile-tabs" hidden={mobileEditing} aria-label="Mobile feed filters"><div className="mobile-tab-list">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} disabled={actionBusy} onClick={()=>setView(id)}><Icon size={21} aria-hidden="true"/><span>{label}</span></button>)}</div></nav>
+        <nav className="mobile-tabs" hidden={mobileEditing} aria-label="Mobile feed filters"><div className="mobile-tab-list">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} disabled={actionBusy} onClick={()=>setView(id)}><Icon size={21} aria-hidden="true"/><span>{label}</span></button>)}</div></nav>
+        <button className="new-drop" aria-label="New drop" aria-haspopup="dialog" aria-expanded={sheetActive} aria-controls="composer-sheet" hidden={sheetActive} onClick={openComposer}><Plus size={26} aria-hidden="true"/></button>
+        <div className="send-workspace"><div id="composer-sheet" ref={sheet} className={`composer-sheet ${sheetActive?'is-open':''} ${nativeKeyboard?'ime-visible':''}`} role={sheetActive?'dialog':undefined} aria-modal={sheetActive?true:undefined} aria-label={sheetActive?'New drop':undefined} onClick={event=>{if(sheetActive&&event.target===event.currentTarget)closeComposer()}} onKeyDown={event=>{
+          if(!sheetActive||event.key!=='Tab'||(event.target as HTMLElement).closest('dialog[open]'))return
+          const controls=Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), textarea:not(:disabled), input:not(:disabled):not([type=file]), [tabindex="0"]')).filter(node=>node.getClientRects().length>0)
+          const first=controls[0],last=controls.at(-1)
+          if(event.shiftKey&&document.activeElement===first){event.preventDefault();last?.focus()}
+          else if(!event.shiftKey&&document.activeElement===last){event.preventDefault();first?.focus()}
+        }}>
         <input className="sr-only" type="file" multiple ref={input} aria-label="Choose files to upload" onChange={event => { enqueue(Array.from(event.currentTarget.files || []), 'file',pickerRouting.current); event.currentTarget.value = '';pickerRouting.current=undefined }} /><input className="sr-only" type="file" multiple accept={textFileAccept} ref={textFileInput} aria-label="Choose plain text files to upload" onChange={event => { enqueue(Array.from(event.currentTarget.files || []), 'text',pickerRouting.current); event.currentTarget.value = '';pickerRouting.current=undefined }} />
-        <div className="send-workspace"><section hidden={view==='trash'} className={`composer ${text.length ? 'has-draft' : ''}`} aria-labelledby="composer-title"><h2 id="composer-title" className="composer-heading">Send</h2><textarea ref={composer} aria-label="Text to share" placeholder="Paste a note, a link, anything…" value={text} onChange={event => { const value = event.target.value; setText(previous => preserveTextareaEdit(previous, value)) }} onPaste={event => {
+        <section hidden={view==='trash'&&!sheetActive} className={`composer ${text.length ? 'has-draft' : ''}`} aria-labelledby="composer-title"><div className="composer-header"><h2 id="composer-title" className="composer-heading">Send</h2><button className="icon-button composer-close" aria-label="Close new drop" onClick={closeComposer}><X size={20}/></button></div><textarea ref={composer} aria-label="Text to share" placeholder="Paste a note, a link, anything…" value={text} onChange={event => { const value = event.target.value; setText(previous => preserveTextareaEdit(previous, value)) }} onPaste={event => {
           if (!event.clipboardData.types.includes('text/plain')) return
           event.preventDefault()
           const pasted = event.clipboardData.getData('text/plain'); const start = event.currentTarget.selectionStart; const end = event.currentTarget.selectionEnd
           setText(previous => insertPlainText(previous, start, end, pasted))
           requestAnimationFrame(() => { const caret = start + textareaText(pasted).length; composer.current?.setSelectionRange(caret, caret) })
-        }} onKeyDown={event => { if (event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void sendText() } }} disabled={!connected || !deviceId || sending} /><div className="composer-bottom"><div className="composer-tools"><button className="button action-button add-files" aria-label="Add files" title="Add files" onClick={() => choose('file')}><Paperclip size={18} /><span className="add-files-label">Add files</span></button><ItemMenu name="sharing">{close => <button role="menuitem" tabIndex={0} onClick={() => { choose('text'); close() }}><FileText size={17}/>Upload text file</button>}</ItemMenu></div><RecipientPicker devices={devices} currentId={deviceId} targets={targets} onChange={setTargets} onRefresh={refresh} disabled={!connected||!deviceId}/><button className="button primary send-button" aria-label={sending?'Sharing…':'Share text'} title="Share text" disabled={!connected || !deviceId || !text.length || sending} onClick={() => void sendText()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}<span>Send</span></button></div>{platform.kind==='browser'&&<p className="composer-context">Keep this tab open while sending.</p>}{text.length > 0 && <div className="composer-footnote"><span>{text.length.toLocaleString()} characters</span></div>}{composerError && <p role="alert" className="inline-error">{composerError}</p>}</section>
-        {mobileEditing && view!=='trash' && <div className="editing-toolbar"><button className="finish-editing" onClick={finishMobileEditing}><Check size={16} aria-hidden="true"/>Done editing</button></div>}
+        }} onKeyDown={event => { if (!event.nativeEvent.isComposing && event.keyCode!==229 && event.key === 'Enter' && (event.metaKey || event.ctrlKey)) { event.preventDefault(); void sendText() } }} disabled={!connected || !deviceId || sending} /><div className="composer-bottom"><div className="composer-tools"><button className="button action-button add-files" aria-label="Add files" title="Add files" onClick={() => choose('file')}><Paperclip size={18} /><span className="add-files-label">Add files</span></button><ItemMenu name="sharing">{close => <button role="menuitem" tabIndex={0} onClick={() => { choose('text'); close() }}><FileText size={17}/>Upload text file</button>}</ItemMenu></div><RecipientPicker devices={devices} currentId={deviceId} targets={targets} onChange={setTargets} onRefresh={refresh} disabled={!connected||!deviceId}/><button className="button primary send-button" aria-label={sending?'Sharing…':'Share text'} title="Share text" disabled={!connected || !deviceId || !text.length || sending} onClick={() => void sendText()}>{sending ? <LoaderCircle className="spin" size={16} /> : <Send size={16} />}<span>Send</span></button></div>{platform.kind==='browser'&&<p className="composer-context">Keep this tab open while sending.</p>}{text.length > 0 && <div className="composer-footnote"><span>{text.length.toLocaleString()} characters</span></div>}{composerError && <p role="alert" className="inline-error">{composerError}</p>}</section>
+        </div>
+        {mobileEditing && !sheetActive && view!=='trash' && <div className="editing-toolbar"><button className="finish-editing" onClick={finishMobileEditing}><Check size={16} aria-hidden="true"/>Done editing</button></div>}
         <TransferQueue store={platform.transfers} onError={setError} /></div>
         <section id="feed" tabIndex={-1} className="feed" aria-labelledby="feed-title"><div className="feed-toolbar" hidden={selecting}><div className="feed-title"><h2 id="feed-title">{view==='trash'?'Recently Deleted':search?'Search results':view==='you'?'Sent to this device':view==='pinned'?'Pinned shares':'Recent shares'}</h2></div><label className="kind-filter"><span className="sr-only">Content type</span><select disabled={actionBusy} value={contentKind} onChange={event=>setContentKind(event.target.value as ContentKind)}><option value="all">All types</option><option value="text">Text</option><option value="file">Files</option></select></label><button className="text-button select-toggle" aria-label="Select items" disabled={actionBusy||!eligible.length||trashSupport!=='supported'} onClick={()=>{setSelecting(true);setSelected([]);setActionErrors([])}}>Select</button><div className="feed-controls"><label className="search-field"><Search size={16} /><input id="feed-search" type="search" placeholder={view==='trash'?'Search Recently Deleted':'Search shares'} disabled={actionBusy} value={query} onChange={event => setQuery(event.target.value)} /><span className="search-shortcut">/</span><span className="sr-only">Search names and text previews</span></label>{view==='trash'&&mobileEditing?<button className="text-button finish-editing" onClick={finishMobileEditing}><Check size={16} aria-hidden="true"/>Done editing</button>:<button className="icon-button refresh-button" onClick={refresh} disabled={loading} aria-label="Refresh feed"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button>}</div></div>
           {view==='trash'&&trashSupport==='supported'&&!folderUnsupported&&<div className="trash-folder-tools"><button className="button quiet text-danger" disabled={actionBusy||!connected} onClick={()=>void previewFolder()}>Delete all</button></div>}
           {folderProgress&&view==='trash'&&<p className="folder-progress" role="status">{folderProgress.running?'Deleting whole folder… ':''}{folderProgress.deleted} confirmed deleted · {folderProgress.failed} failed{folderProgress.failed>20?' (first 20 listed below)':''}{folderProgress.uncertain?' · One batch is unconfirmed. Refresh before choosing a new action.':''}</p>}
-          {selecting&&<div className="selection-bar" role="region" aria-label="Selected items"><div><strong>{displayedSelected.length} selected</strong><span id="selection-scope">Of {eligible.length} displayed eligible items · limit 100</span></div><button className="text-button" disabled={actionBusy} aria-describedby="selection-scope" onClick={()=>setSelected(eligible.slice(0,100).map(item=>item.id))}>Select all</button><button className="text-button" disabled={actionBusy} onClick={()=>{setSelecting(false);setSelected([]);setActionErrors([])}}>Cancel selection</button><div className="selection-actions">{view==='trash'?<><button className="button quiet" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('restore',displayedSelected)}><Undo2 size={16}/>Restore</button><button className="button text-danger" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>setPurgeIds(displayedSelected)}><Trash2 size={16}/>Delete</button></>:<button className="button primary" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('trash',displayedSelected)}><Trash2 size={16}/>Move to Recently Deleted</button>}</div></div>}
+          {selecting&&<div className="selection-bar" role="region" aria-label="Selected items"><div><strong>{displayedSelected.length} selected</strong><span id="selection-scope">Of {eligible.length} displayed eligible items · limit 100</span></div><button className="text-button" disabled={actionBusy} aria-describedby="selection-scope" onClick={()=>setSelected(eligible.slice(0,100).map(item=>item.id))}>Select all</button><button className="text-button" disabled={actionBusy} onClick={()=>{setSelecting(false);setSelected([]);setActionErrors([])}}>Cancel selection</button><div className="selection-actions">{view==='trash'?<><button className="button quiet" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('restore',displayedSelected)}><Undo2 size={16}/>Restore</button><button className="button text-danger" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>setPurgeIds(displayedSelected)}><Trash2 size={16}/>Delete</button></>:<button className="button primary" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('trash',displayedSelected)}><Trash2 size={16}/>Delete</button>}</div></div>}
           {actionErrors.length>0&&<div className="banner error-banner action-errors" role="alert" ref={actionErrorArea}><div><ul>{actionErrors.map(entry=><li key={entry.id}><strong>{entry.name}:</strong> {entry.message}</li>)}</ul></div><button className="text-button" disabled={actionBusy} onClick={refresh}>Refresh view</button></div>}
           {trashSupport==='unsupported'&&<div className="banner error-banner" role="alert">Update the household server to delete items.</div>}{trashSupport==='unavailable'&&view!=='trash'&&<div className="banner error-banner" role="alert"><span>Couldn’t check deletion support.</span><button className="text-button" onClick={refresh}>Retry</button></div>}{folderUnsupported&&view==='trash'&&trashSupport!=='unsupported'&&<div className="banner error-banner" role="alert">Update the household server to delete all items.</div>}
           {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button>{configuredNative && <button className="text-button" disabled={actionBusy} onClick={() => openConnection()}>Settings</button>}<button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
           {loading && !items.length ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Loading…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={`share-entry ${highlight===item.id?'arrival-highlight':''} ${selecting?'is-selectable':''} ${selected.includes(item.id)?'is-selected':''}`}>
             {selecting&&<label className="item-selection"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selected.includes(item.id)} disabled={actionBusy||item.status==='uploading'||(!selected.includes(item.id)&&selected.length>=100)} onChange={()=>toggleSelection(item.id)}/></label>}
-            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={() => composer.current?.focus()}><Plus size={16} /> Share something</button>}</div>}
+            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={openComposer}><Plus size={16} /> Share something</button>}</div>}
           {cursor && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowDown size={15} />} Load older items</button>}
         </section>
       </main>

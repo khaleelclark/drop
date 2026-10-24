@@ -26,6 +26,7 @@ impl ArrivalNotifier {
     pub fn post(&self, banner: ArrivalBanner) -> Result<()> {
         if banner.id < 0
             || banner.target.base_url.len() > 8192
+            || banner.target.base_url.chars().any(char::is_control)
             || banner.target.item_id.len() != 32
             || !banner
                 .target
@@ -35,15 +36,16 @@ impl ArrivalNotifier {
         {
             return Err("Invalid arrival target".into());
         }
+        if banner.title.chars().count() > 80
+            || banner.body.chars().count() > 260
+            || banner
+                .title
+                .chars()
+                .chain(banner.body.chars())
+                .any(char::is_control)
+        {
+            return Err("Invalid arrival content".into());
+        }
         self.0.post(banner)
-    }
-}
-
-#[cfg(target_os = "linux")]
-fn body(multiple: bool) -> &'static str {
-    if multiple {
-        "New shares available"
-    } else {
-        "New share available"
     }
 }

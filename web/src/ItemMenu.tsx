@@ -4,8 +4,9 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
   const [open,setOpen]=useState(false)
   const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null)
   const menu=useRef<HTMLDivElement>(null);const pointerInside=useRef(false)
+  const keyboard=useRef(false)
   const id=useId()
-  const close=()=>{setOpen(false);trigger.current?.focus()}
+  const close=()=>{setOpen(false);if(keyboard.current)trigger.current?.focus({preventScroll:true})}
   useLayoutEffect(()=>{
     if(!open)return
     const viewport=window.visualViewport
@@ -23,7 +24,7 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
       menu.current.style.top=`${Math.max(top,Math.min(preferred,bottom-height))-anchor.top}px`
     }
     position()
-    menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus({preventScroll:true})
+    if(keyboard.current)menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus({preventScroll:true})
     const outside=(event:PointerEvent)=>{pointerInside.current=Boolean(root.current?.contains(event.target as Node));if(!pointerInside.current)setOpen(false)}
     const endPointer=()=>{pointerInside.current=false}
     document.addEventListener('pointerdown',outside)
@@ -44,7 +45,7 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
       viewport?.removeEventListener('scroll',position)
     }
   },[open])
-  return <div className="item-menu" ref={root} onBlur={event=>{
+  return <div className="item-menu" ref={root} onPointerDownCapture={()=>{keyboard.current=false}} onKeyDownCapture={()=>{keyboard.current=true}} onBlur={event=>{
     // Keep pointer activation through a null-focus blur until its click arrives.
     if(!event.currentTarget.contains(event.relatedTarget as Node)&&!(event.relatedTarget===null&&pointerInside.current))setOpen(false)
   }}>

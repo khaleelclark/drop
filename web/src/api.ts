@@ -38,7 +38,20 @@ export class ApiClient {
   }
   storage() { return this.json<StorageInfo>('/storage') }
   createText(text: string, sourceDevice: string, routing?: SendRouting) { return this.json<{item: Item}>('/text', { method: 'POST', body: JSON.stringify({ text, sourceDevice, ...routing }) }) }
-  item(id: string) { return this.json<{item: Item}>(`/items/${encodeURIComponent(id)}`) }
+  async item(id: string, signal?: AbortSignal) {
+    const response=await this.response(`/items/${encodeURIComponent(id)}`,{signal})
+    const reader=response.body?.getReader();if(!reader)throw new Error('Item metadata unavailable.')
+    const decoder=new TextDecoder('utf-8',{fatal:true});let length=0,json=''
+    try{
+      for(;;){
+        const {value,done}=await reader.read();if(done)break
+        length+=value.byteLength
+        if(length>64*1024)throw new Error('Item metadata is too large.')
+        json+=decoder.decode(value,{stream:true})
+      }
+      return JSON.parse(json+decoder.decode()) as {item:Item}
+    }finally{await reader.cancel().catch(()=>{});reader.releaseLock()}
+  }
   register(device: Pick<Device,'id'|'label'|'platform'> & {preserveExisting?:boolean}) { return this.json<{device:Device}>('/devices/register', {method:'POST',body:JSON.stringify(device)}) }
   async devices() {
     const page=await this.json<{devices:Device[]}>('/devices')

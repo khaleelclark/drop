@@ -13,7 +13,8 @@ extern "C" {
         id: *const c_char,
         origin: *const c_char,
         item: *const c_char,
-        multiple: bool,
+        title: *const c_char,
+        body: *const c_char,
     ) -> i32;
 }
 extern "C" fn clicked(origin: *const c_char, item: *const c_char) {
@@ -69,8 +70,16 @@ impl Notifier {
             .map_err(|e| e.to_string())?;
         let origin = CString::new(banner.target.base_url).map_err(|e| e.to_string())?;
         let item = CString::new(banner.target.item_id).map_err(|e| e.to_string())?;
+        let title = CString::new(banner.title).map_err(|_| "Invalid arrival content")?;
+        let body = CString::new(banner.body).map_err(|_| "Invalid arrival content")?;
         if unsafe {
-            zing_notifications_post(id.as_ptr(), origin.as_ptr(), item.as_ptr(), banner.multiple)
+            zing_notifications_post(
+                id.as_ptr(),
+                origin.as_ptr(),
+                item.as_ptr(),
+                title.as_ptr(),
+                body.as_ptr(),
+            )
         } == 1
         {
             Ok(())

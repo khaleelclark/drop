@@ -6,7 +6,7 @@ import { boundedPreview } from './text-preview'
 import { isTextFileCandidate, textDownloadName } from './text-files'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { copyExactText, type PlatformAdapter } from './platform'
-import { errorMessage, formatBytes, type Item } from './types'
+import { errorMessage, type Item } from './types'
 interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; actionBusy?:boolean; trashAvailable?:boolean }
 export function FeedCard({ item, api, platform, refresh, notify, onTrash, actionBusy, trashAvailable=true }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
@@ -44,7 +44,8 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
     try { await copyExactText(platform, body); setCopied(true); notify('Full text copied.') }
     catch (error) { setError(errorMessage(error)) } finally { setBusy(false) }
   }
-  const download = async (format?: 'txt'|'md') => {
+  const download = async () => {
+    const format = item.kind === 'text' ? 'txt' : undefined
     try { await platform.download({ url: api.downloadURL(item.id, format), name: format ? textDownloadName(item.name,format) : item.name, itemId: item.id }) }
     catch (error) { setError(errorMessage(error)) }
   }
@@ -101,26 +102,24 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
         {item.kind === 'text' ? <><pre ref={previewElement} tabIndex={expanded ? 0 : undefined} className={`text-preview ${expanded ? 'expanded' : ''}`}>{rendered ? rendered.text : collapsed || (item.status === 'ready' ? 'Empty text' : 'Text is being uploaded…')}</pre>{(canExpand||expanded)&&<button className="text-button expand-text" aria-expanded={expanded} onClick={()=>{if(!expanded&&body===undefined)void prepare();setExpanded(!expanded)}}>{expanded?<ChevronUp size={15}/>:<ChevronDown size={15}/>} {expanded?'Collapse text':'Expand text'}</button>}</> : <h3 className="file-name"><FileIcon size={17} aria-hidden="true" />{item.name}</h3>}
       </div>
       <div className="row-footer"><div className={`row-metadata status-${item.status}`}>
-        {item.pinned && <span className="pin-label"><Pin size={12} aria-hidden="true" /><span className="sr-only">Pinned</span></span>}
-        <span className="row-source" title={item.kind==='text'?`${item.name} · ${item.sourceDevice || 'Household'}`:item.sourceDevice || 'Household'}>{item.kind==='text'?`${item.name} · ${item.sourceDevice || 'Household'}`:item.sourceDevice || 'Household'}</span>
-        <span aria-hidden="true">·</span><span>{formatBytes(item.size)}</span>
+        <span className="row-source" title={item.sourceDevice || 'Household'}>{item.sourceDevice || 'Household'}</span>
         <span aria-hidden="true">·</span><time dateTime={item.createdAt} title={when.toLocaleString()}>{when.toDateString() === new Date().toDateString() ? when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</time>
       </div><div className="card-actions">
         {textual && <button className={`button action-button ${copied ? 'copied' : ''}`} aria-label={copied?'Copied':body===undefined&&item.size<=COPY_LIMIT?'Prepare copy':'Copy text'} title={item.size>COPY_LIMIT?'Exceeds 8 MiB copy budget; download the full text':body===undefined?'Prepare the full text before copying':'Copy the full text'} onClick={() => void copy()} disabled={item.status !== 'ready' || item.size>COPY_LIMIT || loading || busy}>{loading || busy ? <LoaderCircle className="spin" size={16} /> : copied ? <Check size={16} /> : <Copy size={16} />}<span>{copied?'Copied':item.kind==='file'&&body===undefined?'Prepare copy':'Copy'}</span></button>}
         {item.kind==='file' && <button className="button action-button download-action" aria-label="Download" title="Download file" onClick={()=>void download()} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
-        {item.kind==='text' && item.size>COPY_LIMIT && <button className="button action-button download-action" aria-label="Download .txt" title="Download .txt" onClick={()=>void download('txt')} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
+        {item.kind==='text' && item.size>COPY_LIMIT && <button className="button action-button download-action" aria-label="Download" title="Download text" onClick={()=>void download()} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
         <ItemMenu name={item.name}>{close=><>
-          {item.kind==='text'&&(['txt','md'] as const).map(format=><button key={format} role="menuitem" tabIndex={0} onClick={()=>{void download(format);close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download .{format}</button>)}
+          {item.kind==='text'&&item.size<=COPY_LIMIT&&<button role="menuitem" tabIndex={0} onClick={()=>{void download();close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download</button>}
           <button role="menuitem" tabIndex={0} disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
           <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
-          {trashAvailable&&<button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Move to Recently Deleted</button>}
+          {trashAvailable&&<button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Delete</button>}
         </>}</ItemMenu>
       </div></div>
       {item.status !== 'ready' && <span className={`item-status status-${item.status}`}>{item.status === 'failed' ? 'Upload failed' : <><LoaderCircle className="spin" size={12} /> Uploading — use Cancel in Transfers</>}</span>}
     </div>}
     {(loading||editLoading)&&<button className="text-button" onClick={()=>{preparation.current?.abort();setLoading(false);editPreparation.current?.abort();setEditLoading(false)}}>Cancel preparation</button>}
     {expanded && rendered?.truncated && <p className="inline-note">Preview shortened. Copy or download the full text.</p>}
-    {textual && item.size > COPY_LIMIT && <p className="inline-note">Too large to copy here. Download {item.kind==='text'?'.txt or .md':'the file'} to open or copy the full text in another app.</p>}
+    {textual && item.size > COPY_LIMIT && <p className="inline-note">Too large to copy here. Download {item.kind==='text'?'.txt':'the file'} to open or copy the full text in another app.</p>}
     {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
     {error && <p className="inline-error" role="alert">{error}</p>}
   </article>

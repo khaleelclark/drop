@@ -137,3 +137,17 @@ describe('shared retention and whole-folder deletion',()=>{
     expect(request).toHaveBeenCalledTimes(3)
   })
 })
+
+
+describe('bounded item metadata',()=>{
+  it('passes cancellation, preserves exact metadata, and rejects oversized or invalid UTF-8 JSON',async()=>{
+    const controller=new AbortController(),request=vi.fn().mockResolvedValue(new Response(JSON.stringify({item:{id:'note',preview:'𐐀 exact\r\n'}})))
+    const api=new ApiClient('https://household.example',request)
+    expect(await api.item('note',controller.signal)).toEqual({item:{id:'note',preview:'𐐀 exact\r\n'}})
+    expect(request.mock.calls[0][1].signal).toBe(controller.signal)
+    request.mockResolvedValueOnce(new Response('x'.repeat(65537)))
+    await expect(api.item('note')).rejects.toThrow('metadata is too large')
+    request.mockResolvedValueOnce(new Response(new Uint8Array([0xff])))
+    await expect(api.item('note')).rejects.toThrow()
+  })
+})

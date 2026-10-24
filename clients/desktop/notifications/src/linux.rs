@@ -10,6 +10,13 @@ const SERVICE: &str = "org.freedesktop.Notifications";
 const PATH: &str = "/org/freedesktop/Notifications";
 const MAX_SHOWN: usize = 256;
 
+fn escape_body(value: &str) -> String {
+    value
+        .replace('&', "&amp;")
+        .replace('<', "&lt;")
+        .replace('>', "&gt;")
+}
+
 pub(super) struct Notifier {
     client: Mutex<Option<Client>>,
     click: Click,
@@ -156,8 +163,8 @@ impl Client {
                     "Drop",
                     replaces,
                     "household-share",
-                    "Drop",
-                    body(banner.multiple),
+                    banner.title.as_str(),
+                    escape_body(&banner.body),
                     vec!["default", "Open Drop"],
                     hints,
                     -1i32,
@@ -311,7 +318,8 @@ mod tests {
                 base_url: "https://household.test".into(),
                 item_id: "0123456789abcdef0123456789abcdef".into(),
             },
-            multiple: false,
+            title: "Drop".into(),
+            body: "New share available".into(),
         }
     }
 
@@ -398,6 +406,39 @@ mod tests {
                 std::net::TcpStream::connect(self.config.base_url.trim_start_matches("http://"));
             self.thread.take().unwrap().join().unwrap();
         }
+    }
+
+    #[test]
+    fn informative_copy_is_inert_and_content_cannot_change_actions_or_target() {
+        let bus = Bus::new();
+        let state = Arc::new(ServiceState::default());
+        let _service = service(&bus, state.clone());
+        let (tx, rx) = mpsc::channel();
+        let adapter = notifier(
+            &bus,
+            Arc::new(move |target| {
+                tx.send(target).unwrap();
+            }),
+        );
+        let mut detailed = banner();
+        detailed.title = "Lassen shared text".into();
+        detailed.body = "<b>Test & 家</b>".into();
+        adapter.post(detailed).unwrap();
+        assert_eq!(
+            rx.recv_timeout(Duration::from_secs(2)).unwrap(),
+            banner().target
+        );
+        let requests = state.requests.lock().unwrap();
+        assert_eq!(requests[0].2, "Lassen shared text");
+        assert_eq!(requests[0].3, "&lt;b&gt;Test &amp; 家&lt;/b&gt;");
+        assert_eq!(requests[0].4, vec!["default", "Open Drop"]);
+        drop(requests);
+        for content in ["NUL\0test".into(), "line\nbreak".into(), "家".repeat(261)] {
+            let mut invalid = banner();
+            invalid.body = content;
+            assert!(adapter.post(invalid).is_err());
+        }
+        assert_eq!(state.requests.lock().unwrap().len(), 1);
     }
 
     #[test]
