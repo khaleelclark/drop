@@ -229,18 +229,24 @@ test('phone layout fits and settings keep keyboard focus inside the dialog', asy
   await expect(page.getByRole('button',{name:'Close connection settings'})).toBeFocused()
   await page.keyboard.press('Escape'); await expect(dialog).not.toBeVisible()
 })
-async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null,startup:'ready'|'offline'|401|403='ready',connection:'saved'|'missing'|'disconnected'='saved') {
-  await page.addInitScript(({body,clickTarget,startup,connection}) => {
+async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:string}|null=null,startup:'ready'|'offline'|401|403='ready',connection:'saved'|'missing'|'disconnected'='saved',desktop?:{platform:'macos'|'linux';label:string;canRenameDevice?:boolean}) {
+  await page.addInitScript(({body,clickTarget,startup,connection,desktop}) => {
     let pendingTarget=clickTarget
     let feedFailure=startup
-    let config=JSON.parse(localStorage.getItem('fixture.native.config')||'null') || {baseUrl:connection==='missing'?undefined:'https://household.example',connected:connection==='saved',sourceDevice:'Phone',deviceId:'11111111111111111111111111111111',platform:'android'}
+    let config=JSON.parse(localStorage.getItem('fixture.native.config')||'null') || {baseUrl:connection==='missing'?undefined:'https://household.example',connected:connection==='saved',sourceDevice:'Phone',deviceId:'11111111111111111111111111111111',platform:'android',...(desktop?{platform:desktop.platform,sourceDevice:desktop.label,canRenameDevice:desktop.canRenameDevice}:{})}
+    let deleted=false;let deleteFailure=false;let localNameFailure=false;let registryNameFailure=false
+    let registered=JSON.parse(localStorage.getItem('fixture.native.device')||'null')||{id:config.deviceId,label:config.sourceDevice,platform:config.platform,createdAt:new Date().toISOString()}
+    localStorage.setItem('fixture.native.device',JSON.stringify(registered))
+    ;(window as unknown as {setNativeNameFailure:(local:boolean,registry:boolean)=>void}).setNativeNameFailure=(local,registry)=>{localNameFailure=local;registryNameFailure=registry}
+    ;(window as unknown as {setNativeDeleteFailure:(failed:boolean)=>void}).setNativeDeleteFailure=failed=>{deleteFailure=failed}
     ;(window as unknown as {setNativeFeedFailure:(failure:typeof startup)=>void}).setNativeFeedFailure=failure=>{feedFailure=failure}
     ;(window as unknown as {setNativeTarget:(target:typeof clickTarget)=>void}).setNativeTarget=target=>{pendingTarget=target}
     const calls: {command:string;args?:Record<string,unknown>}[] = []
     ;(window as unknown as {nativeCalls:unknown}).nativeCalls=calls
-    window.__HOUSEHOLD_NATIVE__={platform:'android',invoke:async(command,args)=>{
+    window.__HOUSEHOLD_NATIVE__={platform:desktop?.platform||'android',invoke:async(command,args)=>{
       calls.push({command,args})
       if(command==='native_get_config') return config
+      if(command==='native_rename_device'){if(localNameFailure)throw new Error('Device name storage unavailable');config={...config,sourceDevice:args?.sourceDevice};localStorage.setItem('fixture.native.config',JSON.stringify(config));return null}
       if(command==='native_configure'){config={...config,baseUrl:args?.baseUrl,sourceDevice:args?.sourceDevice,connected:true};localStorage.setItem('fixture.native.config',JSON.stringify(config));return null}
       if(command==='native_disconnect'){config={...config,connected:false};localStorage.setItem('fixture.native.config',JSON.stringify(config));return null}
       if(command==='native_get_arrival_settings')return {enabled:false,permission:'prompt',mode:'scheduled'}
@@ -254,21 +260,129 @@ async function nativeFixture(page: Page,clickTarget: {baseUrl:string;itemId:stri
       if(command==='native_api') {
         if(!config.baseUrl||!config.connected)throw new Error('Native API must not run before connection is configured')
         const path=String(args?.path)
+        if(path==='/api/items/native-note'&&args?.method==='DELETE'){if(deleteFailure)return {status:500,body:'{"error":{"message":"Delete unavailable; try again"}}'};deleted=true;return {status:204,body:''}}
         if(path.startsWith('/api/items?')){
           if(feedFailure==='offline')throw new Error('Network unavailable')
           if(feedFailure!=='ready')return {status:feedFailure,body:'{"error":{"message":"Access denied"}}'}
         }
-        if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[{id:'11111111111111111111111111111111',label:'Phone',platform:'android',createdAt:new Date().toISOString()},{id:'22222222222222222222222222222222',label:'Kitchen Mac',platform:'macos',createdAt:new Date().toISOString()}]})}
-        if(path==='/api/devices/register')return {status:200,body:JSON.stringify({device:JSON.parse(String(args?.body))})}
-        if(path.startsWith('/api/items?')) return {status:200,body:JSON.stringify({items:[{id:'native-note',kind:'text',name:'Native note',size:body.length,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:'ready',preview:'native preview',pinned:false}],nextCursor:null})}
+        if(path==='/api/devices')return {status:200,body:JSON.stringify({devices:[registered,{id:'22222222222222222222222222222222',label:'Kitchen Mac',platform:'macos',createdAt:new Date().toISOString()}]})}
+        if(path==='/api/devices/register'){const request=JSON.parse(String(args?.body));if(!request.preserveExisting){if(registryNameFailure)return {status:500,body:'{"error":{"message":"Household rename unavailable"}}'};registered={...registered,...request};localStorage.setItem('fixture.native.device',JSON.stringify(registered))};return {status:200,body:JSON.stringify({device:registered})}}
+        if(path.startsWith('/api/items?')) return {status:200,body:JSON.stringify({items:deleted?[]:[{id:'native-note',kind:'text',name:'Native note',size:body.length,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:'ready',preview:'native preview',pinned:false}],nextCursor:null})}
         if(path==='/api/items/native-note')return {status:200,body:JSON.stringify({item:{id:'native-note',kind:'text',name:'Native note',size:body.length,createdAt:new Date().toISOString(),updatedAt:new Date().toISOString(),status:'ready',preview:'native preview',pinned:false}})}
         if(path.endsWith('/text')) return {status:200,body}
         if(path==='/api/storage') return {status:200,body:JSON.stringify({usedBytes:1,freeBytes:100000,maxFileBytes:21474836480,maxTextBytes:33554432,maxStorageBytes:null})}
         return {status:200,body:'{"status":"ok"}'}
       }
     }}
-  },{body:fullText,clickTarget,startup,connection})
+  },{body:fullText,clickTarget,startup,connection,desktop})
 }
+for(const pointerBlur of [false,true])test(`native desktop delete confirmation, failure/retry and empty 204 (null pointer blur=${pointerBlur})`,async({page})=>{
+  await nativeFixture(page,null,'ready','saved',{platform:'macos',label:'Kitchen Mac'})
+  await page.goto('/')
+  const row=page.getByRole('article',{name:'Text: Native note'})
+  const more=row.getByRole('button',{name:'More actions for Native note'})
+  const deletions=()=>page.evaluate(()=>(window as unknown as {nativeCalls:{command:string;args?:Record<string,unknown>}[]}).nativeCalls.filter(call=>call.command==='native_api'&&call.args?.method==='DELETE'))
+  await expect(row.getByRole('button',{name:'Copy text',exact:true})).toBeEnabled()
+  await page.evaluate(()=>{
+    const events:unknown[]=[];(window as unknown as {menuEvents:unknown[]}).menuEvents=events
+    for(const type of ['pointerdown','mousedown','focusout','focusin','pointerup','mouseup','click'])document.addEventListener(type,event=>{
+      const target=event.target as HTMLElement;const related=(event as FocusEvent).relatedTarget as HTMLElement|null
+      if(target.closest('.item-menu'))events.push({type,target:target.textContent,related:related?.outerHTML?.slice(0,200)??null})
+    },true)
+  })
+  if(pointerBlur)await page.evaluate(()=>document.addEventListener('mousedown',event=>{if((event.target as Element).closest('[role=menuitem]'))(document.activeElement as HTMLElement)?.blur()},true))
+  await more.click()
+  const action=row.getByRole('menuitem',{name:'Delete item',exact:true})
+  await uncovered(action)
+  const box=await action.boundingBox();expect(box!.height).toBeGreaterThanOrEqual(44);expect(box!.width).toBeGreaterThanOrEqual(44)
+  await action.click()
+  await test.info().attach('menu-pointer-focus-events',{body:JSON.stringify(await page.evaluate(()=>(window as unknown as {menuEvents:unknown[]}).menuEvents),null,2),contentType:'application/json'})
+  const confirmation=row.getByRole('group',{name:'Confirm deletion'})
+  await expect(confirmation).toBeVisible()
+  if(!pointerBlur)await page.screenshot({animations:'disabled',path:'test-results/zing-native-delete-confirm.png',fullPage:true})
+  expect(await deletions()).toHaveLength(0)
+  await confirmation.getByRole('button',{name:'Keep',exact:true}).click()
+  await expect(confirmation).toHaveCount(0);await expect(row).toBeVisible();expect(await deletions()).toHaveLength(0)
+  await more.click();await page.keyboard.press('Shift+Tab');await page.keyboard.press('Shift+Tab');await expect(row.getByRole('menu')).toHaveCount(0)
+  await more.click();await row.getByRole('menuitem',{name:'Delete item',exact:true}).click()
+  await page.evaluate(()=>(window as unknown as {setNativeDeleteFailure:(failed:boolean)=>void}).setNativeDeleteFailure(true))
+  await confirmation.getByRole('button',{name:'Delete',exact:true}).click()
+  await expect(row.getByRole('alert')).toHaveText('Delete unavailable; try again')
+  await expect(row).toBeVisible();await expect(confirmation.getByRole('button',{name:'Delete',exact:true})).toBeEnabled()
+  await expect(page.getByText('Item deleted.',{exact:true})).toHaveCount(0)
+  if(!pointerBlur)await page.screenshot({animations:'disabled',path:'test-results/zing-native-delete-failure.png',fullPage:true})
+  await page.evaluate(()=>(window as unknown as {setNativeDeleteFailure:(failed:boolean)=>void}).setNativeDeleteFailure(false))
+  await page.evaluate(()=>(window as unknown as {setNativeFeedFailure:(failure:'offline'|'ready')=>void}).setNativeFeedFailure('offline'))
+  await confirmation.getByRole('button',{name:'Delete',exact:true}).click()
+  await expect(page.getByText('Item deleted.',{exact:true})).toBeVisible()
+  await expect(page.locator('.error-banner')).toContainText('Check Tailscale')
+  await page.evaluate(()=>(window as unknown as {setNativeFeedFailure:(failure:'offline'|'ready')=>void}).setNativeFeedFailure('ready'))
+  await page.locator('.error-banner').getByRole('button',{name:'Retry',exact:true}).click()
+  await expect(row).toHaveCount(0)
+  const calls=await deletions();expect(calls).toHaveLength(2);expect(calls.every(call=>call.args?.path==='/api/items/native-note'&&!call.args?.body)).toBe(true)
+  await page.screenshot({animations:'disabled',path:`test-results/zing-native-delete-${pointerBlur?'null-blur':'normal'}.png`})
+})
+for(const desktopPlatform of ['macos','linux'] as const)test(`native ${desktopPlatform} first-use name stays separate from connection and saves both names`,async({page})=>{
+  await nativeFixture(page,null,'ready','saved',{platform:desktopPlatform,label:'Desktop',canRenameDevice:true})
+  await page.goto('/')
+  const prompt=page.getByRole('region',{name:'Name this device'})
+  await expect(prompt).toBeVisible();await expect(page.getByRole('dialog')).toHaveCount(0)
+  await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()
+  await expect(page.getByRole('textbox',{name:'Text to share'})).toBeEditable()
+  const name=prompt.getByRole('textbox',{name:'Device name',exact:true})
+  await name.fill('Study computer 🖥')
+  await page.evaluate(()=>(window as unknown as {setNativeNameFailure:(local:boolean,registry:boolean)=>void}).setNativeNameFailure(true,false))
+  await prompt.getByRole('button',{name:'Save name',exact:true}).click()
+  await expect(prompt.getByRole('alert')).toHaveText('Device name storage unavailable')
+  await expect(name).toHaveValue('Study computer 🖥');await expect(prompt.getByRole('button',{name:'Save name',exact:true})).toBeEnabled()
+  expect(await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string;args?:Record<string,unknown>}[]}).nativeCalls.filter(call=>call.command==='native_api'&&call.args?.path==='/api/devices/register'&&!JSON.parse(String(call.args.body)).preserveExisting))).toHaveLength(0)
+  await page.evaluate(()=>(window as unknown as {setNativeNameFailure:(local:boolean,registry:boolean)=>void}).setNativeNameFailure(false,true))
+  await prompt.getByRole('button',{name:'Save name',exact:true}).click()
+  await expect(prompt.getByRole('alert')).toContainText('Saved on this device, but the household name could not be updated')
+  await expect(name).toHaveValue('Study computer 🖥');await expect(page.getByText('Device name saved.',{exact:true})).toHaveCount(0)
+  await page.screenshot({animations:'disabled',path:`test-results/zing-device-name-${desktopPlatform}-partial.png`,fullPage:true})
+  await page.getByRole('button',{name:'Refresh feed',exact:true}).click()
+  await expect(name).toHaveValue('Study computer 🖥');await expect(prompt.getByRole('alert')).toContainText('Saved on this device')
+  await page.reload();await expect(prompt).toBeVisible();await expect(name).toHaveValue('Study computer 🖥')
+  await expect(prompt).toContainText('This name is saved on this device')
+  await page.evaluate(()=>(window as unknown as {setNativeNameFailure:(local:boolean,registry:boolean)=>void}).setNativeNameFailure(false,false))
+  await prompt.getByRole('button',{name:'Save name',exact:true}).click()
+  await expect(prompt).toHaveCount(0);await expect(page.getByText('Device name saved.',{exact:true})).toBeVisible()
+  const state=await page.evaluate(()=>({config:JSON.parse(localStorage.getItem('fixture.native.config')!),device:JSON.parse(localStorage.getItem('fixture.native.device')!),calls:(window as unknown as {nativeCalls:{command:string;args?:Record<string,unknown>}[]}).nativeCalls}))
+  expect(state.config).toMatchObject({sourceDevice:'Study computer 🖥',baseUrl:'https://household.example',deviceId:'11111111111111111111111111111111',connected:true})
+  expect(state.device).toMatchObject({label:'Study computer 🖥',id:state.config.deviceId})
+  expect(state.calls.some(call=>['native_configure','native_disconnect','native_control'].includes(call.command))).toBe(false)
+  await expect(page.getByRole('group',{name:'To household: Family videos.zip'})).toContainText('Uploading')
+  await page.reload();await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled();await expect(prompt).toHaveCount(0)
+  await page.getByRole('button',{name:'Connection and device settings'}).click()
+  await expect(page.getByLabel('This device’s name')).toHaveValue('Study computer 🖥')
+})
+test('native desktop naming dismissal survives reload, stays per identity and leaves Settings rename available',async({page})=>{
+  await nativeFixture(page,null,'ready','saved',{platform:'macos',label:'Desktop',canRenameDevice:true})
+  await page.goto('/')
+  const prompt=page.getByRole('region',{name:'Name this device'})
+  await expect(prompt).toBeVisible()
+  await page.screenshot({animations:'disabled',path:'test-results/zing-device-name-first-use.png',fullPage:true})
+  await prompt.getByRole('button',{name:'Not now',exact:true}).click();await expect(prompt).toHaveCount(0)
+  await page.reload();await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled();await expect(prompt).toHaveCount(0)
+  // A different durable identity must get its own opportunity to choose a name.
+  await page.evaluate(()=>{localStorage.setItem('fixture.native.config',JSON.stringify({baseUrl:'https://household.example',connected:true,sourceDevice:'Desktop',deviceId:'33333333333333333333333333333333',platform:'macos',canRenameDevice:true}));localStorage.removeItem('fixture.native.device')})
+  await page.reload();await expect(prompt).toBeVisible();await prompt.getByRole('button',{name:'Not now',exact:true}).click()
+  await page.getByRole('button',{name:'Connection and device settings'}).click()
+  await page.getByLabel('This device’s name').fill('Kitchen Mac')
+  await page.getByRole('button',{name:'Save device name',exact:true}).click()
+  await expect(page.getByText('Device name saved.',{exact:true})).toBeVisible()
+  const state=await page.evaluate(()=>({config:JSON.parse(localStorage.getItem('fixture.native.config')!),device:JSON.parse(localStorage.getItem('fixture.native.device')!),calls:(window as unknown as {nativeCalls:{command:string;args?:Record<string,unknown>}[]}).nativeCalls}))
+  expect(state.config).toMatchObject({sourceDevice:'Kitchen Mac',deviceId:'33333333333333333333333333333333',baseUrl:'https://household.example'})
+  expect(state.device).toMatchObject({label:'Kitchen Mac',id:state.config.deviceId})
+  expect(state.calls.some(call=>['native_configure','native_disconnect','native_control'].includes(call.command))).toBe(false)
+})
+for(const desktop of [{platform:'macos',label:'Kitchen Mac',canRenameDevice:true},{platform:'linux',label:'Desktop'},{platform:'macos',label:'Desktop',canRenameDevice:false}] as const)test(`native naming skips custom or unsupported client ${desktop.platform}/${desktop.label}/${desktop.canRenameDevice}`,async({page})=>{
+  await nativeFixture(page,null,'ready','saved',desktop);await page.goto('/')
+  await expect(page.getByRole('button',{name:'Send to Everyone',exact:true})).toBeEnabled()
+  await expect(page.getByRole('region',{name:'Name this device'})).toHaveCount(0)
+  expect(await page.evaluate(()=>(window as unknown as {nativeCalls:{command:string}[]}).nativeCalls.some(call=>call.command==='native_rename_device'))).toBe(false)
+})
 test('packaged native bridge is detected before the app renders', async ({page}) => {
   await nativeFixture(page)
   const browserApiRequests:string[]=[];page.on('request',request=>{if(new URL(request.url()).pathname.startsWith('/api/'))browserApiRequests.push(request.url())})

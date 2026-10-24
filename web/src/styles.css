@@ -366,3 +366,8 @@ main { max-width: 860px; padding: 12px 36px 32px; margin: auto; }
 .registered-device>span { min-width: 0; flex: 1; overflow-wrap: anywhere; font-size: 12px; }
 .forget-confirm { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; max-width: 130px; }
 .arrival-highlight { background: var(--blue-soft); border-radius: 8px; outline: 2px solid var(--blue); outline-offset: 2px; scroll-margin-block: 24px calc(var(--mobile-tabs-height, 0px) + var(--safe-area-bottom) + 24px); }
+.device-name-prompt { border: 1px solid var(--line); border-radius: 12px; background: var(--surface); padding: 16px; margin-bottom: 18px; }
+.device-name-prompt h2 { font-size: 16px; margin-bottom: 4px; }
+.device-name-prompt form { display: flex; align-items: end; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+.device-name-prompt label { display: flex; flex-direction: column; gap: 6px; flex: 1; min-width: 160px; font-size: 12px; font-weight: 600; }
+.device-name-prompt input { width: 100%; min-height: 44px; border: 1px solid var(--strong-line); border-radius: 8px; padding: 10px; background: var(--surface); }

@@ -1,5 +1,31 @@
 # Build and validation evidence
 
+## Mac Delete and device naming follow-up — 0.1.4 pending
+
+The user reported a missed Delete action and no opportunity to name the Mac in
+the final 0.1.3 household installer. A controlled null-focus menu boundary
+reproduces a lost pointer activation; the guarded menu passes the regression.
+This is a supported failure path, not confirmation of the affected Mac's cause.
+Native DELETE against an authenticated local protocol fixture preserves an
+empty 204 response; no production native HTTP defect was reproduced.
+
+A separate nonblocking first-use prompt and explicit Settings rename use an
+additive desktop-only capability. Local name persistence preserves saved
+origin/token, durable identity and queued/running routing snapshots. The
+interface updates the household registry using the same identity and reports
+partial failures with retry. Dismissal is remembered per device identity;
+custom-labelled devices and unsupported shells skip the prompt.
+
+The native owner ran four rename tests and two targeted protocol tests using
+locked cached dependencies. The final interface selection passed 16 focused browser and
+43 unit/component cases, plus TypeScript and one production build. The bounded
+source review found no material blocker. Root directly verified the frozen
+source/assets and source-map contents before publication. WebKit could not launch with available host
+libraries; no system package was installed. Root has not yet built or accepted
+the replacement 0.1.4 DMG. Prior package records below remain historical evidence
+for their exact versions. Installed Mac Delete/naming behavior and actual
+in-flight network preservation remain unverified.
+
 ## Latest nautical direction: navy, white and red — 2026-10-23
 
 The user removed Sea Glass/teal and approved the rendered navy/white/red preview
@@ -7,10 +33,62 @@ The user removed Sea Glass/teal and approved the rendered navy/white/red preview
 navy `#244C6A` actions/launcher, navy `#18334A` ink, neutral `#F7F8FA` canvas
 and a restrained red brand detail. Iris and teal colored source handoffs below
 are historical. The final web contrast fixes, Linux/Android local builds and
-scoped Android emulator acceptance below are complete; current Mac builds and
-household-device acceptance remain outstanding. No new deployment occurred.
+scoped Android emulator acceptance below are complete. Both Mac 0.1.3 generic
+installers now pass native CI packaging and root artifact checks, as recorded
+below; household-device acceptance remains outstanding. No new deployment occurred.
 Root rendered and inspected the standalone design preview;
 13 primary source-color contrast checks pass. This is not an app/package test.
+
+### Connection settings and phone navigation follow-up — 0.1.6
+
+The user clarified that a missing server address belongs in remembered Settings,
+not an automatic login dialog. Native clients now open their inbox shell when
+unconfigured/disconnected, show Configure connection inline, and defer remote API
+calls until configured. Explicit Settings, optional app tokens, saved identity,
+existing queues and explicit Disconnect remain supported. Native Android API30+
+keyboard visibility now clears the prior editing latch after Back, including
+when a text field retains focus; blur and lifecycle recovery remain available.
+API26–29 lacks the typed IME bit and retains the documented partial Done fallback.
+
+Root directly verified all named current web deliverables, nine hashes and
+nineteen source-map contents against current source, plus 135 native report
+receipts before packaging. The source/fixture owner records 15 focused browser
+passes and 24 focused unit/component passes; root did not rerun those suites.
+The frozen frontend is index-D_HQx3BY.js / index-BP1qYeCi.css. Both Tauri 0.1.6 /
+code1006 APKs were built with existing toolchains and pass package signatures,
+same signing identity, native keyboard DEX, 16 KiB ZIP/ELF alignment, all nine
+secondary and real ELF-embedded assets, and household-origin resource checks.
+See docs/evidence/zing-connection-android-packages.json.
+
+Root upgraded only the disposable API36 x86_64 emulator, verifying unchanged
+connection XML and exact installed APK bytes. Native send/Copy/Android Paste,
+real IME show/hide events, Back restoring the same three hit-tested navigation
+targets without Done, Home/resume with draft/scope/kind retained, safe bottom
+bounds and explicit disconnected Settings/reload pass. The initial Settings
+fixture lacked the explicit HTTP-development flag; the corrected settings-only
+check asserts safe HTTPS rejection, then uses the native development pairing
+path and verifies saved configuration across reload. This is not a real HTTPS
+Settings connection test. The original emulator connection was restored exactly,
+and temporary server/forwarding removed. See
+docs/evidence/zing-connection-android-installed.json.
+
+Final Apple Silicon source 4d65ece26bd4a1db60f2550eb93c4ef1e8922a8d completed
+native CI packaging with 37 native tests passing, signed architecture checks,
+read-only mount and four matching app/helper destination hash receipts. Root
+matched the downloaded ZIP digest/size/CRC, DMG SHA-256/UDIF trailer, all nine
+current frozen frontend hashes and bundled instructions. The final household
+DMG is 9,320,818 bytes, SHA-256
+b1c59b9e83f086e148a74c58fd24d0f356b490bd7233473fcebbe0d52425d803;
+it supersedes the earlier generic and intermediate household downloads. See
+docs/evidence/zing-connection-macos-package.json. Intel was intentionally omitted
+at the user's request. The Android package/evidence reviewer found no material
+blocker or overclaim and independently verified both APKs and 16 runtime receipts.
+
+Physical household devices, Mac GUI/Gatekeeper installation, API26–29 Back
+behavior, new 20 GB/memory/background checks and reported synthetic doubled-label
+clipping remain outside accepted scope. Source/fixture, native CI, package checks
+and API36 emulator behavior are distinct evidence scopes. No deployment or live
+download replacement occurred.
 
 ### Desktop navy source handoff
 
@@ -102,11 +180,54 @@ before network restoration; airplane/Wi-Fi settings were restored. This is
 standalone first-launch evidence, not fresh Tauri or Mac first-launch evidence.
 See `docs/evidence/zing-navy-android-first-launch.json`.
 
-Mac **0.1.3** installers remain absent because this host has no Apple SDK/native
-Mac runner. No new host Linux GUI, physical-phone/Tailscale, initial OS
+Mac **0.1.3** generic installers for Apple Silicon and Intel completed successfully
+on native GitHub macOS runners in run `40012466078`, source
+`9326e17420cf8520a42859898d795d46b7a0a3e1`. Each ran 15 core and 22 protocol
+tests with no failures, verified native architecture and ad-hoc signatures,
+executed helper usage, and mounted/checked/detached its DMG read-only. Root
+downloaded both ZIPs, matched GitHub digests and byte counts, checked ZIP CRCs,
+safely extracted both archives, matched DMG checksums and all nine current web
+assets, and matched bundled instructions to source. These generic builds use
+manual household address setup on a fresh install; no default origin is embedded.
+See `docs/evidence/zing-navy-macos-packages.json`. Both DMGs were imported into
+Project files; live downloads and deployment were not changed.
+
+No household Mac installation/GUI/Gatekeeper, host Linux GUI, physical-phone/Tailscale, initial OS
 notification permission, periodic scheduling, lock/reboot/Doze, background
 recovery or 20 GB/memory acceptance is claimed. Earlier evidence below retains
 its historical scope. Local packages are candidates; no new release is deployed.
+
+### Apple Silicon automatic-setup installer correction — package checked
+
+The generic Mac 0.1.3 downloads above did not satisfy household automatic setup.
+The user requested a correction for Apple Silicon only. Source
+`06eece696c5f6d603e2f01cb9733b97d787b3a68` configures the household HTTPS
+destination in the household-specific CI workflow, removes the Intel job, names
+the resulting DMG `Zing_0.1.3_arm64_household.dmg`, and verifies the expected
+address bytes in both signed executables before and after the read-only mount.
+No token, native app source, saved configuration, identity or queue was changed.
+Generic local builds without the environment value retain manual pairing.
+Both scripts pass shell syntax checks; the destination verifier's self-check
+accepts configured bytes and rejects a generic executable. All three published
+file blobs match local source. The native CI run `40033699528` was in progress
+at the initial read; no corrected installer completion or device behavior is
+claimed yet. The independent native startup review subsequently passed: eight existing
+default-related library tests passed with the real configured destination on
+Linux, with zero failures and seven unrelated tests filtered out. Source review
+confirmed configured offline/401/403 clients keep the connection form closed,
+while saved configurations and explicit Disconnect remain preserved. Both
+reviewed script hashes and the workflow hash match root readback. The ARM64 CI packaging/signature/mount and artifact-upload steps passed. Root
+downloaded artifact 12535844563, matched its GitHub ZIP digest/byte count and CRC,
+safely extracted thirteen files, checked the DMG checksum/UDIF trailer, and
+matched all nine prior frozen frontend hashes and bundled instructions. Both
+app and helper contain the expected destination in the signed staged bundle and
+read-only-mounted DMG, as evidenced by four native verifier hash receipts.
+The DMG is 9,319,542 bytes, SHA-256
+`bc8d53e2d6c2bab7d54847a059eed414998e0ec1ab2f514d6c17066e651109a3`,
+imported into Project files. See `docs/evidence/zing-macos-household-package.json`.
+This package predates the subsequent missing-address Settings fallback and
+Android navigation recovery work; those changes remain open. No household Mac
+GUI/install acceptance, deployment or live download replacement occurred.
 
 ## Historical Sea Glass direction — 2026-10-23
 

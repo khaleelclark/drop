@@ -8,6 +8,8 @@ Zing source implements registered devices, immutable send routing and opt-in arr
 
 Household builds of **0.1.3** can open the shared feed on first launch without a setup form. The private build supplies `HOUSEHOLD_DEFAULT_ORIGIN`; the native queue saves that validated HTTPS origin, an empty token and the existing **Desktop** device label before the interface reads its configuration. Settings remain available to rename or change the connection. Existing settings, tokens, device identity and queued routing survive upgrades. An explicit Disconnect remains disconnected after relaunch or upgrade, including when no configuration file exists; it never triggers automatic pairing again.
 
+Desktop **0.1.4** adds a separate durable device-name save for the shared interface's first-use nudge and Settings. `native_rename_device` changes only the saved display name, preserving server origin, token, device identity, notifications and queued/in-flight routing without reconfiguring or pausing transfers. Names must be nonblank, at most 128 UTF-8 bytes and contain no control characters. Missing or explicitly disconnected configurations reject the rename. The interface must save both the registry name and native name before showing success; a partial failure needs a retry with the user's input retained. The additive `canRenameDevice:true` capability keeps Android and older shells on their existing naming path.
+
 Generic builds with no supplied default retain manual setup: save the household server's Tailscale HTTPS origin and this device's name once. Leave the token empty when the server explicitly uses [Tailscale Serve sign-in](../../docs/api-contract.md#optional-tailscale-serve-sign-in). **Advanced** token entry is for a token-mode server or the configured fallback for tagged Tailscale clients. Every device still needs household Tailscale access; Disconnect only clears local app connection state and does not revoke that access.
 
 ## Build from source
@@ -110,7 +112,8 @@ Use `window.__TAURI__.core.invoke` (enabled by `withGlobalTauri`) with flat came
 | Command | Arguments / result |
 | --- | --- |
 | `native_configure` | `{baseUrl, token, sourceDevice}` → void |
-| `native_get_config` | `{}` → `{baseUrl,sourceDevice,connected,deviceId?,platform}` without token; connected=false requires pairing |
+| `native_get_config` | `{}` → `{baseUrl,sourceDevice,connected,deviceId?,platform,canRenameDevice:true}` without token; connected=false exposes explicit connection Settings |
+| `native_rename_device` | `{sourceDevice}` → void; saves only the display name under the shared config lock; desktop capability required |
 | `native_disconnect` | `{}` → pause work and erase saved credentials |
 | `native_list_transfers` | `{}` → transfer array |
 | `native_pick_uploads` | `{kind?:"file"|"text",sourceDevice?:string,targetDeviceIds?:string[]}` → opens picker, enqueues files, resolves void |

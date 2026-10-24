@@ -3,7 +3,7 @@ import type { Transfer, TransferState, TransferStore } from './transfers'
 import type { ArrivalSettings, DevicePlatform } from './types'
 export type NativeInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>
 interface NativeTransfer { id: string; direction: 'upload' | 'download'; name: string; size: number; offset: number; status: string; error?: string; itemId?: string }
-interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform }
+interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform; canRenameDevice?: boolean }
 declare global {
   interface Window {
     __TAURI__?: { core: { invoke: NativeInvoke } };
@@ -82,7 +82,9 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
     } finally { if(signal&&abort)signal.removeEventListener('abort',abort) }
   }
   return {
-    kind:'native',get baseURL(){return config.baseUrl ? origin : undefined},defaultDeviceName:config.sourceDevice,get requiresConnection(){return !config.baseUrl || config.connected === false},transfers,request,
+    kind:'native',get baseURL(){return config.baseUrl ? origin : undefined},get defaultDeviceName(){return config.sourceDevice},
+    ...(config.canRenameDevice===true&&['macos','linux'].includes(config.platform||'')?{async renameDevice(name:string){await invoke('native_rename_device',{sourceDevice:name});config={...config,sourceDevice:name}}}:{}),
+    get requiresConnection(){return !config.baseUrl || config.connected === false},transfers,request,
     get deviceIdentity() { return config.deviceId && config.platform ? {id:config.deviceId,platform:config.platform} : undefined },
     async configureConnection(nextOrigin,token,sourceDevice) { await invoke('native_configure',{baseUrl:nextOrigin,token,sourceDevice:sourceDevice || config.sourceDevice || 'My device'}); origin=nextOrigin; config=await invoke('native_get_config') as NativeConfig },
     async getArrivalSettings() { return await invoke('native_get_arrival_settings') as ArrivalSettings },

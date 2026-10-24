@@ -3,7 +3,7 @@ import { Ellipsis } from 'lucide-react'
 export function ItemMenu({ children, name }: {children: (close: () => void) => ReactNode; name: string}) {
   const [open,setOpen]=useState(false)
   const root=useRef<HTMLDivElement>(null);const trigger=useRef<HTMLButtonElement>(null)
-  const menu=useRef<HTMLDivElement>(null)
+  const menu=useRef<HTMLDivElement>(null);const pointerInside=useRef(false)
   const id=useId()
   const close=()=>{setOpen(false);trigger.current?.focus()}
   useLayoutEffect(()=>{
@@ -24,21 +24,30 @@ export function ItemMenu({ children, name }: {children: (close: () => void) => R
     }
     position()
     menu.current?.querySelector<HTMLButtonElement>('[role="menuitem"]:not(:disabled)')?.focus({preventScroll:true})
-    const outside=(event:PointerEvent)=>{if(!root.current?.contains(event.target as Node))setOpen(false)}
+    const outside=(event:PointerEvent)=>{pointerInside.current=Boolean(root.current?.contains(event.target as Node));if(!pointerInside.current)setOpen(false)}
+    const endPointer=()=>{pointerInside.current=false}
     document.addEventListener('pointerdown',outside)
+    document.addEventListener('pointerup',endPointer)
+    document.addEventListener('pointercancel',endPointer)
     window.addEventListener('resize',position)
     window.addEventListener('scroll',position,true)
     viewport?.addEventListener('resize',position)
     viewport?.addEventListener('scroll',position)
     return()=>{
       document.removeEventListener('pointerdown',outside)
+      document.removeEventListener('pointerup',endPointer)
+      document.removeEventListener('pointercancel',endPointer)
+      endPointer()
       window.removeEventListener('resize',position)
       window.removeEventListener('scroll',position,true)
       viewport?.removeEventListener('resize',position)
       viewport?.removeEventListener('scroll',position)
     }
   },[open])
-  return <div className="item-menu" ref={root} onBlur={event=>{if(!event.currentTarget.contains(event.relatedTarget as Node))setOpen(false)}}>
+  return <div className="item-menu" ref={root} onBlur={event=>{
+    // Keep pointer activation through a null-focus blur until its click arrives.
+    if(!event.currentTarget.contains(event.relatedTarget as Node)&&!(event.relatedTarget===null&&pointerInside.current))setOpen(false)
+  }}>
     <button className="icon-button more-actions" ref={trigger} aria-label={`More actions for ${name}`} aria-haspopup="menu" aria-expanded={open} aria-controls={open?id:undefined} onClick={()=>setOpen(!open)} onKeyDown={event=>{if(event.key==='ArrowDown'){event.preventDefault();setOpen(true)}}}><Ellipsis size={20}/></button>
     {open&&<div className="item-menu-popover" ref={menu} role="menu" id={id} aria-label={`Actions for ${name}`} onKeyDown={event=>{
       const elements=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role="menuitem"]:not(:disabled)'))

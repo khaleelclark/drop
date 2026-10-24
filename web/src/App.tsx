@@ -6,6 +6,7 @@ import { browserDeviceId, sendRouting, validDeviceId, validItemId } from './devi
 import { BrowserArrivals } from './arrivals'
 import { RecipientPicker } from './RecipientPicker'
 import { DeviceSettings } from './DeviceSettings'
+import { DeviceNamePrompt } from './DeviceNamePrompt'
 import { FeedCard } from './FeedCard'
 import { ItemMenu } from './ItemMenu'
 import { ZingMark } from './ZingMark'
@@ -221,14 +222,20 @@ export function App() {
       setOrigin(target.baseURL); setConnected(true); setChecked(true); setNeedsConnection(false); setConnectionOpen(false); setToken(''); setTargets([]);setIdentityTick(value=>value+1); setDevice(draftDevice);save('household.device', draftDevice); refresh()
     } catch (error) { setConnectionError(error instanceof ApiError&&(error.status===401||error.status===403)?'Access was not accepted. Check Tailscale and server access, or use an app token under Advanced.':`Couldn’t reach your household. Check Tailscale and that the server is running. ${errorMessage(error)}`) } finally { setConnecting(false) }
   }
+  const renameDevice = async (name: string) => {
+    const identity=platform.kind==='native'?platform.deviceIdentity:{id:deviceId,platform:'browser' as const}
+    if(!identity||!validDeviceId(identity.id))throw new Error('Register this device before renaming it.')
+    let localSaved=false
+    try {
+      if(platform.renameDevice){await platform.renameDevice(name);localSaved=true}
+      const result=await api.register({...identity,label:name})
+      setDevice(result.device.label);setDraftDevice(result.device.label);save('household.device',result.device.label);refresh();notify('Device name saved.')
+    }catch(error){throw new Error(`${errorMessage(error)}${localSaved?' Saved on this device, but the household name could not be updated. Your input is kept; retry to finish.':''}`)}
+  }
   const saveDeviceName = async () => {
     setConnecting(true);setConnectionError('')
-    try {
-      const identity=platform.kind==='native'?platform.deviceIdentity:{id:deviceId,platform:'browser' as const}
-      if(!identity)throw new Error('Register this device before renaming it.')
-      const result=await api.register({...identity,label:draftDevice})
-      setDevice(result.device.label);save('household.device',result.device.label);refresh();notify('Device name saved.')
-    }catch(error){setConnectionError(errorMessage(error))}finally{setConnecting(false)}
+    try { await renameDevice(draftDevice) }
+    catch(error){setConnectionError(errorMessage(error))}finally{setConnecting(false)}
   }
   const logout = async () => {
     try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } sequence.current++;setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setItems([]); setStorage(undefined); setMobileEditing(false); setConnectionOpen(platform.kind === 'browser'); notify('Disconnected.') }
@@ -289,6 +296,7 @@ export function App() {
       <header className="topbar"><a className="mobile-brand" href="/" aria-label="Zing home"><ZingMark className="brand-mark" /><span className="brand-wordmark">Zing<span className="brand-signal" aria-hidden="true" /></span></a><span className="topbar-caption">Shared with your household</span><button className={`connection-badge ${connected && live && !offline ? 'is-live' : ''}`} onClick={() => openConnection()}><span className="status-dot" />{nativeNeedsConnection ? 'Not connected' : offline ? 'Offline' : !connected ? configuredNative ? checked ? 'Connection issue' : 'Connecting…' : 'Connect household' : live ? 'Connected' : 'Reconnecting…'}<Settings2 size={15} /></button></header>
       <main id="main">
         <div className="page-heading"><div><h1>{view === 'all' ? 'Shared inbox' : nav.find(item=>item.id===view)?.label}</h1></div><button className="button action-button compose-jump" onClick={()=>{composer.current?.scrollIntoView({block:'center'});composer.current?.focus({preventScroll:true})}}><Plus size={18}/>New share</button></div>
+        {connected && deviceId && platform.renameDevice && device==='Desktop' && <DeviceNamePrompt key={`${api.baseURL}:${deviceId}`} identityKey={`${api.baseURL}:${deviceId}`} name={platform.defaultDeviceName||device} rename={renameDevice}/>}
         {offline && <div className="banner" role="status"><WifiOff size={17} /> You’re offline. Your saved transfers can resume when you reconnect.</div>}
         {(nativeNeedsConnection || (checked && !connected && !connectionOpen && !configuredNative)) && <div className="banner"><Link2 size={17} /><span>{nativeNeedsConnection ? 'Choose your household server in Settings. This app will remember the connection.' : 'Connect to your household to see and share items.'}</span><button className="text-button" onClick={() => openConnection()}>{nativeNeedsConnection ? 'Configure connection' : 'Connect'} <ArrowRight size={14} /></button></div>}
         {deviceError&&<div className="banner error-banner" role="alert"><span>{deviceError}</span><button className="text-button" onClick={()=>setIdentityTick(value=>value+1)}>Retry registration</button></div>}

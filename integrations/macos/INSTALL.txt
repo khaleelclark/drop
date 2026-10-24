@@ -16,11 +16,14 @@ Zing for macOS
    See https://support.apple.com/en-us/102445 for Apple's instructions.
 5. A private household build opens the shared feed automatically on first
    launch using its configured HTTPS address, empty token and Desktop name.
-   Settings are optional for renaming or changing the connection. Upgrades
+   A separate, dismissible Name this device prompt lets you choose a recognizable
+   name while using the inbox. You can also rename it in Settings without
+   changing the saved connection or queued transfers. Upgrades
    keep your saved connection, device identity and queue. An explicit Disconnect
    remains disconnected after reopening or upgrading; reconnect in Settings.
-   A generic build asks for your household Tailscale HTTPS address and device
-   name once. Leave the token empty for explicitly configured Tailscale Serve
+   An unconfigured generic build opens the inbox with Configure connection;
+   save your household Tailscale HTTPS address in Settings. Leave the token
+   empty for explicitly configured Tailscale Serve
    sign-in. For token authentication or a tagged Tailscale client, enter the
    configured app token under Advanced. Each device must already have household
    Tailscale access. No token is embedded and no server is deployed.

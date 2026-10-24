@@ -132,3 +132,27 @@ describe('native shared editing compatibility',()=>{
     expect(invoke.mock.calls.filter(([command])=>command==='native_api')).toHaveLength(1)
   })
 })
+
+describe('optional desktop naming',()=>{
+  it.each(['macos','linux'] as const)('renames a capable %s installation without reconfiguring credentials or identity',async platform=>{
+    const config={...fixture.config,sourceDevice:'Desktop',platform,canRenameDevice:true}
+    const invoke=vi.fn<NativeInvoke>(async command=>command==='native_get_config'?config:null)
+    const adapter=await nativePlatform(invoke)
+    await adapter.renameDevice!('Kitchen computer')
+    expect(invoke).toHaveBeenLastCalledWith('native_rename_device',{sourceDevice:'Kitchen computer'})
+    expect(adapter.defaultDeviceName).toBe('Kitchen computer')
+    expect(adapter.deviceIdentity).toEqual({id:config.deviceId,platform})
+    expect(adapter.baseURL).toBe(config.baseUrl);expect(adapter.requiresConnection).toBe(false)
+    expect(invoke.mock.calls.map(([command])=>command)).toEqual(['native_get_config','native_rename_device'])
+    invoke.mockRejectedValueOnce(new Error('Disk unavailable'))
+    await expect(adapter.renameDevice!('New draft')).rejects.toThrow('Disk unavailable')
+    expect(adapter.defaultDeviceName).toBe('Kitchen computer')
+  })
+  it('does not expose desktop rename for legacy, nonboolean or Android capability metadata',async()=>{
+    for(const config of [{...fixture.config,platform:'macos'},{...fixture.config,platform:'linux',canRenameDevice:'true'},{...fixture.config,platform:'android',canRenameDevice:true}]){
+      const invoke=vi.fn<NativeInvoke>().mockResolvedValue(config)
+      expect((await nativePlatform(invoke)).renameDevice).toBeUndefined()
+      expect(invoke).toHaveBeenCalledTimes(1)
+    }
+  })
+})

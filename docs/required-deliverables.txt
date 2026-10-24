@@ -247,9 +247,9 @@ web/test-results/zing-for-you-phone.png
 web/test-results/zing-tailscale-settings.png
 web/test-results/zing-text-file-phone.png
 web/test-results/zing-text-candidate-recovery-phone.png
-web/dist/assets/index-BWwY4mOY.js
-web/dist/assets/index-BWwY4mOY.js.map
-web/dist/assets/index-BP1qYeCi.css
+web/dist/assets/index-9egpLsfx.js
+web/dist/assets/index-9egpLsfx.js.map
+web/dist/assets/index-4D-6AtoB.css
 web/dist/icon-192.png
 web/dist/icon-512.png
 web/dist/icon.svg
@@ -347,3 +347,6 @@ clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher_
 clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png
 clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png
 clients/android/src-tauri/gen/android/app/tauri.properties
+web/src/DeviceNamePrompt.tsx
+web/src/DeviceNamePrompt.test.tsx
+web/test-results/zing-mac-web-freeze.json

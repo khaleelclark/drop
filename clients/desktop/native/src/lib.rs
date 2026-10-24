@@ -496,6 +496,7 @@ impl Queue {
             base_url: config.base_url,
             source_device: config.source_device,
             connected: present && !self.root.join("disconnected").exists(),
+            can_rename_device: true,
         })
     }
     pub fn cancel_api(&self, request_id: &str) -> Result<()> {
@@ -1443,6 +1444,7 @@ pub struct ConnectionView {
     pub base_url: String,
     pub source_device: String,
     pub connected: bool,
+    pub can_rename_device: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub device_id: Option<String>,
     pub platform: String,

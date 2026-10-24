@@ -291,3 +291,33 @@ production asset hashes and remaining checks are recorded in
 contrast, essential input boundaries and 3 px focus; they are not a complete
 accessibility audit. API/native/keyboard fixtures are not installed-device
 acceptance. Root owns final rendered/device acceptance and matching packages.
+
+## Desktop delete and device naming follow-up
+
+The shared item menu retains a pointer-initiated action through a null-focus
+blur until the click can arrive. Normal keyboard focus departure, outside
+pointer dismissal and explicit destructive confirmation remain in place. Native
+DELETE uses the existing bridge and accepts an empty HTTP 204; failures keep the
+confirmation available for retry. A failed feed refresh after successful delete
+shows the feed error and Retry without issuing another delete.
+
+A capable native desktop with the automatic `Desktop` registry label shows a
+small **Name this device** form in the inbox. It never opens connection Settings,
+autofocuses or blocks the inbox. **Not now** is remembered in app storage per
+server origin and durable device ID. A custom registry label skips the form.
+Settings keeps an explicit **Save device name** action. Both name saves use
+optional native metadata `canRenameDevice: true` and the desktop-only
+`native_rename_device({sourceDevice: name})` command before the registry upsert.
+No configure/disconnect or queue-control command is used for renaming. The
+adapter updates its cached display name only after the native save resolves.
+A failed registry step reports that the local name was saved, keeps the input,
+and offers the same explicit Save to finish. After reload, a saved local custom name prefills a still-generic registry prompt, so it can finish that registration without losing the requested name. Success is shown after both writes.
+Legacy and Android shells are never sent the desktop rename command; browser
+registry naming remains compatible. App-storage deletion can reset a dismissed
+prompt, and a reset native device identity gets its own naming choice.
+
+Current checks and exact asset/source hashes are in FINAL-REVIEW.md. Chromium
+bridge fixtures cover these flows but do not establish macOS WebKit, installed
+protocol or package behavior. The existing WebKit2359 executable could not
+launch in this environment because system libraries including libevent were
+missing; no system dependencies were installed.

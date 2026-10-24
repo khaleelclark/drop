@@ -1,11 +1,18 @@
 # Zing
 
-The approved navy/white/red update has locally verified Linux **0.1.3** and
-Android **0.1.5** candidate packages. Android emulator checks include the new
-filters, real keyboard, Copy/Paste, editing and notification click; a fresh
-standalone offline launch opens the inbox without setup. Mac **0.1.3** builds
-and household-device acceptance remain pending. Nothing in this update has
-been deployed. See [current validation](docs/validation.md).
+The Mac Delete/device-name follow-up is being prepared as Apple Silicon 0.1.4.
+Source, focused fixture tests and the final web freeze are complete; native
+installer acceptance is pending. The verified packages below predate this fix.
+
+The connection/navigation correction has verified **Apple Silicon household
+0.1.3** and **Android Tauri 0.1.6/code1006** packages. The Mac installer includes
+the household address; missing/disconnected configuration opens the inbox with
+explicit Settings instead of a login dialog. Android API36 emulator checks verify
+real keyboard Back and Home/resume restore the bottom tabs without losing drafts
+or filters. API26–29 retains the partial Done fallback. Linux 0.1.3 and standalone
+Android 0.1.5 are earlier navy candidates. Household Mac installation and
+physical-phone acceptance remain unverified. No new deployment occurred. See
+[current validation](docs/validation.md).
 
 Zing is a private shared inbox for household text and files, designed for Linux hosting behind Tailscale and Mac, Linux, Android, and browser clients.
 

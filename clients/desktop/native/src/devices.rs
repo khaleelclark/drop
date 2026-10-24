@@ -199,6 +199,13 @@ fn validate_page(page: &ArrivalPage, after: &str) -> Result<()> {
 }
 
 impl Queue {
+    pub fn rename_device(&self, source_device: &str) -> Result<()> {
+        validate_label(source_device)?;
+        let _config = config_lock(&self.root)?;
+        let mut config = read_config(&self.root)?;
+        config.source_device = source_device.into();
+        atomic_json(&self.root.join("config.json"), &config)
+    }
     fn device_request(
         &self,
         c: &Config,
@@ -431,6 +438,166 @@ mod tests {
             token: "private-token".into(),
             source_device: "Kitchen Mac".into(),
         }
+    }
+    #[test]
+    fn rename_device_preserves_auth_identity_queue_and_capture_routing() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        let q = Queue::open(root.into()).unwrap();
+        q.configure(config("https://one.example")).unwrap();
+        let context = q.prepare_send(None, Some(vec!["b".repeat(32)])).unwrap();
+        let file = root.join("source.txt");
+        fs::write(&file, b"queued before rename").unwrap();
+        for _ in 0..2 {
+            q.enqueue_prepared(&file, "text", &context).unwrap();
+        }
+        q.state.lock().unwrap().transfers[1].status = "running".into();
+        q.save().unwrap();
+        let spool = spool_prepared(root, &file, "text", &context).unwrap();
+        let paths = [
+            root.join("queue.json"),
+            root.join("devices.json"),
+            context.intent.clone(),
+            root.join("inbox").join(format!("{spool}.json")),
+        ];
+        let before: Vec<_> = paths.iter().map(|p| fs::read(p).unwrap()).collect();
+        let memory = serde_json::to_value(&*q.state.lock().unwrap()).unwrap();
+        let mut expected: serde_json::Value = read_json(&root.join("config.json")).unwrap();
+        expected["sourceDevice"] = "Renamed Mac 🖥".into();
+        q.rename_device("Renamed Mac 🖥").unwrap();
+        assert_eq!(
+            read_json::<serde_json::Value>(&root.join("config.json")).unwrap(),
+            expected
+        );
+        for (path, bytes) in paths.iter().zip(before) {
+            assert_eq!(fs::read(path).unwrap(), bytes, "{}", path.display());
+        }
+        assert_eq!(
+            serde_json::to_value(&*q.state.lock().unwrap()).unwrap(),
+            memory
+        );
+        let view = q.connection().unwrap();
+        assert_eq!(
+            view.device_id.as_deref(),
+            Some(context.routing.source_device_id.as_str())
+        );
+        assert!(view.can_rename_device);
+        assert_eq!(
+            serde_json::to_value(&view).unwrap()["canRenameDevice"],
+            true
+        );
+        drop(q);
+        let q = Queue::open(root.into()).unwrap();
+        assert_eq!(q.connection().unwrap().source_device, "Renamed Mac 🖥");
+        assert_eq!(q.connection().unwrap().device_id, view.device_id);
+        assert_eq!(read_config(root).unwrap().token, "private-token");
+        assert_eq!(read_config(root).unwrap().base_url, "https://one.example");
+        let next = q.prepare_send(None, None).unwrap();
+        assert_eq!(next.config.source_device, "Renamed Mac 🖥");
+        assert_eq!(
+            next.routing.source_device_id,
+            context.routing.source_device_id
+        );
+        for t in &q.state.lock().unwrap().transfers {
+            assert_eq!(t.config.source_device, "Kitchen Mac");
+            assert_eq!(t.config.token, "private-token");
+            assert_eq!(
+                t.routing.as_ref().unwrap().source_device_id,
+                context.routing.source_device_id
+            );
+            assert_eq!(
+                t.routing.as_ref().unwrap().target_device_ids,
+                vec!["b".repeat(32)]
+            );
+        }
+    }
+    #[test]
+    fn rename_device_validates_label_without_writing_on_rejection() {
+        let tmp = tempfile::tempdir().unwrap();
+        let q = Queue::open(tmp.path().into()).unwrap();
+        q.configure(config("https://one.example")).unwrap();
+        let path = tmp.path().join("config.json");
+        let before = fs::read(&path).unwrap();
+        for label in [
+            "",
+            "   ",
+            "\t",
+            "a\nb",
+            "a\rb",
+            "a\0b",
+            "a\u{7f}b",
+            "a\u{85}b",
+            &"x".repeat(129),
+            &"é".repeat(65),
+        ] {
+            assert!(q.rename_device(label).is_err(), "{label:?}");
+            assert_eq!(fs::read(&path).unwrap(), before);
+        }
+        for label in ["x".repeat(128), "é".repeat(64)] {
+            q.rename_device(&label).unwrap();
+            assert_eq!(read_config(tmp.path()).unwrap().source_device, label);
+        }
+    }
+    #[test]
+    fn rename_device_requires_connection_and_cannot_undo_disconnect() {
+        for saved in [false, true] {
+            let tmp = tempfile::tempdir().unwrap();
+            let root = tmp.path();
+            let q = Queue::open_with_default_origin(root.into(), None).unwrap();
+            assert!(q.rename_device("Not paired").is_err());
+            assert!(!root.join("config.json").exists());
+            if saved {
+                q.configure(config("https://one.example")).unwrap();
+                q.rename_device("Before disconnect").unwrap();
+            }
+            q.disconnect().unwrap();
+            let before = fs::read(root.join("config.json")).ok();
+            assert!(q.rename_device("After disconnect").is_err());
+            assert_eq!(fs::read(root.join("config.json")).ok(), before);
+            assert!(root.join("disconnected").exists());
+            assert!(!q.connection().unwrap().connected);
+            drop(q);
+            let q = Queue::open_with_default_origin(root.into(), Some("https://default.example"))
+                .unwrap();
+            assert!(q.rename_device("Still disconnected").is_err());
+            assert!(!q.connection().unwrap().connected);
+            q.configure(config("https://one.example")).unwrap();
+            q.rename_device("Explicitly reconnected").unwrap();
+            assert_eq!(
+                q.connection().unwrap().source_device,
+                "Explicitly reconnected"
+            );
+        }
+    }
+    #[test]
+    fn rename_device_and_disconnect_share_the_config_lock() {
+        let tmp = tempfile::tempdir().unwrap();
+        let root = tmp.path();
+        let q = Queue::open(root.into()).unwrap();
+        q.configure(config("https://one.example")).unwrap();
+        let barrier = Arc::new(std::sync::Barrier::new(2));
+        let rename_queue = q.clone();
+        let rename_barrier = barrier.clone();
+        let rename = thread::spawn(move || {
+            rename_barrier.wait();
+            rename_queue.rename_device("Concurrent name")
+        });
+        barrier.wait();
+        q.disconnect().unwrap();
+        let renamed = rename.join().unwrap().is_ok();
+        let saved: Config = read_json(&root.join("config.json")).unwrap();
+        assert_eq!(
+            saved.source_device,
+            if renamed {
+                "Concurrent name"
+            } else {
+                "Kitchen Mac"
+            }
+        );
+        assert_eq!(saved.base_url, "https://one.example");
+        assert!(saved.token.is_empty());
+        assert!(root.join("disconnected").exists());
+        assert!(!q.connection().unwrap().connected);
     }
     #[test]
     fn identity_settings_and_click_survive_restart_without_secrets() {

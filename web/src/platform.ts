@@ -5,6 +5,7 @@ export interface PlatformAdapter {
   kind: 'browser' | 'native';
   requiresConnection?: boolean;
   defaultDeviceName?: string;
+  renameDevice?(name: string): Promise<void>;
   deviceIdentity?: {id: string; platform: DevicePlatform};
   getArrivalSettings?(): Promise<ArrivalSettings>;
   setArrivalEnabled?(enabled: boolean): Promise<ArrivalSettings>;

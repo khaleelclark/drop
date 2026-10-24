@@ -88,6 +88,7 @@ struct State {
     changed_etag: bool,
     etag: Option<String>,
     delete: bool,
+    item_deleted: bool,
     validation: Option<String>,
     reject_final: bool,
     drop_final_ack: bool,
@@ -324,6 +325,22 @@ impl Server {
                             false,
                         );
                     }
+                    ("DELETE", "/api/items/item") => {
+                        assert!(req.body.is_empty());
+                        s.item_deleted = true;
+                        stream
+                            .write_all(b"HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
+                            .unwrap();
+                    }
+                    ("GET", "/api/items/item") if s.item_deleted => {
+                        reply(
+                            &mut stream,
+                            "404 Not Found",
+                            &[],
+                            br#"{"error":{"code":"not_found","message":"Item not found"}}"#,
+                            false,
+                        );
+                    }
                     ("GET", "/api/items/item") => {
                         let status = s.validation.clone().unwrap_or_else(|| {
                             if s.bytes.len() == s.length {
@@ -422,6 +439,26 @@ fn server_worker_panic_fails_without_double_panic_during_cleanup() {
 }
 fn data() -> Vec<u8> {
     (0..CHUNK + 7321).map(|i| (i % 251) as u8).collect()
+}
+
+#[test]
+fn native_api_delete_accepts_204_without_a_body() {
+    let server = Server::new();
+    let tmp = tempfile::tempdir().unwrap();
+    let q = Queue::open(tmp.path().into()).unwrap();
+    q.configure(server.config()).unwrap();
+    let response = q.api("DELETE", "/api/items/item", None).unwrap();
+    assert_eq!(response.status, 204);
+    assert!(response.body.is_empty());
+    assert!(!response.headers.contains_key("content-type"));
+    assert!(!response.headers.contains_key("content-length"));
+    assert!(server.state.lock().unwrap().item_deleted);
+    let follow_up = q.api("GET", "/api/items/item", None).unwrap();
+    assert_eq!(follow_up.status, 404);
+    assert_eq!(
+        serde_json::from_str::<serde_json::Value>(&follow_up.body).unwrap()["error"]["code"],
+        "not_found"
+    );
 }
 
 #[test]

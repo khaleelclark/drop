@@ -39,6 +39,16 @@ fn native_get_config(state: State<NativeState>) -> Result<ConnectionView, String
     state.connection()
 }
 #[tauri::command(rename_all = "camelCase")]
+async fn native_rename_device(
+    state: State<'_, NativeState>,
+    source_device: String,
+) -> Result<(), String> {
+    let q = state.inner().clone();
+    tauri::async_runtime::spawn_blocking(move || q.rename_device(&source_device))
+        .await
+        .map_err(|e| e.to_string())?
+}
+#[tauri::command(rename_all = "camelCase")]
 fn native_cancel_api(state: State<NativeState>, request_id: String) -> Result<(), String> {
     state.cancel_api(&request_id)
 }
@@ -196,6 +206,7 @@ fn main() {
             native_configure,
             native_disconnect,
             native_get_config,
+            native_rename_device,
             native_cancel_api,
             native_list_transfers,
             native_enqueue_upload,

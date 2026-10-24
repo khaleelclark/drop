@@ -1,4 +1,108 @@
-# Final web review — connection settings and phone navigation
+# Current web freeze — desktop delete and first-use naming
+
+The web implementation is built and frozen for root’s Apple Silicon **0.1.4** integration. Current JavaScript is `index-9egpLsfx.js`, CSS is `index-4D-6AtoB.css`. This supersedes `index-D_HQx3BY.js` and earlier web freezes. The existing quality reviewer found no material blocker in its bounded current-source inspection, including the final saved-local-name recovery. This was source inspection only, without edits, test execution or installed/WebKit validation. All sections after the Historical heading describe prior source/evidence, not this freeze.
+
+## Delivered behavior and evidence boundary
+
+- Shared `ItemMenu` tracks a pointer gesture inside the menu and ignores only a null-focus blur during that gesture. This lets the clicked action receive its click. Normal focus departure, outside pointer dismissal, existing menu keys, focus outlines, scrolling and >=44px targets remain. The destructive action still requires **Delete for everyone?** with explicit **Delete** / **Keep**.
+- A controlled native-macOS Chromium fixture reproduced the lost action before the fix: first menu item focused -> Delete pointerdown/mousedown -> focused item blur with null relatedTarget -> menu unmounted -> no click/confirmation. Normal activation passed. Both paths pass after the fix. This establishes a code-level boundary failure, **not the exact cause on the user’s Mac**. Actual WebKit/installed behavior remains root/user acceptance.
+- Native DELETE regression covers Keep without mutation, structured HTTP 500 with visible error and enabled retry, no false success, an empty bodyless 204, failed subsequent feed refresh with visible error/Retry, and eventual removal without a duplicate DELETE. Production API/delete code did not need modification. Existing native owner protocol evidence independently reports empty 204 -> GET404, not a native proxy defect.
+- A capable, connected, registered native desktop whose authoritative registry label is exactly `Desktop` sees a small **Name this device** form. It does not open Settings, steal initial focus or block the inbox. Already custom registry labels skip it. Save/Not now is remembered in app storage under normalized origin + durable device ID. Another ID gets a fresh choice; clearing app storage can reset dismissal. Explicit Settings rename remains available.
+- Both first-use and Settings saves await the native local name write, then explicitly upsert the registry under the same ID/platform. Neither path calls configure/disconnect/queue control or clears credentials. UI success waits for both writes. Native failure retains input and stops before the registry mutation. Local success + registry failure retains the prompt/input and explains the partial save. A feed refresh retains this state; after page reload, the saved local custom name prefills the still-generic registry prompt with an explicit household-save-needed note. Retrying finishes the same-ID registry save. Server access, current recipients and queued/in-flight snapshots stay native-owned.
+
+## Settled native contract
+
+Desktop `native_get_config` adds optional `canRenameDevice:true`. The web adapter exposes `renameDevice` only when that value is exactly true and platform is `macos` or `linux`; legacy/Android shells never receive the desktop command. `native_rename_device({sourceDevice:string})` resolves void/null. After resolution, only cached `sourceDevice` changes. The exact automatic label is `Desktop` on both platforms; there is no automatic-label metadata/hostname inference.
+
+Native independently requires nonblank <=128 UTF-8 bytes without controls, uses its shared config lock and atomic local writer, and rejects missing/explicitly disconnected configuration. It changes only the saved sourceDevice, without native registry HTTP, auth/origin/device/notification state changes or queue/intake/routing mutation. A late directory-sync error can occur after replacement, so a native rejection does not prove the old local name remains; the UI retains input and supports safe retry. The native owner’s canonical settled-contract Request and direct source/docs were consumed. The owner reports four focused rename tests, one bodyless DELETE 204 protocol case, and one stale-label registry-preservation case passing; **the interface owner did not execute native checks**. Root owns package/build/install acceptance.
+
+Native interoperability files directly inspected (read-only):
+
+| Path | SHA256 |
+| --- | --- |
+| clients/desktop/native/src/devices.rs | 393f20177cfccac454aa032c84c9a74cdb4f3cffb9dbdf18a01a255bf2385ab2 |
+| clients/desktop/native/src/lib.rs | 0bf6a13928ccfe73480b9893d655c281b86360169c68a4fd4b86eddc347bad9c |
+| clients/desktop/native/tests/protocol.rs | 2b9932ae12eabc99b06244765e44a59ea5c2217f991ca5dceb3065956e46687f |
+| clients/desktop/src-tauri/src/main.rs | ec744333943d75fd387fdb6d1b6c67581b44bc75e28c631f573d43b757cfdb5c |
+
+## Exact authored paths
+
+This task changes the ten source/test/doc paths below plus `web/FINAL-REVIEW.md`. Generated output is `web/tsconfig.tsbuildinfo`, nine production assets and the scoped evidence below. Existing earlier checkout changes belong to their prior task freezes. No root/server/clients/integrations/package/CI files or dependencies were edited. The temporary isolated WebKit config was removed after recording its exact contents in the diagnostic JSON. No icon generation occurred; all five public assets remain byte-identical.
+
+| Path | SHA256 |
+| --- | --- |
+| web/src/App.tsx | 9542a84f3a04abbcd47a2c3d23fefeb996717e25c2e5468e16be82cce6086cc8 |
+| web/src/DeviceNamePrompt.tsx | 9868a1321dc7ecd30d81cbd118cefa80c9581e868b9ca94c3f2a6ef0dd99c41d |
+| web/src/DeviceNamePrompt.test.tsx | da4eedfef9e130b18b9d04d116627012d8e3ea3e208427e3889bea0186892a56 |
+| web/src/ItemMenu.tsx | 24d4f523d93633fdcdfaf8a1b336b42d952602a66ab4d5ba5e35e35fc5a63b9e |
+| web/src/native-platform.ts | 57ad8d4424baeffc937c07ec705cda27ebbf227cdb616cafc363d9e4180f688d |
+| web/src/native-platform.test.ts | 1814511b3fd0705130dd5cd4a4fee5a79ef8a7620e72bd7520831484aa49a0b3 |
+| web/src/platform.ts | 59b9b1529adc01948823767213faee222d24767fc9c046f84d7a0e6ed8590a7f |
+| web/src/styles.css | bdfec567a1693bcf90c5e146c08033ba10efd6a8ab707abfc4af2ed612988a59 |
+| web/e2e/browser.spec.ts | 6c590aa5641a8c5864babc981c869f55ff970823ffd4d8d1d29eabbb24455788 |
+| web/README.md | 997cb575d26294bda31e01e832c8c1d9d83d709aaab55c59ecbf4802ddb174cf |
+
+## Validation actually executed
+
+- Final current-source Chromium1243 selection: **16/16 passed, 21.8s**. Command from web/: `PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH=/home/phoenix/.cache/ms-playwright/chromium-1243/chrome-linux64/chrome pnpm test:browser --grep 'native desktop delete|first-use name|naming dismissal|naming skips|secondary text and sharing actions|last five-action|device settings forget|packaged native bridge|native routing|native missing connection|native disconnected connection' --output=test-results/zing-mac-delete-naming-release`.
+- Final selected unit/component rerun: **43/43 passed across 5 files, 2.63s**. Command: `NODE_ENV=test pnpm exec vitest run src/native-platform.test.ts src/native-platform-ui.test.tsx src/bootstrap.test.tsx src/DeviceNamePrompt.test.tsx src/FeedCard.test.tsx`. Earlier same selection passed 43/43 across 5 files in 3.58s. After the final prefill/note change, affected prompt/nativeUI selection passed 10/10 in 3.12s before the final full selected rerun.
+- Final `pnpm typecheck` passed after the last source correction. **One final `pnpm build` passed** (TypeScript + Vite6.4.5, 1620 modules, Vite 1.71s). No production rebuild was repeated.
+- Before-fix controlled delete cases: 1/2 passed, with null-pointer-blur confirmation absent. After the menu fix: 2/2 passed 4.0s. Initial combined browser pass: 6/8 passed 22.0s; two new queue assertions incorrectly expected Sending instead of existing Uploading. Corrected selection 16/16 passed 22.7s. Delete confirmation/failure screenshot refresh 2/2 passed 4.8s. Adding reload recovery first exposed a fixture bug (0/2): the fixture recreated the registry from local config rather than persisting its initial generic record. After correcting fixture persistence, 2/2 passed 5.3s, followed by the final 16-case release pass above. All retained failure metadata/traces keep their historical scope.
+- WebKit was attempted using an isolated temporary config. Playwright default expected absent build 2370. Explicit existing 2359 launch failed before tests because `libevent-2.1.so.7` is missing. Existing GTK alternative also lacks system GTK/GStreamer and other libraries. No system/toolchain/SDK/dependency installation was performed. Earlier wrong-working-directory/CLI invocations failed before test execution and were corrected; no test success is inferred from them.
+- The existing reviewer’s current-source follow-up confirmed that the registered Desktop label gates the nudge, the native name only prefills it, and Refresh/reload keeps unfinished household naming visible with retained input and explicit retry. The inspected regression models a registry failure after local success; it does not independently execute the native late directory-sync-error case. No material blocker was reported.
+- New first-use and partial-save captures plus Delete confirmation/error captures were visually inspected. The two post-delete captures show the empty feed after removal. These are source fixtures, not installed Mac captures. Existing browser/native startup, menu keyboard and small-screen menu layout cases in the 16-case selection pass.
+
+## Current nine production files
+
+| Path | SHA256 |
+| --- | --- |
+| web/dist/assets/index-4D-6AtoB.css | b1a483488dbe9efa54f880c84be32aa81e2db7afd2aa4515e9298452a01cb069 |
+| web/dist/assets/index-9egpLsfx.js | af766ef125501cfe5ba3b2a99f032a91993505135d35a570f09e70a7db432bdb |
+| web/dist/assets/index-9egpLsfx.js.map | 71fb2d3852606f22f0df31a009fdee9170ba75bde38fd1ce8e414cf42b4b86d9 |
+| web/dist/icon-192.png | 4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e |
+| web/dist/icon-512.png | c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641 |
+| web/dist/icon.svg | da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128 |
+| web/dist/index.html | c536d7b08b8f7a532920502c2bb7f0691d896434566e5f817d8f362bd0f1629b |
+| web/dist/manifest.webmanifest | 34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f |
+| web/dist/sw.js | dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543 |
+
+Direct final-byte audit: exactly 9 production files, all 4 index references resolve, all 5 public/dist files byte-match, and all 20 compiled web source-map entries match current source. The new component is included in the production map. Current source-map content is not substituted by old-source test results.
+
+## Scoped evidence and deliverable audit
+
+Machine-readable audit: `web/test-results/zing-mac-web-freeze.json` (source/native/asset/evidence sizes and hashes, ten run metadata records and root-manifest disposition). Diagnostic JSON retains the before-fix event sequence and exact removed temporary WebKit config. Seven new PNGs are present/nonempty with valid PNG signatures:
+
+- web/test-results/zing-mac-delete-diagnostic.json
+- web/test-results/zing-native-delete-normal.png
+- web/test-results/zing-native-delete-null-blur.png
+- web/test-results/zing-native-delete-confirm.png
+- web/test-results/zing-native-delete-failure.png
+- web/test-results/zing-device-name-first-use.png
+- web/test-results/zing-device-name-macos-partial.png
+- web/test-results/zing-device-name-linux-partial.png
+
+Ten scoped run metadata records (present/nonempty; current final release is passed with no failures):
+
+- web/test-results/zing-mac-delete-before/.last-run.json
+- web/test-results/zing-mac-delete-reproduction/.last-run.json
+- web/test-results/zing-mac-delete-boundary-before/.last-run.json
+- web/test-results/zing-mac-delete-boundary-after/.last-run.json
+- web/test-results/zing-mac-delete-naming/.last-run.json
+- web/test-results/zing-mac-delete-naming-final/.last-run.json
+- web/test-results/zing-mac-delete-captures/.last-run.json
+- web/test-results/zing-mac-name-reload-recovery/.last-run.json
+- web/test-results/zing-mac-name-reload-recovery-final/.last-run.json
+- web/test-results/zing-mac-delete-naming-release/.last-run.json
+
+All 10 named changed source/test/doc files, the report, generated typecheck state, nine assets, eight evidence files and ten run records were directly checked. Root’s `docs/required-deliverables.txt` currently lists 99 web paths. Three superseded hashed assets are missing: `web/dist/assets/index-BWwY4mOY.js`, its `.js.map`, and `web/dist/assets/index-BP1qYeCi.css`. Root has been notified to replace its stale manifest entries with the current three hash-named assets; the interface owner did not edit the root-owned manifest. Other listed web paths are present. Historical report sections below may name old hashes; those are explicitly historical, not claims that removed old dist files still exist.
+
+## Remaining acceptance and limits
+
+Root must integrate these exact bytes with native desktop 0.1.4, rebuild the Apple Silicon installer and verify package/native protocol acceptance. The user’s exact Delete interaction and actual Mac WebKit pointer sequence remain unconfirmed; no successful household deletion or installed name prompt is claimed. Physical Mac clipboard/Tailscale/auth, actual active-transfer continuity, full accessibility and 20 GB transfer acceptance were not run here. Android packaging/device work, Linux/Mac package work, CI, backend changes and deployment were skipped as assigned. Prior Android API26–29 limitations and synthetic doubled tab-label clipping at 320px remain historical open limits; this task does not resolve them.
+
+---
+
+# Historical connection/navigation report — superseded by the desktop freeze above
 
 The replacement web source and nine production files are frozen for root’s packaging and independent acceptance. The new JavaScript is `index-D_HQx3BY.js`; this freeze supersedes the contrast freeze `index-BWwY4mOY.js` and all earlier web freezes. The reported editing-state latch is reproduced and corrected in web source/fixtures. Actual recovery on the affected phone is not established by these checks; installed Android Back recovery also requires the coordinated native event described below.
 

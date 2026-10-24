@@ -372,3 +372,20 @@ A configured native client encountering offline or authorization errors shows
 recoverable status and explicitly accessible settings, rather than forcing the
 connection form open. A browser still uses its opened origin. Native platform,
 queue, upload, notification and authentication contracts are otherwise unchanged.
+
+## Desktop device naming follow-up
+
+Household automatic connection must not skip the separate opportunity to choose
+a recognizable device name. A desktop client with an automatic generic label
+shows a small first-use naming prompt while keeping the inbox usable. It may
+be dismissed and remains explicitly renameable in Settings. Existing custom
+labels, device IDs, server access, recipients and saved connection state remain
+unchanged. This is not a server-address or token login step.
+
+An explicit desktop name save updates the device registry and the native saved
+display name without reconfiguring authentication or pausing/cancelling active
+transfers. Preserve the existing server origin, token, identity and every queued
+or in-flight routing snapshot. A failed or partially completed save must retain
+the user's input and give a recoverable result rather than claiming full success.
+Native capability metadata is additive so legacy/Android shells are never sent
+an unsupported desktop rename command. Browser naming remains compatible.
