@@ -5,9 +5,17 @@ The current freeze is `web/test-results/ui-refresh/error-visibility-freeze.json`
 bounds reproduced before correction; five focused Chromium checks, typecheck
 and one new production build pass. Root verified 81 hash entries and 20 source
 map/source matches. The error shares the confirmation scroll area and triggers
-scrolling without refocusing Keep. New-asset Mac WebKit rerun, replacement
-packages and installed Mac acceptance remain pending. Existing package and
-Android emulator checks below describe the previous candidate only.
+scrolling without refocusing Keep. Mac WebKit run 40055891482 now passes 26/26 checks on all nine matching
+assets (no DOM override); both default and last-row recovery pass. Evidence:
+`docs/evidence/zing-delete-error-macos-webkit-passed.json`. Main was promoted
+to exact source 9362787b629b27399cf0aafd0d1906caf03d03bb after this verification.
+Matching Android 0.1.7 ARM64/x86_64 and Linux 0.1.5 packages now pass signing,
+alignment, identity and compiled-asset audits; use only the new copies under
+`artifacts/delete-error-followup/`. The Apple Silicon household installer from run 40056087692 is ready, with
+42 native passes, ad-hoc signing and read-only DMG checks. Root matched its
+checksum and nine CI frontend receipts; it was not mounted/extracted on Linux.
+Installed Mac acceptance remains pending. Existing Android emulator checks below describe the previous
+candidate only.
 
 ---
 

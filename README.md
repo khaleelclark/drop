@@ -10,9 +10,11 @@ typecheck and one newly authorized production build passed.
 
 The previous macOS WebKit candidate passed 23/24 checks but failed because the
 last-row HTTP 500 error was below the window. Its failed report is preserved in
-`docs/evidence/zing-ui-refresh-macos-webkit.json`. New-asset Mac WebKit,
-matching replacement packages and installed Mac acceptance remain pending.
-Existing desktop 0.1.5 and Android 0.1.7 packages predate this final correction.
+`docs/evidence/zing-ui-refresh-macos-webkit.json`. New-asset macOS WebKit run 40055891482 passed all 26 checks and all nine
+assets match the freeze. Matching desktop 0.1.5 and Android 0.1.7 packages are verified under
+`artifacts/delete-error-followup/`; the Apple Silicon household DMG is ready.
+Installed Mac acceptance remains pending.
+Earlier package paths predate this final correction; use the follow-up manifest.
 No service deployment is part of this task.
 
 Twenty-two required historical evidence files remain absent after attempted
@@ -23,15 +25,16 @@ use version-specific receipts and immutable Project downloads.
 
 # Zing
 
-The Mac Delete/device-name follow-up has a verified Apple Silicon household
-0.1.4 installer. Native macOS CI passed 42 tests, ad-hoc signing, helper execution
+Historical 0.1.4 follow-up: the earlier Mac Delete/device-name work produced
+an Apple Silicon household installer. Native macOS CI passed 42 tests, ad-hoc signing, helper execution
 and read-only DMG checks; root matched the downloaded package and all nine frozen
 web assets. The user reports Delete still shows no confirmation on Mac 0.1.4,
-while Android deletion works; the Mac fix remains open. Naming acceptance is
+while Android deletion worked. The current 0.1.5 correction is described above;
+installed Mac acceptance remains open. Naming acceptance is
 unverified. See
 [package evidence](docs/evidence/zing-delete-name-macos-package.json).
 
-The current UI refresh has accepted desktop and phone previews and a corrected production build; replacement installers remain pending. A macOS WebKit diagnostic reproduced the missed Delete click and isolated an explicit menu-focus correction. This is browser-engine evidence with synthetic data; installed Mac acceptance remains open. See [diagnostic evidence](docs/evidence/zing-mac-delete-webkit-diagnosis.json).
+The current UI refresh has accepted desktop and phone previews and a corrected production build; matching replacement installers are available under `artifacts/delete-error-followup/`. A macOS WebKit diagnostic reproduced the missed Delete click and isolated an explicit menu-focus correction. This is browser-engine evidence with synthetic data; installed Mac acceptance remains open. See [diagnostic evidence](docs/evidence/zing-mac-delete-webkit-diagnosis.json).
 
 The connection/navigation correction has verified **Apple Silicon household
 0.1.3** and **Android Tauri 0.1.6/code1006** packages. The Mac installer includes

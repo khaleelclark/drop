@@ -1,0 +1,173 @@
+{
+  "sourceCommit": "9362787b629b27399cf0aafd0d1906caf03d03bb",
+  "result": "passed",
+  "runId": 40055891482,
+  "runUrl": "https://github.com/khaleelclark/household-share/actions/runs/40055891482",
+  "artifactId": 12545088974,
+  "artifactSHA256": "53cf859a822418083e67ae1584ca30a42b2241e704fab29c83d49c504b8d2be1",
+  "reportSHA256": "ab7964da2efecb2f74afa6ee3e33db458f1e588ffcef7e429975f7bcaf01148a",
+  "driver": "Playwright WebKit on macOS; real browser input; no forced DOM focus/events",
+  "platform": "darwin",
+  "architecture": "arm64",
+  "checks": [
+    {
+      "case": "default",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Keep retains item with zero mutations",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Escape closes menu and restores trigger focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "500 keeps item and explicit retry without false success",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Bodyless 204 succeeds while failed feed refresh remains recoverable",
+      "passed": true
+    },
+    {
+      "case": "default",
+      "name": "Feed Retry removes item without repeating DELETE",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Keep retains item with zero mutations",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Escape closes menu and restores trigger focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Delete item opens confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Confirmation and both controls visible before recovery scrolling",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Safe Keep receives focus",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "No DELETE before explicit confirmation",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "500 keeps item and explicit retry without false success",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Bodyless 204 succeeds while failed feed refresh remains recoverable",
+      "passed": true
+    },
+    {
+      "case": "last",
+      "name": "Feed Retry removes item without repeating DELETE",
+      "passed": true
+    }
+  ],
+  "allNineAssetsMatchCurrentFreeze": true,
+  "cases": [
+    {
+      "name": "default",
+      "deleteOutcomes": [
+        500,
+        204
+      ],
+      "itemRemoved": true,
+      "attributeOverrides": []
+    },
+    {
+      "name": "last",
+      "deleteOutcomes": [
+        500,
+        204
+      ],
+      "itemRemoved": true,
+      "attributeOverrides": []
+    }
+  ],
+  "rawReport": ".tools/mac-delete-ci/run-40055891482/extracted/fixed/report.json",
+  "priorFailedRun": 40054960535,
+  "limits": [
+    "Synthetic native bridge on real macOS Playwright WebKit; no installed Tauri/WKWebView acceptance",
+    "Installer build/package inspection pending",
+    "No physical-device or20GB validation",
+    "No live household deletion or deployment"
+  ]
+}

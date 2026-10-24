@@ -1,5 +1,5 @@
 {
-  "status": "CorrectedWebVerified;NewMacWebKitAndPackagesPending",
+  "status": "CorrectedUIAndMacDeletePackagesVerifiedReadyForUserInstalledAcceptance",
   "date": "2026-10-24",
   "webFreeze": "web/test-results/ui-refresh/error-visibility-freeze.json",
   "webFreezeRootAudit": ".tools/build-ui-refresh/root-freeze-check.json",
@@ -20,10 +20,10 @@
   "packages": {
     "linux": "docs/evidence/zing-ui-refresh-linux-package.json",
     "android": "docs/evidence/zing-ui-refresh-android-packages.json",
-    "macOSRun": 40054961984,
-    "macWebKitRun": 40054960535,
+    "macWebKitRun": 40055891482,
     "androidInstalled": "docs/evidence/zing-ui-refresh-android-installed.json",
-    "scope": "Existing packages match efa33fa candidate and predate remaining error-visibility correction"
+    "scope": "Existing packages match efa33fa candidate and predate remaining error-visibility correction",
+    "previousMacOSRun": 40054961984
   },
   "historicalMissingRequired": "docs/evidence/historical-evidence-unavailable.json",
   "historicalMissingCount": 22,
@@ -32,8 +32,26 @@
   "limits": [
     "Installed Mac acceptance pending",
     "No physical-device or20GB validation fromthisrelease",
-    "No deployment"
+    "No deployment",
+    "Current corrected Android/Linux packages inspected; installed acceptance not rerun on these exact assets"
   ],
   "macWebKitEvidence": "docs/evidence/zing-ui-refresh-macos-webkit.json",
-  "previousSourceCommit": "efa33faeeebfac1c12866f502793d2ead89ee19e"
+  "previousSourceCommit": "efa33faeeebfac1c12866f502793d2ead89ee19e",
+  "sourceCommit": "9362787b629b27399cf0aafd0d1906caf03d03bb",
+  "currentMacWebKitEvidence": "docs/evidence/zing-delete-error-macos-webkit-passed.json",
+  "currentPackages": {
+    "android": "docs/evidence/zing-delete-error-android-packages.json",
+    "linux": "docs/evidence/zing-delete-error-linux-packages.json",
+    "receipt": "artifacts/delete-error-followup/package-receipt.json",
+    "sourceArchive": ".tools/build-delete-error/archive-receipt.json",
+    "macInstaller": "docs/evidence/zing-delete-error-macos-package.json",
+    "macInstallerRun": 40056087692,
+    "releaseManifest": "artifacts/delete-error-followup/release-manifest.json"
+  },
+  "currentRequiredAudit": {
+    "total": 430,
+    "present": 408,
+    "historicalMissing": 22
+  },
+  "deliveryScopeComplete": "UIrefresh,MacDeletefixes,andmatchingpackagehandoff"
 }

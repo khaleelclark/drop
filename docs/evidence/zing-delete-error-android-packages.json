@@ -1,0 +1,371 @@
+{
+  "scope": "Locally built Android 0.1.7 delete-error correction packages; not installed",
+  "sourceCommit": "9362787b629b27399cf0aafd0d1906caf03d03bb",
+  "webFreezePath": "web/test-results/ui-refresh/error-visibility-freeze.json",
+  "webFreezeSHA256": "a7653bdfebd1dc2a1a273c62ebafe5e2cd047bbaae13891cec7cc86650834d40",
+  "frozenAssetSHA256": {
+    "assets/index-Cak_AnQS.js": "e5c4648dde1aea8bd61836c62b84c9b79c0a69351cb4069b7f9a41ea79328c13",
+    "assets/index-Cak_AnQS.js.map": "155b83fd4229a99d5185d258992019207cdca40651866d9af100dff0e28526f3",
+    "assets/index-Dw3Gk6BF.css": "ba90f33f3540b56d070b5027aeee6588dab7b50c6403dd1b9ae43bd04e24bf41",
+    "icon-192.png": "4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e",
+    "icon-512.png": "c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641",
+    "icon.svg": "da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128",
+    "index.html": "c27a0effdb22fb634d202acf5358205f2229d4e0589d5cf3fa56680b7fe95e21",
+    "manifest.webmanifest": "34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f",
+    "sw.js": "dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543"
+  },
+  "apks": [
+    {
+      "path": "artifacts/delete-error-followup/android/household-share-tauri-aarch64-debug.apk",
+      "bytes": 29702637,
+      "sha256": "d51b5653814a22d69853ffb27d28c97b5dfc2fe121e7bf8af107aad09eb1c83f",
+      "applicationId": "net.household.share.mobile",
+      "versionName": "0.1.7",
+      "versionCode": 1007,
+      "abi": "arm64-v8a",
+      "minSdk": 26,
+      "targetSdk": 36,
+      "label": "Zing",
+      "sharedAssetsMatch": 9,
+      "signerCertificateSHA256": "d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a",
+      "apksigner": "Verifies\nVerified using v1 scheme (JAR signing): false\nVerified using v2 scheme (APK Signature Scheme v2): true\nVerified using v3 scheme (APK Signature Scheme v3): false\nVerified using v3.1 scheme (APK Signature Scheme v3.1): false\nVerified using v4 scheme (APK Signature Scheme v4): false\nVerified for SourceStamp: false\nNumber of signers: 1\nSigner #1 certificate DN: C=US, O=Android, CN=Android Debug\nSigner #1 certificate SHA-256 digest: d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a\nSigner #1 certificate SHA-1 digest: 5c726e9fac2ddb99e57de6fcf7ecea59c357c3d3\nSigner #1 certificate MD5 digest: c773114848a8c229f3cded51117e3ea1\nSigner #1 key algorithm: RSA\nSigner #1 key size (bits): 2048\nSigner #1 public key SHA-256 digest: dbdafdce9fb9ea4e778f9ef4b9951f26ff8d61e1fb4df18c5abbdac8a3c3dfdb\nSigner #1 public key SHA-1 digest: d54c941d0a2ba82939a92b777df8961d8df06919\nSigner #1 public key MD5 digest: a4b52a32b790c90839619dbb559fb9f1",
+      "zipalign16KiB": "passed",
+      "elfs": [
+        {
+          "entry": "lib/arm64-v8a/libhousehold_android.so",
+          "bytes": 21297264,
+          "sha256": "b28a1af5caa82b6d75c82c0a4e37017e66334408e5a4e4247a253bc24db87a13",
+          "loads": [
+            {
+              "alignment": 16384,
+              "fileOffset": 0,
+              "virtualAddress": 0
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 4347180,
+              "virtualAddress": 4363564
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 11244656,
+              "virtualAddress": 11277424
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 11768616,
+              "virtualAddress": 11817768
+            }
+          ],
+          "nativeEmbeddedAssets": [
+            {
+              "asset": "manifest.webmanifest",
+              "compressedSHA256": "2e90be302d6e534bcbf34eae3cf5f4a031b8421b398d702c8d4564a1b67ff0c6",
+              "compressedBytes": 284,
+              "decodedSHA256": "34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f",
+              "elfFileOffset": 1592116,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "icon-512.png",
+              "compressedSHA256": "5d20c92219db05adc96f2fefaf2e7f5bc0d8567c71502bb0301391f72821768b",
+              "compressedBytes": 1676,
+              "decodedSHA256": "c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641",
+              "elfFileOffset": 2065000,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "icon-192.png",
+              "compressedSHA256": "ad7340dc650e8abaa8c8b572c0607eb30ab8139ba6f04e54ef0b9e12b8b6efe5",
+              "compressedBytes": 831,
+              "decodedSHA256": "4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e",
+              "elfFileOffset": 1591264,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "sw.js",
+              "compressedSHA256": "07ce3b2aae5b6d62642cba7556e5a555a8c84e4cef131cb01192404dfb64242e",
+              "compressedBytes": 979,
+              "decodedSHA256": "dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543",
+              "elfFileOffset": 1464301,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "icon.svg",
+              "compressedSHA256": "aa7ba4917ea5a9d41d32814b37431d4e84b69873a62a20041f76ef19b6a6bc7f",
+              "compressedBytes": 198,
+              "decodedSHA256": "da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128",
+              "elfFileOffset": 2057436,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "assets/index-Cak_AnQS.js.map",
+              "compressedSHA256": "5830d0c0fc0a0ccbc58a5c58f20faf046ea0ba1c2f980887d3d6b602d30a1c28",
+              "compressedBytes": 464998,
+              "decodedSHA256": "155b83fd4229a99d5185d258992019207cdca40651866d9af100dff0e28526f3",
+              "elfFileOffset": 1592429,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "assets/index-Cak_AnQS.js",
+              "compressedSHA256": "cbb0dac610293b4054750ee8aad7c163de3676198a0787252bd9d862ab0097cf",
+              "compressedBytes": 125504,
+              "decodedSHA256": "e5c4648dde1aea8bd61836c62b84c9b79c0a69351cb4069b7f9a41ea79328c13",
+              "elfFileOffset": 1465305,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "assets/index-Dw3Gk6BF.css",
+              "compressedSHA256": "ae674a46edb56ec056332c630df2b896d165ec958718437d7fb358ba95ae418f",
+              "compressedBytes": 7327,
+              "decodedSHA256": "ba90f33f3540b56d070b5027aeee6588dab7b50c6403dd1b9ae43bd04e24bf41",
+              "elfFileOffset": 2057660,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "index.html",
+              "compressedSHA256": "79c25fbcd9c2d6d53a15d4a5c68592cb6e175f5529c4b3bbbbbd6408f8c9c01c",
+              "compressedBytes": 431,
+              "decodedSHA256": "863f3e082bfc214fbbb365600eb9b2f575852c0462dde477a0441cceef7e445e",
+              "elfFileOffset": 1590820,
+              "match": "Tauri HTML serialization; equivalent tags/attributes/non-whitespace text"
+            }
+          ]
+        }
+      ],
+      "requiredClassesPresent": [
+        "AppWebViewPolicy",
+        "AppWebViewPolicy$SystemBarSpace",
+        "TransferControlCommand",
+        "TransferPolicy$NetworkEstimate",
+        "DeviceIdentity",
+        "SendRouting",
+        "UploadRouting",
+        "ArrivalJobService",
+        "ArrivalOpenActivity",
+        "ArrivalTargetStore",
+        "QueueStore",
+        "Transfer",
+        "ConfigStore",
+        "TransferEngine",
+        "AppWebViewPolicy$KeyboardVisibilitySignal",
+        "AppWebViewPolicy$SystemBarSpace",
+        "ArrivalNotifications",
+        "ArrivalPolicy",
+        "ArrivalProcessor",
+        "DeviceRegistration",
+        "HouseholdPlugin",
+        "NativeHttp$Companion",
+        "UploadCompletion",
+        "ResumedActivityGate",
+        "HouseholdPlugin"
+      ],
+      "manifestEvidence": ".tools/build-delete-error-native/android-0.1.7-arm64-v8a-manifest.txt",
+      "manifestSHA256": "10b3175aeb1d6cd506c5ca5e50ec1a4c354a64be48a7b49281b69c94a800cf4f",
+      "nativeDisassemblyEvidence": ".tools/build-delete-error-native/android-0.1.7-arm64-v8a-native-dex.txt",
+      "nativeDisassemblySHA256": "c0854db9c83fe6dc601161adb4c4ed31a521d89dfa78b3cc75a1f3f354112c63",
+      "nativeFixChecks": [
+        "strict UTF-8 REPORT decoder",
+        "create-only worker registration",
+        "permission gate and throwing notification adapter without catch",
+        "ready-status size exception precedes incomplete length check"
+      ],
+      "privateOriginResourceMatches": true,
+      "sourceIconField": "#244C6A",
+      "buildOutputPath": "clients/android/build/outputs/household-share-tauri-aarch64-debug.apk"
+    },
+    {
+      "path": "artifacts/delete-error-followup/android/household-share-tauri-x86_64-debug.apk",
+      "bytes": 29378530,
+      "sha256": "14173e654f06827923972b99680cdbb21e7dda97a92c841f54cd67cd80ccdfd3",
+      "applicationId": "net.household.share.mobile",
+      "versionName": "0.1.7",
+      "versionCode": 1007,
+      "abi": "x86_64",
+      "minSdk": 26,
+      "targetSdk": 36,
+      "label": "Zing",
+      "sharedAssetsMatch": 9,
+      "signerCertificateSHA256": "d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a",
+      "apksigner": "Verifies\nVerified using v1 scheme (JAR signing): false\nVerified using v2 scheme (APK Signature Scheme v2): true\nVerified using v3 scheme (APK Signature Scheme v3): false\nVerified using v3.1 scheme (APK Signature Scheme v3.1): false\nVerified using v4 scheme (APK Signature Scheme v4): false\nVerified for SourceStamp: false\nNumber of signers: 1\nSigner #1 certificate DN: C=US, O=Android, CN=Android Debug\nSigner #1 certificate SHA-256 digest: d0904d093ae1b5f11d5aab2376a2592c9a9b97cfa0c0e376165a6d6a12de4e9a\nSigner #1 certificate SHA-1 digest: 5c726e9fac2ddb99e57de6fcf7ecea59c357c3d3\nSigner #1 certificate MD5 digest: c773114848a8c229f3cded51117e3ea1\nSigner #1 key algorithm: RSA\nSigner #1 key size (bits): 2048\nSigner #1 public key SHA-256 digest: dbdafdce9fb9ea4e778f9ef4b9951f26ff8d61e1fb4df18c5abbdac8a3c3dfdb\nSigner #1 public key SHA-1 digest: d54c941d0a2ba82939a92b777df8961d8df06919\nSigner #1 public key MD5 digest: a4b52a32b790c90839619dbb559fb9f1",
+      "zipalign16KiB": "passed",
+      "elfs": [
+        {
+          "entry": "lib/x86_64/libhousehold_android.so",
+          "bytes": 20973160,
+          "sha256": "21924cb5abead85352a98b1feafa820de17dbca0d9817552bf397d55dee0c04d",
+          "loads": [
+            {
+              "alignment": 16384,
+              "fileOffset": 0,
+              "virtualAddress": 0
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 4575136,
+              "virtualAddress": 4591520
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 12584528,
+              "virtualAddress": 12617296
+            },
+            {
+              "alignment": 16384,
+              "fileOffset": 13331640,
+              "virtualAddress": 13380792
+            }
+          ],
+          "nativeEmbeddedAssets": [
+            {
+              "asset": "assets/index-Cak_AnQS.js.map",
+              "compressedSHA256": "5830d0c0fc0a0ccbc58a5c58f20faf046ea0ba1c2f980887d3d6b602d30a1c28",
+              "compressedBytes": 464998,
+              "decodedSHA256": "155b83fd4229a99d5185d258992019207cdca40651866d9af100dff0e28526f3",
+              "elfFileOffset": 2232795,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "manifest.webmanifest",
+              "compressedSHA256": "2e90be302d6e534bcbf34eae3cf5f4a031b8421b398d702c8d4564a1b67ff0c6",
+              "compressedBytes": 284,
+              "decodedSHA256": "34b61468014280a8ddd2a659fb26f40a67cb1d98c84e46d34a5b17d42820795f",
+              "elfFileOffset": 2232482,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "assets/index-Cak_AnQS.js",
+              "compressedSHA256": "cbb0dac610293b4054750ee8aad7c163de3676198a0787252bd9d862ab0097cf",
+              "compressedBytes": 125504,
+              "decodedSHA256": "e5c4648dde1aea8bd61836c62b84c9b79c0a69351cb4069b7f9a41ea79328c13",
+              "elfFileOffset": 2105671,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "icon-512.png",
+              "compressedSHA256": "5d20c92219db05adc96f2fefaf2e7f5bc0d8567c71502bb0301391f72821768b",
+              "compressedBytes": 1676,
+              "decodedSHA256": "c541ce23a945b12f5b24dcca4b47f1a8289da46e68a5a44aaeb82186b3f55641",
+              "elfFileOffset": 2705366,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "icon-192.png",
+              "compressedSHA256": "ad7340dc650e8abaa8c8b572c0607eb30ab8139ba6f04e54ef0b9e12b8b6efe5",
+              "compressedBytes": 831,
+              "decodedSHA256": "4c63bac5d98f32f846916ab321a0d23a2b335c43294ec3c7ae279a2af373910e",
+              "elfFileOffset": 2231630,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "sw.js",
+              "compressedSHA256": "07ce3b2aae5b6d62642cba7556e5a555a8c84e4cef131cb01192404dfb64242e",
+              "compressedBytes": 979,
+              "decodedSHA256": "dda23a17f1b9073134a90c90252d094409911d1374bbefa0c38343a751ea0543",
+              "elfFileOffset": 2104667,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "assets/index-Dw3Gk6BF.css",
+              "compressedSHA256": "ae674a46edb56ec056332c630df2b896d165ec958718437d7fb358ba95ae418f",
+              "compressedBytes": 7327,
+              "decodedSHA256": "ba90f33f3540b56d070b5027aeee6588dab7b50c6403dd1b9ae43bd04e24bf41",
+              "elfFileOffset": 2698026,
+              "match": "exact frozen bytes"
+            },
+            {
+              "asset": "index.html",
+              "compressedSHA256": "79c25fbcd9c2d6d53a15d4a5c68592cb6e175f5529c4b3bbbbbd6408f8c9c01c",
+              "compressedBytes": 431,
+              "decodedSHA256": "863f3e082bfc214fbbb365600eb9b2f575852c0462dde477a0441cceef7e445e",
+              "elfFileOffset": 2231186,
+              "match": "Tauri HTML serialization; equivalent tags/attributes/non-whitespace text"
+            },
+            {
+              "asset": "icon.svg",
+              "compressedSHA256": "aa7ba4917ea5a9d41d32814b37431d4e84b69873a62a20041f76ef19b6a6bc7f",
+              "compressedBytes": 198,
+              "decodedSHA256": "da5f674585ed312b9c863fb95d62cfd2ba5cf5c712a7ffc6177b9c595709c128",
+              "elfFileOffset": 2697802,
+              "match": "exact frozen bytes"
+            }
+          ]
+        }
+      ],
+      "requiredClassesPresent": [
+        "AppWebViewPolicy",
+        "AppWebViewPolicy$SystemBarSpace",
+        "TransferControlCommand",
+        "TransferPolicy$NetworkEstimate",
+        "DeviceIdentity",
+        "SendRouting",
+        "UploadRouting",
+        "ArrivalJobService",
+        "ArrivalOpenActivity",
+        "ArrivalTargetStore",
+        "QueueStore",
+        "Transfer",
+        "ConfigStore",
+        "TransferEngine",
+        "AppWebViewPolicy$KeyboardVisibilitySignal",
+        "AppWebViewPolicy$SystemBarSpace",
+        "ArrivalNotifications",
+        "ArrivalPolicy",
+        "ArrivalProcessor",
+        "DeviceRegistration",
+        "HouseholdPlugin",
+        "NativeHttp$Companion",
+        "UploadCompletion",
+        "ResumedActivityGate",
+        "HouseholdPlugin"
+      ],
+      "manifestEvidence": ".tools/build-delete-error-native/android-0.1.7-x86_64-manifest.txt",
+      "manifestSHA256": "10b3175aeb1d6cd506c5ca5e50ec1a4c354a64be48a7b49281b69c94a800cf4f",
+      "nativeDisassemblyEvidence": ".tools/build-delete-error-native/android-0.1.7-x86_64-native-dex.txt",
+      "nativeDisassemblySHA256": "c0854db9c83fe6dc601161adb4c4ed31a521d89dfa78b3cc75a1f3f354112c63",
+      "nativeFixChecks": [
+        "strict UTF-8 REPORT decoder",
+        "create-only worker registration",
+        "permission gate and throwing notification adapter without catch",
+        "ready-status size exception precedes incomplete length check"
+      ],
+      "privateOriginResourceMatches": true,
+      "sourceIconField": "#244C6A",
+      "buildOutputPath": "clients/android/build/outputs/household-share-tauri-x86_64-debug.apk"
+    }
+  ],
+  "checks": "Existing package verifier reused for signatures, manifests, native classes/disassembly, exact assets, embedded Brotli/serialized HTML, 16KiB ZIP/ELF alignment. Added generated private default-origin resource check; address/token excluded from report.",
+  "limits": [
+    "No Mac build",
+    "No physical-device or 20 GB acceptance",
+    "No deployment/publication",
+    "Prior JVM/source tests not repeated"
+  ],
+  "historicalReceipt": {
+    "path": "artifacts/delete-error-followup/historical-ui-refresh/receipt.json",
+    "bytes": 35131,
+    "sha256": "e130b9a330de7744d213f5b2b1483d5a126b554474e7bb34b636572dca468911"
+  },
+  "buildEvidence": [
+    {
+      "path": ".tools/build-delete-error-native/android-arm64-build.log",
+      "bytes": 5054,
+      "sha256": "048cf4129907d2f533c120744958b3ef9e93aa29c1251ee12453feed95df148d"
+    },
+    {
+      "path": ".tools/build-delete-error-native/android-x86_64-build.log",
+      "bytes": 4785,
+      "sha256": "983add9f22d3cac2aed0c176637bd16afae067c549b33fa317620cdc71806fe5"
+    },
+    {
+      "path": ".tools/build-delete-error-native/android-package-audit.log",
+      "bytes": 762,
+      "sha256": "958980a8f173b4cfb09fed0898cc3f10c6237c509124c257645b99e4ab2f6545"
+    }
+  ],
+  "verificationScript": {
+    "path": ".tools/build-delete-error-native/verify-android-packages.py",
+    "bytes": 14808,
+    "sha256": "cbc0405feaf6baa583944eda5652c575b88bb9760d4fd2596e8f3f6b12849839"
+  }
+}

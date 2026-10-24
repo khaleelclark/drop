@@ -8,7 +8,14 @@ scrolls on error appearance and preserves opening-only safe Keep focus.
 Five focused Chromium cases, typecheck and one new production build pass.
 Root directly verified 81 hash entries and 20 embedded source bytes against
 `web/test-results/ui-refresh/error-visibility-freeze.json`. New-asset real Mac
-WebKit and matching installer acceptance remain pending. Existing native package
+WebKit run 40055891482 now passes 26/26 checks; the root-downloaded artifact
+matches all nine frozen assets. Both cases passed HTTP500→204 recovery with
+feed Retry issuing no extra DELETE and no DOM overrides. Matching Apple Silicon installer run 40056087692 passed 42 native tests,
+ad-hoc signing, helper execution and read-only DMG/layout checks. Root verified
+the downloaded ZIP/DMG checksums and all nine CI frontend receipts. The DMG was
+not independently mounted/extracted on Linux. Installed Tauri acceptance
+remains pending; corrected Linux/Android packages have separate passing
+archive/signing/asset receipts. Existing native package
 and emulator reports describe the prior assets and do not validate this change.
 The 22 historical evidence gaps remain recorded and unresolved.
 
