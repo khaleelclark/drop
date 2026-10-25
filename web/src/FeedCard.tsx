@@ -7,8 +7,8 @@ import { isTextFileCandidate, textDownloadName } from './text-files'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { copyExactText, type PlatformAdapter } from './platform'
 import { errorMessage, type Item } from './types'
-interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; actionBusy?:boolean; trashAvailable?:boolean }
-export function FeedCard({ item, api, platform, refresh, notify, onTrash, actionBusy, trashAvailable=true }: Props) {
+interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; onUpdated?:(item:Item)=>void; actionBusy?:boolean; trashAvailable?:boolean }
+export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpdated, actionBusy, trashAvailable=true }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
   const [body, setBody] = useState<string | undefined>(); const [loading, setLoading] = useState(false)
   const previewElement=useRef<HTMLPreElement>(null);const [clipped,setClipped]=useState(false)
@@ -49,7 +49,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
     try { await platform.download({ url: api.downloadURL(item.id, format), name: format ? textDownloadName(item.name,format) : item.name, itemId: item.id }) }
     catch (error) { setError(errorMessage(error)) }
   }
-  const pin = async () => { setBusy(true); try { await api.pin(item.id, !item.pinned); refresh() } catch (error) { setError(errorMessage(error)) } finally { setBusy(false) } }
+  const pin = async () => { setBusy(true); try { const result=await api.pin(item.id, !item.pinned);onUpdated?.(result.item);refresh() } catch (error) { setError(errorMessage(error)) } finally { setBusy(false) } }
   const remove = async () => { if(busy||actionBusy)return;setBusy(true);setError('');try { if(onTrash)await onTrash();else {await api.itemAction('trash',item.id);notify('Moved to Recently Deleted.');refresh()} } catch(error){setError(errorMessage(error))} finally{setBusy(false)} }
   const openEditor = async (reload = false) => {
     // Capture the version before fetching bytes. A racing edit must conflict, not overwrite it.
@@ -69,7 +69,8 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, action
     if (!editor || saving) return
     setSaving(true);setEditError('')
     try {
-      await api.edit(item.id,{name:editor.name,...(editor.text !== undefined ? {text:editor.text} : {}),expectedUpdatedAt:editor.version})
+      const result=await api.edit(item.id,{name:editor.name,...(editor.text !== undefined ? {text:editor.text} : {}),expectedUpdatedAt:editor.version})
+      onUpdated?.(result.item)
       setEditor(null);setBody(undefined);setCopied(false);notify('Saved.');refresh()
     } catch (error) { setEditError(error instanceof ApiError && error.status === 409 ? 'This entry changed or is no longer ready. Your draft is kept. Reload the latest entry to replace this draft, or keep it and copy your changes.' : `${errorMessage(error)} Your draft is kept. The save may have reached the server; reload to check before saving again.`) }
     finally { setSaving(false) }

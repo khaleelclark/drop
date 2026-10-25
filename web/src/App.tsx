@@ -12,6 +12,7 @@ import { PurgeDialog } from './PurgeDialog'
 import { TrashSettings } from './TrashSettings'
 import { FeedCard } from './FeedCard'
 import { chronological, compareShares } from './feed-order'
+import { FeedCache, updateSnapshot, type FeedSnapshot } from './feed-cache'
 import { ItemMenu } from './ItemMenu'
 import { ZingMark } from './ZingMark'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
@@ -25,12 +26,22 @@ type View = 'all' | 'you' | 'pinned' | 'trash'
 type ContentKind = 'all' | Item['kind']
 export function App() {
   const [refreshTick, setRefreshTick] = useState(0)
-  const refresh = useCallback(() => setRefreshTick(value => value + 1), [])
+  const accessBlocked=useRef(false)
+  const refresh = useCallback(() => {accessBlocked.current=false;setRefreshTick(value => value + 1)}, [])
   const platform = useMemo(() => window.householdPlatform || browserPlatform(window.location.origin, refresh), [refresh])
   const appearance=useAppearance(platform)
   const [origin, setOrigin] = useState(platform.baseURL || (platform.kind === 'native' ? 'http://127.0.0.1:8787' : window.location.origin))
   const [draftOrigin, setDraftOrigin] = useState(platform.kind === 'native' ? platform.baseURL || '' : origin)
-  const api = useMemo(() => new ApiClient(origin, platform.request), [origin, platform])
+  const accessEpoch=useRef(0),rejectAccessRef=useRef<(failure:unknown)=>boolean>(()=>false)
+  const api = useMemo(() => {
+    const client:ApiClient=new ApiClient(origin,async(...args)=>{
+      const epoch=accessEpoch.current
+      const response=await (platform.request||fetch)(...args)
+      if([401,403].includes(response.status)&&currentApi.current===client&&epoch===accessEpoch.current)rejectAccessRef.current(new ApiError('Access was not accepted.',response.status))
+      return response
+    })
+    return client
+  }, [origin, platform])
   const [connected, setConnected] = useState(false); const [checked, setChecked] = useState(false)
   const [needsConnection, setNeedsConnection] = useState(Boolean(platform.requiresConnection))
   const configuredNative = platform.kind === 'native' && !needsConnection
@@ -48,7 +59,6 @@ export function App() {
   const arrivalProcessor=useRef<BrowserArrivals|null>(null)
   const [arrivalTarget,setArrivalTarget]=useState(''); const [targetError,setTargetError]=useState(''); const [highlight,setHighlight]=useState('')
   const pickerRouting=useRef<{routing:SendRouting;sourceDevice:string;origin:string} | undefined>(undefined)
-  const [items, setItems] = useState<Item[]>([]); const [cursor, setCursor] = useState<string | null>(null)
   const [storage, setStorage] = useState<StorageInfo>(); const [storageError, setStorageError] = useState('')
   const [query, setQuery] = useState(''); const [search, setSearch] = useState(''); const [view, setView] = useState<View>('all')
   const [selecting,setSelecting]=useState(false),[selected,setSelected]=useState<string[]>([])
@@ -68,16 +78,50 @@ export function App() {
   const [mobile,setMobile]=useState(()=>window.matchMedia?.('(max-width: 800px)').matches??false)
   const workspace=useRef<HTMLDivElement>(null),feedScroll=useRef<HTMLDivElement>(null)
   const feedPosition=useRef<{scope:string;nearEnd:boolean;anchor?:{id:string;top:number};newest?:Item}>({scope:'',nearEnd:true})
-  const loadedScope=useRef(''),loadedOlder=useRef(false),loadedBoundary=useRef<Item|undefined>(undefined)
+  const feedCache=useRef(new FeedCache())
+  const [feed,setFeed]=useState<FeedSnapshot>()
+  const feedScope=JSON.stringify([api.baseURL,search,view==='trash'?'trash':view==='you'?'you':'all',view==='you'?deviceId:''])
+  const scopeRef=useRef(feedScope);scopeRef.current=feedScope
+  const snapshot=feed?.scope===feedScope?feed:feedCache.current.get(feedScope)
+  const items=snapshot?.items||[],cursor=snapshot?.nextCursor??null
+  const commitFeed=(next:FeedSnapshot)=>{feedCache.current.put(next);setFeed(next)}
+  const clearFeed=()=>{
+    sequence.current++;accessEpoch.current++;feedCache.current.clear();setFeed(undefined);openedItem.current=null;pendingArrivalFocus.current='';setHighlight('');setArrivalTarget('')
+    feedPosition.current={scope:'',nearEnd:true};setSelected([]);setSelecting(false);setActionErrors([]);setPurgeIds(null);setFolderSummary(null)
+  }
+  const removeCached=(ids:Set<string>)=>{
+    sequence.current++;feedCache.current.remove(ids)
+    setFeed(previous=>previous?{...previous,items:previous.items.filter(item=>!ids.has(item.id)),head:{...previous.head,items:previous.head.items.filter(item=>!ids.has(item.id))}}:previous)
+    if(openedItem.current&&ids.has(openedItem.current.id)){openedItem.current=null;setHighlight('')}
+  }
+  const updateCached=(item:Item)=>{
+    sequence.current++;feedCache.current.update(item)
+    setFeed(previous=>previous?updateSnapshot(previous,item):previous)
+    if(openedItem.current?.id===item.id)openedItem.current=item
+  }
   const [newShares,setNewShares]=useState(false)
   const [unmeasuredKeyboard,setUnmeasuredKeyboard]=useState(false)
   const inputMode=useRef<'pointer'|'keyboard'>('pointer')
-  const [loading, setLoading] = useState(true); const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState('')
+  const [pending,setPending]=useState(''); const [settled,setSettled]=useState('')
+  const awaitingDevice=view==='you'&&!deviceId&&connected&&!deviceError
+  const loading=awaitingDevice||pending===feedScope||(!snapshot&&settled!==feedScope&&!needsConnection)
+  const [loadingMore, setLoadingMore] = useState(false); const [error, setError] = useState('')
   const [live, setLive] = useState(false); const [offline, setOffline] = useState(!navigator.onLine)
   const [toast, setToast] = useState(''); const [text, setText] = useState(''); const [sending, setSending] = useState(false)
   const [composerError, setComposerError] = useState(''); const [dragging, setDragging] = useState(false); const [helpOpen, setHelpOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null); const textFileInput = useRef<HTMLInputElement>(null); const composer = useRef<HTMLTextAreaElement>(null)
   const sequence = useRef(0)
+  const rejectAccess=(failure:unknown)=>{
+    if(!(failure instanceof ApiError)||![401,403].includes(failure.status))return false
+    const message='Access was not accepted. Check Tailscale and this server’s access settings, or use an app token under Advanced.'
+    accessBlocked.current=true
+    clearFeed();setDeviceId('');setDevices([]);setTargets([])
+    setConnected(false);setStorage(undefined);setError(message);setConnectionError(message)
+    setPending('');setSettled(feedScope);setLoadingMore(false)
+    if(!configuredNative)openConnection()
+    return true
+  }
+  rejectAccessRef.current=rejectAccess
   const notify = useCallback((message: string) => setToast(message), [])
   const startMobileEditing = () => { if (window.matchMedia('(max-width: 800px)').matches) setMobileEditing(true) }
   const openComposer=()=>composer.current?.focus()
@@ -140,24 +184,27 @@ export function App() {
     window.addEventListener('online', on); window.addEventListener('offline', off)
     return () => { window.removeEventListener('online', on); window.removeEventListener('offline', off) }
   }, [refresh])
+  useEffect(()=>{accessBlocked.current=false;clearFeed();setDeviceId('');setDevices([]);setTargets([])},[api])
   useEffect(() => {
     const number = ++sequence.current; let cancelled = false
-    if (nativeNeedsConnection) { setLoading(false); return }
-    setLoading(true); setError('')
-    if(view==='you'&&!deviceId){setLoading(false);return}
+    if (needsConnection||accessBlocked.current) { setPending(''); setSettled(feedScope); return }
+    if(view==='you'&&!deviceId){setPending('');setSettled(feedScope);return}
+    setPending(feedScope); setError('');setLoadingMore(false)
+    const previous=feed?.scope===feedScope?feed:feedCache.current.get(feedScope)
+    if(previous)setFeed(previous)
     void (view==='trash'?api.trashPage(search):api.list(search,undefined,view==='you'?deviceId:undefined)).then(async page => {
-      if (cancelled || number !== sequence.current) return
-      const scope=`${api.baseURL}:${search}:${view==='you'}:${view==='trash'}`
-      const retain=view!=='trash'&&loadedScope.current===scope&&loadedOlder.current
-      if(retain&&loadedBoundary.current){
-        const boundary=loadedBoundary.current,seen=new Set(page.items.map(item=>item.id)),cursors=new Set<string>()
+      if (cancelled || number !== sequence.current || scopeRef.current!==feedScope) return
+      const head={items:[...page.items],nextCursor:page.nextCursor}
+      const retain=view!=='trash'&&previous?.older
+      if(retain&&previous.boundary){
+        const boundary=previous.boundary,seen=new Set(page.items.map(item=>item.id)),cursors=new Set<string>()
         let oldest=chronological(page.items)[0]
         // Re-read through the loaded boundary so other devices' edits/deletes cannot leave stale older rows.
         while(page.nextCursor&&oldest&&compareShares(oldest,boundary)>0){
           if(cursors.has(page.nextCursor))throw new Error('The server repeated a feed cursor. Refresh to try again.')
           cursors.add(page.nextCursor)
           const older=await api.list(search,page.nextCursor,view==='you'?deviceId:undefined)
-          if(cancelled||number!==sequence.current)return
+          if(cancelled||number!==sequence.current||scopeRef.current!==feedScope)return
           page.items.push(...older.items.filter(item=>{if(seen.has(item.id))return false;seen.add(item.id);return true}))
           page.nextCursor=older.nextCursor;oldest=chronological(older.items)[0]||oldest
         }
@@ -166,27 +213,21 @@ export function App() {
       const selected=openedItem.current
       if(view==='you'&&!search&&selected&&!page.items.some(item=>item.id===selected.id)){
         try{const fresh=await api.item(selected.id);if(fresh.item.status==='ready')page.items=[fresh.item,...page.items]}
-        catch(error){if(error instanceof ApiError&&error.status===404){openedItem.current=null;setHighlight('')}else throw error}
+        catch(error){if(cancelled||number!==sequence.current||scopeRef.current!==feedScope)return;if(error instanceof ApiError&&error.status===404){openedItem.current=null;setHighlight('')}else throw error}
       }
-      if (cancelled || number !== sequence.current) return
-      setItems(page.items);setCursor(page.nextCursor)
-      if(!retain)loadedOlder.current=false
-      loadedBoundary.current=boundary
-      loadedScope.current=scope;setConnected(true); setChecked(true); setConnectionError('')
+      if (cancelled || number !== sequence.current || scopeRef.current!==feedScope) return
+      commitFeed({...page,scope:feedScope,kind:view==='trash'?'trash':view==='you'?'you':'all',query:search,head,older:Boolean(retain),boundary})
+      setConnected(true); setChecked(true); setConnectionError('')
       if(view==='trash')setTrashSupport('supported')
     }).catch(error => {
-      if (cancelled || number !== sequence.current) return
+      if (cancelled || number !== sequence.current || scopeRef.current!==feedScope) return
       setChecked(true)
-      if (error instanceof ApiError && (error.status === 401 || error.status === 403)) {
-        const message = 'Access was not accepted. Check Tailscale and this server’s access settings, or use an app token under Advanced.'
-        setConnected(false); setItems([]); setStorage(undefined); setError(message); setConnectionError(message)
-        if (!configuredNative) openConnection()
-      }
+      if (rejectAccess(error)) return
       else if(error instanceof ApiError&&error.code==='update_required')setTrashSupport('unsupported')
       else setError(`Couldn’t load shares. ${errorMessage(error)}`)
-    }).finally(() => { if (!cancelled && number === sequence.current) setLoading(false) })
+    }).finally(() => { if (!cancelled && number === sequence.current && scopeRef.current===feedScope) {setPending('');setSettled(feedScope)} })
     return () => { cancelled = true }
-  }, [api, search, refreshTick, view==='you', view==='trash', deviceId, configuredNative, nativeNeedsConnection])
+  }, [api, search, refreshTick, feedScope, configuredNative, needsConnection])
   useEffect(()=>{setTrashSupport('checking');setFolderUnsupported(false)},[api])
   useEffect(()=>{
     if(!connected||view==='trash')return
@@ -197,7 +238,6 @@ export function App() {
     return()=>{cancelled=true}
   },[api,connected,refreshTick,view==='trash'])
   useEffect(()=>{setSelecting(false);setSelected([]);if(!actionLock.current){setActionErrors([]);setPurgeIds(null);setFolderSummary(null)}},[view,search,contentKind,api])
-  useEffect(()=>{setItems([])},[api,search,view==='trash',view==='you'])
   useEffect(()=>{
     if(!connected)return
     let cancelled=false; setDeviceId('');setDeviceError('')
@@ -248,9 +288,9 @@ export function App() {
     void api.item(arrivalTarget).then(({item})=>{
       if(cancelled)return
       if(item.status!=='ready')throw new Error('This share is not ready. Try again later.')
-      setLoading(true);refresh()
+      refresh()
       openedItem.current=item;pendingArrivalFocus.current=item.id;setConnectionOpen(false);setHelpOpen(false);setMobileEditing(false);setView('you');setContentKind('all');setQuery('');setSearch('');setHighlight(item.id)
-      setItems(previous=>[item,...previous.filter(row=>row.id!==item.id)])
+      // The validated alert target is explicit navigation, not inferred For you membership.
       setArrivalTarget('')
       const url=new URL(window.location.href);url.searchParams.delete('item');window.history.replaceState(null,'',url)
     }).catch(error=>{if(!cancelled)setTargetError(error instanceof ApiError&&error.status===404?'This share was deleted or is no longer available.':errorMessage(error))})
@@ -311,8 +351,9 @@ export function App() {
     try {
       const target = new ApiClient(draftOrigin, platform.request)
       if (platform.kind === 'browser' && target.baseURL !== window.location.origin) throw new Error('Open Drop at your server’s address to connect. Browser sessions use the server you opened.')
-      if (platform.configureConnection) { await platform.configureConnection(target.baseURL, token, draftDevice); setOrigin(target.baseURL); setConnected(false); setItems([]); setStorage(undefined) }
+      if (platform.configureConnection) { await platform.configureConnection(target.baseURL, token, draftDevice); setOrigin(target.baseURL);setConnected(false); setStorage(undefined) }
       else if(token) await target.session(token)
+      clearFeed()
       await target.list()
       const identity=platform.kind==='native'?platform.deviceIdentity:{id:await browserDeviceId(target.baseURL),platform:'browser' as const}
       if(identity&&draftDevice!==device)await target.register({...identity,label:draftDevice})
@@ -335,7 +376,7 @@ export function App() {
     catch(error){setConnectionError(errorMessage(error))}finally{setConnecting(false)}
   }
   const logout = async () => {
-    try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } sequence.current++;setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setItems([]); setStorage(undefined); setMobileEditing(false); setConnectionOpen(platform.kind === 'browser'); notify('Disconnected.') }
+    try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } clearFeed();setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setStorage(undefined); setMobileEditing(false); setConnectionOpen(platform.kind === 'browser'); notify('Disconnected.') }
     catch (error) { setConnectionError(errorMessage(error)) }
   }
   const sendText = async () => {
@@ -386,10 +427,16 @@ export function App() {
     if (kind === 'text') textFileInput.current?.click(); else input.current?.click()
   }
   const loadMore = async () => {
-    if (!cursor || loadingMore) return
+    if (!cursor || loadingMore || !snapshot) return
     const current = sequence.current; setLoadingMore(true)
-    try { const page = await (view==='trash'?api.trashPage(search,cursor):api.list(search, cursor,view==='you'?deviceId:undefined)); if (current === sequence.current) { loadedOlder.current=true;const oldest=chronological(page.items)[0];if(oldest)loadedBoundary.current=oldest;setItems(previous => { const ids = new Set(previous.map(item => item.id)); return [...previous, ...page.items.filter(item => !ids.has(item.id))] }); setCursor(page.nextCursor) } }
-    catch (error) { setError(errorMessage(error)) } finally { setLoadingMore(false) }
+    try {
+      const page = await (view==='trash'?api.trashPage(search,cursor):api.list(search,cursor,view==='you'?deviceId:undefined))
+      if(current===sequence.current&&scopeRef.current===feedScope){
+        const ids=new Set(snapshot.items.map(item=>item.id)),oldest=chronological(page.items)[0]
+        commitFeed({...snapshot,items:[...snapshot.items,...page.items.filter(item=>!ids.has(item.id))],nextCursor:page.nextCursor,older:true,boundary:oldest||snapshot.boundary})
+      }
+    } catch(error){if(current===sequence.current&&scopeRef.current===feedScope&&!rejectAccess(error))setError(errorMessage(error))}
+    finally{if(current===sequence.current&&scopeRef.current===feedScope)setLoadingMore(false)}
   }
   const filtered = items.filter(item => (view !== 'pinned' || item.pinned) && (contentKind === 'all' || item.kind === contentKind))
   const visible = view==='trash'?filtered:chronological(filtered)
@@ -480,8 +527,9 @@ export function App() {
       else results=await api.itemActions(action,ids)
       const success=new Set(results.filter(result=>result.ok).map(result=>result.id))
       const failed=results.filter((result):result is Extract<ItemActionResult,{ok:false}>=>!result.ok)
+      if(currentApi.current!==api)return
+      removeCached(success)
       if(scope!==actionScope.current){refresh();return}
-      sequence.current++;setItems(previous=>previous.filter(item=>!success.has(item.id)))
       setSelected(previous=>previous.filter(id=>!success.has(id)))
       setActionErrors(failed.map(result=>({id:result.id,name:names.get(result.id)||result.id,message:result.error.code==='upload_active'?'This upload is still active. Use Cancel in Transfers instead.':`${result.error.message}${action==='purge'&&result.error.status>=500?' It may already be permanently deleted. Refresh to check.':''}`})))
       if(success.size)notify(`${success.size} ${success.size===1?'item':'items'} ${action==='trash'?'moved to Recently Deleted':action==='restore'?'restored':'permanently deleted'}.`)
@@ -516,7 +564,7 @@ export function App() {
         // Keep only bounded failure details, not every ID in the whole folder.
         for(const result of errors)if(failures.length<20)failures.push({id:result.id,name:names.get(result.id)||result.id,message:`${result.error.message}${result.error.status>=500?' It may already be permanently deleted. Refresh to check.':''}`})
         if(currentApi.current===api){
-          sequence.current++;setItems(previous=>previous.filter(item=>!success.has(item.id)))
+          removeCached(success)
           setSelected(previous=>[...new Set([...previous.filter(id=>!success.has(id)),...errors.filter(result=>names.has(result.id)).map(result=>result.id)])].slice(0,100))
           setActionErrors([...failures]);setFolderProgress({deleted,failed,running:true,uncertain})
         }
@@ -559,9 +607,9 @@ export function App() {
           {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button>{configuredNative && <button className="text-button" disabled={actionBusy} onClick={() => openConnection()}>Settings</button>}<button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
           <div className="feed-scroll" ref={feedScroll} onScroll={rememberPosition} tabIndex={0} role="region" aria-label="Shares">
           {cursor && view!=='trash' && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowUp size={15} />} Load older items</button>}
-          {loading && !items.length ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Loading…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={`share-entry ${highlight===item.id?'arrival-highlight':''} ${selecting?'is-selectable':''} ${selected.includes(item.id)?'is-selected':''}`}>
+          {loading && !snapshot ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Loading…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={`share-entry ${highlight===item.id?'arrival-highlight':''} ${selecting?'is-selectable':''} ${selected.includes(item.id)?'is-selected':''}`}>
             {selecting&&<label className="item-selection"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selected.includes(item.id)} disabled={actionBusy||item.status==='uploading'||(!selected.includes(item.id)&&selected.length>=100)} onChange={()=>toggleSelection(item.id)}/></label>}
-            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={openComposer}><Plus size={16} /> Share something</button>}</div>}
+            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onUpdated={item=>{if(currentApi.current===api)updateCached(item)}} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='you'&&deviceError)||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={openComposer}><Plus size={16} /> Share something</button>}</div>}
           {cursor && view==='trash' && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowDown size={15} />} Load older items</button>}
           </div>
           {newShares&&view!=='trash'&&<button className="new-shares button secondary" onClick={jumpToNewest}><ArrowDown size={16}/>New shares</button>}
