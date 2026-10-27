@@ -117,7 +117,7 @@ final class TitlebarRegression {
         for theme in ["light", "dark"] {
             web.appearance = NSAppearance(named: theme == "dark" ? .darkAqua : .aqua)
             _ = try evaluate("document.documentElement.dataset.theme='\(theme)'")
-            let rgb: [CGFloat] = theme == "dark" ? [20/255, 46/255, 82/255] : [20/255, 122/255, 214/255]
+            let rgb: [CGFloat] = theme == "dark" ? [20.0/255.0, 46.0/255.0, 82.0/255.0] : [20.0/255.0, 122.0/255.0, 214.0/255.0]
             let appearance = web.effectiveAppearance.name
             let windowAppearance = window.appearance
             let themeBefore = try evaluate("getComputedStyle(document.documentElement).backgroundColor") as? String
@@ -131,7 +131,7 @@ final class TitlebarRegression {
                 try require(contentVisible(image, rgb: rgb), "\(theme)/\(index): nine composited WebKit probes remain visible after style/resize")
                 let layout = window.contentLayoutRect
                 let titlePoint = NSPoint(x: window.frame.width * 0.75, y: (layout.maxY + window.frame.height) / 2)
-                try require(matches(image, point: titlePoint, rgb: [180/255, 35/255, 54/255]), "\(theme)/\(index): title strip is red")
+                try require(matches(image, point: titlePoint, rgb: [180.0/255.0, 35.0/255.0, 54.0/255.0]), "\(theme)/\(index): title strip is red")
                 try require(window.contentView === web && web.effectiveAppearance.name == appearance && window.appearance === windowAppearance,
                             "\(theme)/\(index): native content identity and appearance unchanged")
                 let themeAfter = try evaluate("getComputedStyle(document.documentElement).backgroundColor") as? String
@@ -144,10 +144,10 @@ final class TitlebarRegression {
         // A click-through overlay can pass hit testing while hiding every content pixel.
         let overlay = ClickThroughOverlay(frame: web.bounds)
         overlay.wantsLayer = true
-        overlay.layer?.backgroundColor = NSColor(srgbRed: 180/255, green: 35/255, blue: 54/255, alpha: 1).cgColor
+        overlay.layer?.backgroundColor = NSColor(srgbRed: 180.0/255.0, green: 35.0/255.0, blue: 54.0/255.0, alpha: 1).cgColor
         web.addSubview(overlay)
         defer { overlay.removeFromSuperview() }
-        try require(!contentVisible(try capture("negative-control-overlay"), rgb: [20/255, 46/255, 82/255]),
+        try require(!contentVisible(try capture("negative-control-overlay"), rgb: [20.0/255.0, 46.0/255.0, 82.0/255.0]),
                     "Pixel oracle rejects an opaque native overlay (negative control)")
     }
 }
