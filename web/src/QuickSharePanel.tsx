@@ -1,5 +1,5 @@
 import {useCallback,useEffect,useRef,useState} from 'react'
-import {ArrowLeft,Clipboard,FileUp,FolderUp,Globe,Laptop,Monitor,Search,Send,Smartphone,UploadCloud,Users,X} from 'lucide-react'
+import {Clipboard,FileUp,FolderUp,Globe,Laptop,Monitor,Send,Smartphone,UploadCloud,Users,X} from 'lucide-react'
 import {useAppearance} from './Appearance'
 import type {PlatformAdapter} from './platform'
 import {checkQuickText,type QuickContext,type QuickDevice,type QuickRouting,type QuickShareAdapter} from './quick-share'
@@ -15,9 +15,9 @@ function DeviceIcon({platform}:{platform?:QuickDevice['platform']}){
 export function QuickSharePanel({platform,bridge}:{platform:PlatformAdapter;bridge:QuickShareAdapter}){
   const appearance=useAppearance(platform),appearanceChange=useRef(appearance.change);appearanceChange.current=appearance.change
   const [context,setContext]=useState<QuickContext>(),[ready,setReady]=useState(false),[refreshing,setRefreshing]=useState(false)
-  const [selected,setSelected]=useState<Destination>(),[detail,setDetail]=useState(false),[query,setQuery]=useState(''),[draft,setDraft]=useState('')
+  const [selected,setSelected]=useState<Destination>(),[draft,setDraft]=useState('')
   const [busy,setBusy]=useState(false),[dragging,setDragging]=useState(false),[error,setError]=useState(''),[contextError,setContextError]=useState(''),[status,setStatus]=useState('')
-  const actionLock=useRef(false),generation=useRef(0),active=useRef(true),search=useRef<HTMLInputElement>(null),editor=useRef<HTMLTextAreaElement>(null)
+  const actionLock=useRef(false),generation=useRef(0),active=useRef(true),editor=useRef<HTMLTextAreaElement>(null)
   const refresh=useCallback(async()=>{
     const current=++generation.current;setRefreshing(true);setReady(false)
     try{
@@ -41,7 +41,7 @@ export function QuickSharePanel({platform,bridge}:{platform:PlatformAdapter;brid
     window.addEventListener('focus',focus);window.addEventListener('keydown',key);window.addEventListener('blur',blur);window.addEventListener('storage',storage)
     return()=>{active.current=false;generation.current++;window.removeEventListener('focus',focus);window.removeEventListener('keydown',key);window.removeEventListener('blur',blur);window.removeEventListener('storage',storage)}
   },[refresh,dismiss])
-  useEffect(()=>{void bridge.resize(detail).catch(failure=>setError(`Couldn’t size the panel. Use Open Drop. ${errorMessage(failure)}`));if(detail)editor.current?.focus();else search.current?.focus()},[detail,bridge])
+  useEffect(()=>{void bridge.resize(false).catch(failure=>setError(`Couldn’t size the panel. Use Open Drop. ${errorMessage(failure)}`))},[bridge])
   const destination=(device?:QuickDevice):Destination=>{
     if(!context||!ready)throw new Error('Refresh devices before choosing a destination.')
     return{id:device?.id||'',label:device?.label||'Everyone',platform:device?.platform,baseUrl:context.baseUrl,sourceDeviceId:context.sourceDeviceId}
@@ -60,14 +60,11 @@ export function QuickSharePanel({platform,bridge}:{platform:PlatformAdapter;brid
   }
   const choose=(device?:QuickDevice)=>{
     if(actionLock.current)return
-    try{setSelected(destination(device));setDetail(true);setStatus('');setError('')}
+    try{setSelected(destination(device));setStatus('');setError('')}
     catch(failure){setError(errorMessage(failure))}
   }
-  const paste=(device?:QuickDevice,fromList=false)=>void run(async()=>{
+  const paste=()=>void run(async()=>{
     if(draft.length)throw new Error('Your draft already contains text. Send or clear it before using Paste; nothing was replaced.')
-    const next=fromList?destination(device):selected
-    if(!next)throw new Error('Choose a destination before using Paste.')
-    setSelected(next);setDetail(true)
     const text=await bridge.paste();checkQuickText(text);setDraft(text)
     requestAnimationFrame(()=>editor.current?.focus())
   })
@@ -97,34 +94,21 @@ export function QuickSharePanel({platform,bridge}:{platform:PlatformAdapter;brid
     if(text.length){try{checkQuickText(text)}catch(failure){setError(errorMessage(failure));return}}
     setDraft(text);setStatus('')
   }
-  const receiving=context?.devices.filter(device=>device.id!==context.sourceDeviceId&&device.label.toLocaleLowerCase().includes(query.toLocaleLowerCase()))||[]
-  const everyone='everyone'.includes(query.toLocaleLowerCase())
+  const receiving=context?.devices.filter(device=>device.id!==context.sourceDeviceId)||[]
   const blocked=busy||!ready||stale||!selected
-  const row=(device?:QuickDevice)=><div className="quick-device" key={device?.id||'everyone'}>
-    <button className="quick-device-name" disabled={busy||!ready} onClick={()=>choose(device)}><DeviceIcon platform={device?.platform}/><span>{device?.label||'Everyone'}</span></button>
-    <button className="icon-button" disabled={busy||!ready} aria-label={`Paste text to ${device?.label||'Everyone'}${device?` (${device.id.slice(-6)})`:''}`} onClick={()=>paste(device,true)}><Clipboard size={18}/></button>
-  </div>
-  return <main className={`quick-share ${detail?'quick-detail':''}`} aria-label="Drop quick share" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();setDragging(false);if(event.dataTransfer.files.length)setError('Use the installed file drop or Send Files. Browser file bytes cannot be queued here.')}}>
-    <header className="quick-header">{detail?<button className="icon-button" disabled={busy} aria-label="Back to devices" onClick={()=>setDetail(false)}><ArrowLeft size={20}/></button>:<ZingMark/>}<h1>{detail?'Share to':'Quick share'}</h1><button className="icon-button" aria-label="Hide quick share" onClick={dismiss}><X size={20}/></button></header>
+  return <main className="quick-share" aria-label="Drop quick share" onDragOver={event=>event.preventDefault()} onDrop={event=>{event.preventDefault();setDragging(false);if(event.dataTransfer.files.length)setError('Use the installed file drop or Send Files. Browser file bytes cannot be queued here.')}}>
+    <header className="quick-header"><ZingMark/><h1>Quick send</h1><button className="icon-button" aria-label="Hide quick share" onClick={dismiss}><X size={20}/></button></header>
     <div className="quick-content">
-      {detail?<>
-        <div className="quick-recipient"><DeviceIcon platform={selected?.platform}/><h2>{selected?.label||'Everyone'}</h2></div>
-        <div className="quick-actions"><button className="button secondary" disabled={busy} onClick={()=>paste()}><Clipboard size={16}/>Paste</button><button className="button secondary" disabled={blocked} onClick={()=>queue('file')}><FileUp size={16}/>Send Files</button><button className="button secondary" disabled={blocked} onClick={()=>queue('folder')}><FolderUp size={16}/>Send Folder</button></div>
-      </>:<>
-        <label className="quick-search"><Search size={18}/><span className="sr-only">Find a device</span><input ref={search} value={query} onChange={event=>setQuery(event.target.value)} placeholder="Find a device" type="search"/></label>
-        <div className="quick-devices" role="group" aria-label="Receiving devices">{everyone&&row()}{receiving.map(device=>row(device))}{!everyone&&!receiving.length&&<p className="field-note">No matching devices.</p>}</div>
-        {draft.length>0&&<button className="text-button" disabled={busy} onClick={()=>{setDetail(true);setQuery('')}}>Review retained draft · {selected?.label||'Choose a destination'}</button>}
-      </>}
+      <div className="quick-recipient"><label htmlFor="quick-to">To</label><DeviceIcon platform={selected?.platform}/><select id="quick-to" disabled={busy||!ready} value={stale?'stale':selected?.id||''} onChange={event=>{const id=event.target.value;const device=receiving.find(device=>device.id===id);if(id&&!device)return;choose(device)}}>{stale&&<option value="stale" disabled>{selected?.label} · choose again</option>}<option value="">Everyone</option>{receiving.map(device=><option key={device.id} value={device.id}>{device.label}</option>)}</select></div>
+      <form className="quick-draft" onSubmit={event=>{event.preventDefault();if(!busy)send()}}><label htmlFor="quick-text">Text to share</label><textarea id="quick-text" ref={editor} disabled={busy} value={textareaText(draft)} onChange={event=>edit(preserveTextareaEdit(draft,event.target.value))} onPaste={event=>{event.preventDefault();const text=event.clipboardData.getData('text/plain');if(!text){setError('The clipboard has no plain text. Copy text or use Send Files.');return}edit(insertPlainText(draft,event.currentTarget.selectionStart,event.currentTarget.selectionEnd,text))}} placeholder="Paste or type text…"/><div className="quick-send"><button type="button" className="button secondary" disabled={busy} onClick={paste}><Clipboard size={16}/>Paste</button><button className="button primary" disabled={blocked||!draft.length}><Send size={16}/>{busy?'Working…':'Send'}</button></div></form>
+      <div className="quick-actions"><button className="button secondary" disabled={blocked} onClick={()=>queue('file')}><FileUp size={16}/>Send Files</button><button className="button secondary" disabled={blocked} onClick={()=>queue('folder')}><FolderUp size={16}/>Send Folder</button></div>
       <div className={`quick-drop ${dragging?'is-dragging':''}`} role="region" aria-label={`Drop files or folders to ${selected?.label||'Everyone'}`}><UploadCloud size={25}/><span>Drop files or folders<span className="field-note">To {selected?.label||'Everyone'}</span></span></div>
-      {detail&&<form className="quick-draft" onSubmit={event=>{event.preventDefault();if(!busy)send()}}><label htmlFor="quick-text">Text to share</label><textarea id="quick-text" ref={editor} disabled={busy} value={textareaText(draft)} onChange={event=>edit(preserveTextareaEdit(draft,event.target.value))} onPaste={event=>{event.preventDefault();const text=event.clipboardData.getData('text/plain');if(!text){setError('The clipboard has no plain text. Copy text or use Send Files.');return}edit(insertPlainText(draft,event.currentTarget.selectionStart,event.currentTarget.selectionEnd,text))}} placeholder="Paste or type text…"/><div className="quick-send"><span className="field-note">To {selected?.label||'Everyone'}</span><button className="button primary" disabled={blocked||!draft.length}><Send size={16}/>{busy?'Working…':'Send'}</button></div></form>}
-      {stale&&<p className="inline-error" role="alert">The connection, sender or selected device changed. Go Back and choose a destination again. Your draft is retained.</p>}
+      {stale&&<p className="inline-error" role="alert">The connection, sender or selected device changed. Choose a destination again. Your draft is retained.</p>}
       {error&&<p className="inline-error" role="alert">{error}</p>}
-      {contextError&&<p className="inline-error" role="alert">{contextError}</p>}
+      {contextError&&<div className="inline-error" role="alert"><p>{contextError}</p><button className="text-button" disabled={refreshing||busy} onClick={()=>void refresh()}>Retry devices</button></div>}
       {appearance.nativeError&&<p className="inline-error" role="alert">{appearance.nativeError}</p>}
       {status&&<p className="quick-status" role="status">{status}</p>}
       {!ready&&<p className="field-note" role="status">{refreshing?'Refreshing devices…':'Devices unavailable.'}</p>}
-      <button className="text-button quick-refresh" disabled={refreshing||busy} onClick={()=>void refresh()}>Refresh devices</button>
     </div>
-    <footer className="quick-footer"><div><button className="text-button" onClick={()=>void bridge.open().catch(failure=>setError(errorMessage(failure)))}>Open Drop</button><button className="text-button" disabled={busy} onClick={()=>void run(()=>bridge.quit())}>Quit</button></div><small>More actions: right-click the menu-bar icon</small></footer>
   </main>
 }

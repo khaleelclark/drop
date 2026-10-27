@@ -253,7 +253,7 @@ continues. No remote page gains native IPC and no credential enters JavaScript.
 | `native_quick_send_text` | `{baseUrl,sourceDeviceId,targetDeviceIds:string[],text:string}` | `{itemId:string}` only after a confirmed HTTP 201 ready-text receipt |
 | `native_quick_pick` | `{baseUrl,sourceDeviceId,targetDeviceIds:string[],kind:"file"|"folder"}` | `{queued:number,cancelled:boolean}`; cancellation is `{queued:0,cancelled:true}` |
 | `native_quick_drop` | `{baseUrl,sourceDeviceId,targetDeviceIds:string[],paths:string[]}` | `{queued:number,cancelled:false}` after local queue intake; 1–100 valid absolute paths, duplicates ignored within that call |
-| `native_quick_resize` | `{detail:boolean}` | null; request compact list/detail geometry clamped to the icon's display work area |
+| `native_quick_resize` | `{detail:boolean}` | null; re-anchor the fixed 400×520 logical-pixel composer, clamped to the icon's display work area; legacy detail argument is ignored |
 | `native_quick_hide` | `{}` | null; hide the retained panel without unmounting its draft or stopping work |
 | `native_quick_open` | `{}` | null; hide the panel and show the existing main window with Settings/pairing reachable |
 | `native_quick_quit` | `{}` | null; shut down the resident queue and exit |
@@ -277,7 +277,10 @@ preparation. Queue acceptance is not upload completion. Partial or ambiguous
 intake errors name the confirmed earlier count and direct the user to Transfers
 before adding anything again. Dismissal cannot cancel or duplicate accepted work.
 
-Refresh context on focus, exclude the sender, and search the registry locally.
+Open directly to the compact composer with a To recipient selector; there is no
+search/list/detail screen or footer Open/Quit/hint. Open Drop and Pause transfers
+and Quit Drop remain in the native right-click menu. Refresh context on focus
+and exclude the sender from the selector.
 Everyone is an empty target array. Preserve an explicit stale target and draft;
 never reinterpret it as Everyone. Native validates current paired origin,
 sender identity and registered targets before text send/drop/picker, and saves

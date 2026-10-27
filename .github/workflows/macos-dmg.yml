@@ -8,7 +8,7 @@ on:
         required: false
         type: string
   push:
-    branches: [main, build/drop-0.2.6-inbox-update-20261027]
+    branches: [main, build/drop-0.2.7-mac-quick-fix-20261027]
     paths:
       - '.github/workflows/macos-dmg.yml'
       - 'integrations/macos/**'
@@ -70,6 +70,11 @@ jobs:
           echo "$RUNNER_TEMP/household-build-tools/node_modules/.bin" >> "$GITHUB_PATH"
           rustup toolchain install "$HOUSEHOLD_RUST_VERSION" --profile minimal --no-self-update --target "$BUILD_TARGET"
 
+      - name: Check titlebar and WebKit composited window
+        run: |
+          mkdir -p "artifacts/macos/${{ matrix.target }}"
+          bash integrations/macos/test-titlebar-webview.sh "artifacts/macos/${{ matrix.target }}/titlebar-regression"
+
       - name: Test, build, sign, create and verify DMG
         env:
           BUILD_TARGET: ${{ matrix.target }}
@@ -91,6 +96,6 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
         with:
           name: household-share-macos-${{ matrix.arch }}-failure-logs
-          path: artifacts/macos/${{ matrix.target }}/*.log
+          path: artifacts/macos/${{ matrix.target }}/
           if-no-files-found: ignore
           retention-days: 7

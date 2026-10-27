@@ -154,11 +154,13 @@ pub fn native_quick_quit(app: tauri::AppHandle, state: State<NativeState>) -> Re
 #[tauri::command]
 pub fn native_quick_resize(app: tauri::AppHandle, detail: bool) -> Result<(), String> {
     supported()?;
+    // Retain the existing bridge argument; the composer now has one fixed geometry.
+    let _ = detail;
     #[cfg(target_os = "macos")]
-    return lifecycle::resize(&app, detail);
+    return lifecycle::resize(&app);
     #[cfg(not(target_os = "macos"))]
     {
-        let _ = (app, detail);
+        let _ = app;
         Err("Quick sharing is available only in the Mac app".into())
     }
 }
@@ -180,13 +182,11 @@ pub mod lifecycle {
     }
     struct Panel {
         anchor: Mutex<Option<Anchor>>,
-        detail: AtomicBool,
         picking: AtomicBool,
     }
     pub fn setup(app: &tauri::App) -> tauri::Result<()> {
         app.manage(Panel {
             anchor: Mutex::new(None),
-            detail: AtomicBool::new(false),
             picking: AtomicBool::new(false),
         });
         WebviewWindowBuilder::new(
@@ -195,7 +195,7 @@ pub mod lifecycle {
             WebviewUrl::App("index.html?quick-share=1".into()),
         )
         .title("Drop quick share")
-        .inner_size(360.0, 520.0)
+        .inner_size(crate::panel_position::WIDTH, crate::panel_position::HEIGHT)
         .resizable(false)
         .decorations(false)
         .always_on_top(true)
@@ -205,9 +205,8 @@ pub mod lifecycle {
         .build()?;
         Ok(())
     }
-    pub fn resize(app: &tauri::AppHandle, detail: bool) -> Result<(), String> {
+    pub fn resize(app: &tauri::AppHandle) -> Result<(), String> {
         let panel = app.state::<Panel>();
-        panel.detail.store(detail, Ordering::SeqCst);
         let anchor = panel.anchor.lock().map_err(|e| e.to_string())?;
         let Some(anchor) = anchor.as_ref() else {
             return Ok(());
@@ -241,7 +240,6 @@ pub mod lifecycle {
                 area.size.height,
             ),
             scale,
-            detail,
         );
         w.set_size(tauri::PhysicalSize::new(width, height))
             .map_err(|e| e.to_string())?;
@@ -269,7 +267,7 @@ pub mod lifecycle {
                         rect,
                     });
                 }
-                if let Err(error) = resize(app, panel.detail.load(Ordering::SeqCst)) {
+                if let Err(error) = resize(app) {
                     eprintln!("{error}");
                     crate::show(app);
                     return;

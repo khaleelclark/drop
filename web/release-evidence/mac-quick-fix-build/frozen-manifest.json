@@ -1,10 +1,11 @@
 {
   "format": 1,
-  "scope": "Accepted inbox drag/settings and Mac quick-share/Open at login frontend for matching 0.2.6/code2006 packages",
-  "createdAt": "2026-10-27T17:04:27.255432+00:00",
+  "scope": "Accepted direct Mac quick-send frontend for root desktop0.2.7 integration; native geometry400x520",
+  "createdAt": "2026-10-27T18:20:10.336616+00:00",
   "productionBuildAttemptsThisRequest": 1,
   "productionBuildsPassedThisRequest": 1,
-  "SWCache": "household-shell-v18",
+  "builtCasesPassedThisRequest": 1,
+  "SWCache": "household-shell-v19",
   "buildInputs": [
     {
       "path": "web/index.html",
@@ -54,7 +55,7 @@
     {
       "path": "web/public/sw.js",
       "size": 2153,
-      "sha256": "f7fabf0b5baa50f93b7c8423f103f3c85453e4d501de8fb6aed3e3cff8ddab91"
+      "sha256": "7174e60781975473e1aa46c6954aa2c4b81b932eccfb4bf1204207a91681cd9c"
     },
     {
       "path": "web/public/zip-js-LICENSE.txt",
@@ -123,13 +124,13 @@
     },
     {
       "path": "web/src/QuickSharePanel.test.tsx",
-      "size": 11096,
-      "sha256": "d36e4039a14fc09fb58c0a1146bca47542d3d2b94bbca83820163fd4f2cb30b6"
+      "size": 12051,
+      "sha256": "53ea32820ecbc130ea7a00a829d2bf845dfbb65ce41b83dd98ca79cab5916589"
     },
     {
       "path": "web/src/QuickSharePanel.tsx",
-      "size": 12400,
-      "sha256": "b18f57163916e31a40ec3d22c426f6b8ba6896427b189daa5ad7e8aedcb6ee0c"
+      "size": 10434,
+      "sha256": "6a936c20dc5d0ef128dffa4c98359f05330dfb1e53a52b562b72b06cd44484b2"
     },
     {
       "path": "web/src/RecipientPicker.tsx",
@@ -283,8 +284,8 @@
     },
     {
       "path": "web/src/styles.css",
-      "size": 53862,
-      "sha256": "fd9d8e2c1c0444ad14160b38c72d4bca0a5c071400c6885b2dfd0488f576b7e6"
+      "size": 53086,
+      "sha256": "1a820364618c464b16e5e98e8ba1ec3842efc7d8499b9942b26db773605c997d"
     },
     {
       "path": "web/src/test-setup.ts",
@@ -349,6 +350,197 @@
   ],
   "distFiles": [
     {
+      "path": "web/dist/assets/index-B34B5hoH.css",
+      "size": 46531,
+      "sha256": "3fe0f1499d0fc693a4b3bddd90c5a341e259654fa45b1f97ef9ba16f27381534"
+    },
+    {
+      "path": "web/dist/assets/index-DtNoaJdj.js",
+      "size": 604347,
+      "sha256": "60e10d2c5ae832d284f7305a08c1218dc846aaa043f552edf6ee9234eaa771e2"
+    },
+    {
+      "path": "web/dist/assets/index-DtNoaJdj.js.map",
+      "size": 2640933,
+      "sha256": "c6438ad6b239c551bde05859d7cbb77eb6b3ebac02532964fd4b2dc3f329a830"
+    },
+    {
+      "path": "web/dist/icon-192.png",
+      "size": 1707,
+      "sha256": "2b0976d422a5f87e516140213d8e58f61079f45296f7c722981b92765b7c6ddf"
+    },
+    {
+      "path": "web/dist/icon-512.png",
+      "size": 6026,
+      "sha256": "f44b68e08890a7d5653a76ee27a57f0e79d6ac35063ff085763d044955b500e4"
+    },
+    {
+      "path": "web/dist/icon.svg",
+      "size": 490,
+      "sha256": "675cdc8a080155137c712eea04b15b0adf7a4a434b2a7e551abc1db7da728974"
+    },
+    {
+      "path": "web/dist/index.html",
+      "size": 704,
+      "sha256": "f13308bfc2576e5af3158c196c82095dca5b39bb67bc7a80ba03448a9b5d0cf6"
+    },
+    {
+      "path": "web/dist/manifest.webmanifest",
+      "size": 619,
+      "sha256": "93f701a75df9d839cc0f8bc95b602e3bceaea5c229b632eb75fe33c73293bd1f"
+    },
+    {
+      "path": "web/dist/sw.js",
+      "size": 2153,
+      "sha256": "7174e60781975473e1aa46c6954aa2c4b81b932eccfb4bf1204207a91681cd9c"
+    },
+    {
+      "path": "web/dist/zip-js-LICENSE.txt",
+      "size": 1501,
+      "sha256": "1b7ebc8d7889ed25491484ab2b102370742ca6c0b26650a0c62cc2269b579b84"
+    }
+  ],
+  "generatedFiles": [
+    {
+      "path": "web/tsconfig.tsbuildinfo",
+      "size": 1429,
+      "sha256": "9c9b03f966996018abc0df2cf9df949e0a1dcc63ee85b22f78016ec263734e2f"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/attempts.json",
+      "size": 767,
+      "sha256": "942df625cf89351082b254deeca9bc0af1607e48f7ae9167054c09e111092af5"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/before/quick-share.spec.ts.txt",
+      "size": 8660,
+      "sha256": "cf7b772710cae9fa221e4a27203e8d0f3a9f455f299d7c16894850674d5561f2"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/before/sw.js.txt",
+      "size": 2153,
+      "sha256": "f7fabf0b5baa50f93b7c8423f103f3c85453e4d501de8fb6aed3e3cff8ddab91"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/before/tsconfig.tsbuildinfo.txt",
+      "size": 1429,
+      "sha256": "9c9b03f966996018abc0df2cf9df949e0a1dcc63ee85b22f78016ec263734e2f"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/before-manifest.json",
+      "size": 308440,
+      "sha256": "fd45c0e53bcf872913b5e003e2ecc9cc03e6952f688404b5691763861bff06be"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/build-inputs.json",
+      "size": 11116,
+      "sha256": "152405c5871f494a76cb4855a8fcdbb959775bc9579b6da21f03b5261eb97c12"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/build.log",
+      "size": 709,
+      "sha256": "7e587a8315ec54040f07e917c765c5eb46d2f9a996be5e5e8412e3cd7f24e84c"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built/panel-browser-result.json",
+      "size": 2622,
+      "sha256": "93f59fc0564fd9f79024f3841cab394b8140f92894b438a11168c0d8d0cfbb74"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built/panel-compact-dark.png",
+      "size": 26457,
+      "sha256": "fb09e754cb44ebd7a249a4fe99f5ff9a59c9067f435f221638f0899bdc366bc6"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built/panel-compact-initial-light.png",
+      "size": 23703,
+      "sha256": "e028b9dc42a5c11f65d6db52186a69ebaa1eda89128231dbee0bf7f0aeaeb845"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built/panel-compact-light.png",
+      "size": 26568,
+      "sha256": "da00db4fcfcf47b9269884502002fd16480f1ceaf88c1971ca3c65d063793970"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built/served-dist.json",
+      "size": 2113,
+      "sha256": "8ae1c6b2a6690130099b37b07dde34cb610367047bb8a6a2a0c194465487b868"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built-1.log",
+      "size": 999,
+      "sha256": "9c2031d90d63c4bb268f40fd2c72596f552aa9c4465f9ca351235097d8e7b6ff"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built-quick.spec.ts",
+      "size": 8395,
+      "sha256": "b6e80349f6643e2ee9ee3283407ace59839ff03de5eaeacce9a0f5708452b60e"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/built.playwright.config.ts",
+      "size": 678,
+      "sha256": "021560e8cc282fd7465e53340f5adc7536ba31062c0a107014209ef5bd4977f2"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/bundle-checks.json",
+      "size": 69908,
+      "sha256": "671bd5c7e7f982011445b8b95d2cf24c9c068a21037388e96c0f0b6a83952156"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/bundle.log",
+      "size": 256,
+      "sha256": "0ea4a4f5b62beb37c3b5c1d5063773057a34eb4898fcf0d8d34a2e88a8421773"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/dist-files.json",
+      "size": 1498,
+      "sha256": "28ed3803c6ace652f23bd4c49c43275727139e5db75a4d29f2dec43ca66dbffd"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/dist.tar.gz",
+      "size": 879778,
+      "sha256": "bfc7d86c772c8e0ffd3b58e2ce7cdb2560c0ad9f20200a072085a4cfd1e825ef"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/harness-adaptations.json",
+      "size": 1277,
+      "sha256": "8455326e44f0d3befec7058d56a07f6ab9a93f48594fef483161360a27561330"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/preservation-final.json",
+      "size": 3312,
+      "sha256": "c5c8391514a3f00fd5c5d8fe2a879cb4710fc5e91b58a24bb6cff42af54dc84d"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/receipt.py",
+      "size": 15209,
+      "sha256": "fbf9627ce3540641eec8a2a6c9c78186f1ca6e7dbd76f333ff3b8842563426f3"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/render-inspection.json",
+      "size": 1545,
+      "sha256": "294e29b6c1e77cc1826ed74b63637654021cc10f6fe525051e70b197ca8696c9"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/served-dist.cjs",
+      "size": 1002,
+      "sha256": "21996c52c74d0424a9a8dd429ca17ad869f648375e7f08db7c2117ba321ea61a"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/sw-cache.patch",
+      "size": 471,
+      "sha256": "c2f03deab858be2984272730a907109d28b16fcc4e0f4dc439708db2097fe370"
+    },
+    {
+      "path": "web/release-evidence/mac-quick-fix-build/traces-1/.last-run.json",
+      "size": 45,
+      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
+    }
+  ],
+  "previousDistFiles": [
+    {
       "path": "web/dist/assets/index-CGE9lKbO.js",
       "size": 606464,
       "sha256": "70832754ae849fa0518d66ac715cf44268801e2145b72c9b5969761c4aa17ff3"
@@ -399,331 +591,20 @@
       "sha256": "1b7ebc8d7889ed25491484ab2b102370742ca6c0b26650a0c62cc2269b579b84"
     }
   ],
-  "generatedFiles": [
-    {
-      "path": "web/tsconfig.tsbuildinfo",
-      "size": 1429,
-      "sha256": "9c9b03f966996018abc0df2cf9df949e0a1dcc63ee85b22f78016ec263734e2f"
-    }
-  ],
-  "evidenceFiles": [
-    {
-      "path": "web/release-evidence/inbox-update-build/attempts.json",
-      "size": 2787,
-      "sha256": "2887e863fe543e968842631ea9ff9b451c006d65bcb1afac149dba04b532f222"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/before-manifest.json",
-      "size": 304774,
-      "sha256": "ba106c99791c590ccbac83ad4a53879b141c600a167ea909fdd64fd4a885cd2f"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/before-source.tar.gz",
-      "size": 466080,
-      "sha256": "6c9a523de2409ee676e4069c5f9aa5c15bb34ee14e411c1aa6ab1f562d4d3c6b"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/build-inputs.json",
-      "size": 11116,
-      "sha256": "0d13caca90f4ceae08cf032beed156a532a84ab74b7ee64a73d3c82639eec13b"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/build.log",
-      "size": 709,
-      "sha256": "5325c61d060ed5e2ff7ff5b5d91d377ff8c284867ed377ab4e456e8db8cb55f8"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/desktop-drag.png",
-      "size": 93731,
-      "sha256": "c1c211f388f5e38905aa53291a090f88d1811cc82abafddee662988b2679a01f"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/desktop-result.json",
-      "size": 621,
-      "sha256": "2eedbe8ce8b11acf1aa695a7614fb9bb2d95123d951fd660e0dbf5f4f521babe"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/desktop-settings-retention.png",
-      "size": 206009,
-      "sha256": "d4966e1385a49f6c9b8144b197bcd7c0a2121e5022f827008eff994f315723f4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/desktop-settings-top.png",
-      "size": 207144,
-      "sha256": "764a9aa523422cba6ccc41e8a61cdcb8129cfa2d14f130e3c586da76ecd7d28b"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/login-browser-result.json",
-      "size": 81,
-      "sha256": "7db5c6612981fb517eb8847ad5b6b69984303ca94760bb8bc092d01a6be859b8"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/panel-browser-result.json",
-      "size": 680,
-      "sha256": "79cfb296564bd7cfe63da6cc581cde2d0cfd682850759fdbfa4968649f620c82"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/panel-detail-dark.png",
-      "size": 34618,
-      "sha256": "a77d0cbeb56a5a868272cdedbaafba7e75714d62708275e0ef712b19321ac73c"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/panel-detail-light.png",
-      "size": 34637,
-      "sha256": "39045ebcecae793b56bd8b935197a1a88581d5a46eca4536e5a93894a05f5fef"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/panel-list-light.png",
-      "size": 23853,
-      "sha256": "8c921098e7f562b8368763672df4e75f5be4c78c81b3a2deb3ba2547eb333fa4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/phone-drag-result.json",
-      "size": 379,
-      "sha256": "602ade76c937d5302a233e98716637d1e76e659adfc545b26aecafb797e38764"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/phone-drag.png",
-      "size": 56910,
-      "sha256": "56a40a6c8a6addbfbbd328fbab54f16078baf4f167ba22c3841239bcb01dfad0"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/phone-settings-retention.png",
-      "size": 63411,
-      "sha256": "cd8a15fca98143dc26c04503a52cba4f4242f96dff7eefc3b90df030e645eed1"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/phone-settings-top.png",
-      "size": 63490,
-      "sha256": "87ec81689b8a92aa5df88beedb39f667006195ef83f437b2d5ced4413520dee4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/served-dist-initial.json",
-      "size": 2113,
-      "sha256": "7bb5de816d1cc3fc3026334a7d6f3b010d8e0dcfd9e5565359b8a662f1bd6ea4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/served-dist.json",
-      "size": 2113,
-      "sha256": "7bb5de816d1cc3fc3026334a7d6f3b010d8e0dcfd9e5565359b8a662f1bd6ea4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built/settings-login-error.png",
-      "size": 133063,
-      "sha256": "e25256892aae079ba60f81dc658decb6becb5d4b7afa679b0d5eff5cf6446892"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built-1.log",
-      "size": 7862,
-      "sha256": "04c1b67f2ee880e04d4c5ad1d60ecff862b2b9982993d88223cd501fa19f90bd"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built-2.log",
-      "size": 1228,
-      "sha256": "23e91c707b7af931685b5b12c3cdea4bf6863f15a3da00fddbffe68de588fd28"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built-inbox-initial.spec.ts.txt",
-      "size": 17233,
-      "sha256": "05bd0a3beeb0644e5393dea52519c99d845fd84347b3849f0dec96799d3081a2"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built-inbox.spec.ts",
-      "size": 17267,
-      "sha256": "79bb2f1687ef3b9c58e015e67e9ca83f9e066a3c098abef287788d3af888c5bf"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built-quick.spec.ts",
-      "size": 6743,
-      "sha256": "4fa4d215225a519dee87784f015fe949acf908151fbe9523ca500b23c3f8583e"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/built.playwright.config.ts",
-      "size": 700,
-      "sha256": "5ef5561fce441de2a5a6a71912918e42d9ebc0c65d34563d345bd9ab3f80e9f7"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/bundle-checks.json",
-      "size": 70334,
-      "sha256": "00f596cb01ac0279f44493ad64eeddd2aa2cdf9c5af369fdff454fa5e5de0b51"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/bundle-final.log",
-      "size": 228,
-      "sha256": "cf4c0877d43a498eea5dcb2abfaa9143dd64a093f3a7b7c832a1be750f63cb48"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/bundle-initial-failure.log",
-      "size": 425,
-      "sha256": "ce53d1a7bf9ab3d3caf2a9c7a75d3a78de2c6da325183d59fe1aa91ee5d5c3f0"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/dist-files.json",
-      "size": 1498,
-      "sha256": "521e7211fbc7fe34856eb297608d1712cbf88c35f19a2d8d7ab0f1d941e1b24d"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/dist.tar.gz",
-      "size": 881712,
-      "sha256": "edf664332258e9d60c608d135c8f5c4ceb2fbd7dd5b40c0bcaf80a7305f7da10"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/harness-adaptations.json",
-      "size": 1375,
-      "sha256": "22e58d5e19de992bf25cfb37d7fb0d96ffb2d482914b7dec9711f0dbcc6e14cb"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/desktop-drag.png",
-      "size": 93748,
-      "sha256": "43a49fe8e8487f445e2437924010751928db0bf68a55b6f184ecc45a0e4b7b43"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/desktop-settings-retention.png",
-      "size": 206009,
-      "sha256": "d4966e1385a49f6c9b8144b197bcd7c0a2121e5022f827008eff994f315723f4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/desktop-settings-top.png",
-      "size": 207144,
-      "sha256": "764a9aa523422cba6ccc41e8a61cdcb8129cfa2d14f130e3c586da76ecd7d28b"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/phone-drag.png",
-      "size": 56885,
-      "sha256": "270b386278a07e7fb88eb66f69d16839ba1bd323bd07fcf7f9051b0f551f02cc"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/phone-settings-retention.png",
-      "size": 63411,
-      "sha256": "cd8a15fca98143dc26c04503a52cba4f4242f96dff7eefc3b90df030e645eed1"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/initial-attempt-renders/phone-settings-top.png",
-      "size": 63490,
-      "sha256": "87ec81689b8a92aa5df88beedb39f667006195ef83f437b2d5ced4413520dee4"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/preservation-final.json",
-      "size": 882,
-      "sha256": "8ed1060bd78b21c132041da36840bafe1697b0fdcb41782d2189000c790a06bd"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/receipt.py",
-      "size": 14706,
-      "sha256": "03289734af62aa792d384caaf6880f68d1405d0e32a62e08570b0be71bd54f2a"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/render-inspection.json",
-      "size": 3833,
-      "sha256": "f21e674ff8c6c45cc434a3f733f25d4c572b783960556e5674c409d31078b40b"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/served-dist.cjs",
-      "size": 1002,
-      "sha256": "26548fcc9736defc1b8c2d22ecb38fd5d54c8fe8004e5c34ded21371667c68d6"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/sw-cache.patch",
-      "size": 468,
-      "sha256": "bef4f5447ea36358e509e571a73ceb6bf29d64fa6ff3dbb6dfcbc363c8c21770"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-1/.last-run.json",
-      "size": 145,
-      "sha256": "5c60cbe185c139c9830cc9b7c3351742e9b6dcd5c1705075a093e0e5a6fd62c2"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-1/built-inbox-desktop-captur-05421-and-preserve-browser-intake/error-context.md",
-      "size": 19253,
-      "sha256": "73fca4b290cd40258d661c5342aedfaae5931485427b44773c4bb095ca4051db"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-1/built-inbox-desktop-captur-05421-and-preserve-browser-intake/trace.zip",
-      "size": 6344463,
-      "sha256": "631dca3a5b142f4b4992423a3a1fc2fe703b45bdd43c1a487a9c2d62aea68aec"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-1/built-inbox-phone-touch-an-b3b7b-serve-native-external-drops/error-context.md",
-      "size": 19230,
-      "sha256": "fa901b928714a84142daa825593ef24e333acfd0773a8a2b6864365aacd14c65"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-1/built-inbox-phone-touch-an-b3b7b-serve-native-external-drops/trace.zip",
-      "size": 2236311,
-      "sha256": "8cd517f41c1169003669f402b9830e18728f2ddf7be80df9805b7bb6014e0fd9"
-    },
-    {
-      "path": "web/release-evidence/inbox-update-build/traces-2/.last-run.json",
-      "size": 45,
-      "sha256": "91d1c43004802cd49950d78eb11c8fa7d05da8ffffe219a8b13b2f561bc00903"
-    }
-  ],
-  "previousDistFiles": [
-    {
-      "path": "web/dist/assets/index-B26mvcB1.js",
-      "size": 583607,
-      "sha256": "a4fc6c931a82e03c8841e21a0bc75ebd9a7aba1365d871141923540b0e6f5755"
-    },
-    {
-      "path": "web/dist/assets/index-B26mvcB1.js.map",
-      "size": 2585079,
-      "sha256": "2d6aec741b0498d9581460384e5c8e3c0fc0d31d68643a4e47121563f74fba85"
-    },
-    {
-      "path": "web/dist/assets/index-SVJ7llWt.css",
-      "size": 42138,
-      "sha256": "45861579702eaea8fc253750f695a1aa33729fbee25461ca201dca1c8a28f46e"
-    },
-    {
-      "path": "web/dist/icon-192.png",
-      "size": 1707,
-      "sha256": "2b0976d422a5f87e516140213d8e58f61079f45296f7c722981b92765b7c6ddf"
-    },
-    {
-      "path": "web/dist/icon-512.png",
-      "size": 6026,
-      "sha256": "f44b68e08890a7d5653a76ee27a57f0e79d6ac35063ff085763d044955b500e4"
-    },
-    {
-      "path": "web/dist/icon.svg",
-      "size": 490,
-      "sha256": "675cdc8a080155137c712eea04b15b0adf7a4a434b2a7e551abc1db7da728974"
-    },
-    {
-      "path": "web/dist/index.html",
-      "size": 704,
-      "sha256": "ae81caa67b9e7f47168c5eea5bde2cf2fc46d5877a7e683cef5d7740b842e6cf"
-    },
-    {
-      "path": "web/dist/manifest.webmanifest",
-      "size": 619,
-      "sha256": "93f701a75df9d839cc0f8bc95b602e3bceaea5c229b632eb75fe33c73293bd1f"
-    },
-    {
-      "path": "web/dist/sw.js",
-      "size": 2153,
-      "sha256": "253436499ef7faecb9a8713b42a9ae274b7b5be55e699f954eef644011a5ab75"
-    },
-    {
-      "path": "web/dist/zip-js-LICENSE.txt",
-      "size": 1501,
-      "sha256": "1b7ebc8d7889ed25491484ab2b102370742ca6c0b26650a0c62cc2269b579b84"
-    }
-  ],
   "previousDistPreservedIn": {
-    "path": "web/release-evidence/tab-switch-build/dist.tar.gz",
-    "size": 858913,
-    "sha256": "9b9c65e67b201d5913aa99586ad41430c23c3e42683548401801f0981a3e19b8"
-  },
-  "distArchive": {
     "path": "web/release-evidence/inbox-update-build/dist.tar.gz",
     "size": 881712,
     "sha256": "edf664332258e9d60c608d135c8f5c4ceb2fbd7dd5b40c0bcaf80a7305f7da10"
   },
-  "priorEvidenceReference": {
-    "path": "web/release-evidence/inbox-update-build/before-manifest.json",
-    "size": 304774,
-    "sha256": "ba106c99791c590ccbac83ad4a53879b141c600a167ea909fdd64fd4a885cd2f"
+  "distArchive": {
+    "path": "web/release-evidence/mac-quick-fix-build/dist.tar.gz",
+    "size": 879778,
+    "sha256": "bfc7d86c772c8e0ffd3b58e2ce7cdb2560c0ad9f20200a072085a4cfd1e825ef"
   },
-  "exclusions": "Report and final inventory avoid circular hashes; historical evidence remains immutable and refers to its own earlier source/dist state. No recursive prior archive copies. Native metadata outside web inputs is owned separately."
+  "priorEvidenceReference": {
+    "path": "web/release-evidence/mac-quick-fix-build/before-manifest.json",
+    "size": 308440,
+    "sha256": "fd45c0e53bcf872913b5e003e2ecc9cc03e6952f688404b5691763861bff06be"
+  },
+  "exclusions": "Report and final inventory avoid circular hashes. Prior accepted source/build evidence remains immutable and describes its own state; no recursive old copies. Native metadata/source/packaging owned separately."
 }
