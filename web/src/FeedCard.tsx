@@ -7,8 +7,8 @@ import { isTextFileCandidate, textDownloadName } from './text-files'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { copyExactText, type PlatformAdapter } from './platform'
 import { errorMessage, type Item } from './types'
-interface Props { item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; onUpdated?:(item:Item)=>void; actionBusy?:boolean; trashAvailable?:boolean }
-export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpdated, actionBusy, trashAvailable=true }: Props) {
+interface Props { mutation?:{begin:()=>boolean;end:()=>void}; item: Item; api: ApiClient; platform: PlatformAdapter; refresh: () => void; notify: (message: string) => void; onTrash?:()=>Promise<void>; onUpdated?:(item:Item)=>void; actionBusy?:boolean; trashAvailable?:boolean }
+export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpdated, mutation, actionBusy, trashAvailable=true }: Props) {
   const preparation = useRef<AbortController | undefined>(undefined)
   const [body, setBody] = useState<string | undefined>(); const [loading, setLoading] = useState(false)
   const previewElement=useRef<HTMLPreElement>(null);const [clipped,setClipped]=useState(false)
@@ -41,7 +41,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
   const copy = async () => {
     if (body === undefined) { await prepare(); return }
     setBusy(true); setError(''); setCopied(false)
-    try { await copyExactText(platform, body); setCopied(true); notify('Full text copied.') }
+    try { await copyExactText(platform, body); setCopied(true) }
     catch (error) { setError(errorMessage(error)) } finally { setBusy(false) }
   }
   const download = async () => {
@@ -49,7 +49,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
     try { await platform.download({ url: api.downloadURL(item.id, format), name: format ? textDownloadName(item.name,format) : item.name, itemId: item.id }) }
     catch (error) { setError(errorMessage(error)) }
   }
-  const pin = async () => { setBusy(true); try { const result=await api.pin(item.id, !item.pinned);onUpdated?.(result.item);refresh() } catch (error) { setError(errorMessage(error)) } finally { setBusy(false) } }
+  const pin = async () => { if(busy||actionBusy||(mutation&&!mutation.begin()))return;setBusy(true); try { const result=await api.pin(item.id, !item.pinned);onUpdated?.(result.item);refresh() } catch (error) { setError(errorMessage(error)) } finally { setBusy(false);mutation?.end() } }
   const remove = async () => { if(busy||actionBusy)return;setBusy(true);setError('');try { if(onTrash)await onTrash();else {await api.itemAction('trash',item.id);notify('Moved to Recently Deleted.');refresh()} } catch(error){setError(errorMessage(error))} finally{setBusy(false)} }
   const openEditor = async (reload = false) => {
     // Capture the version before fetching bytes. A racing edit must conflict, not overwrite it.
@@ -66,14 +66,14 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
   }
   const cancelEdit = () => { editPreparation.current?.abort();editPreparation.current=undefined;setEditLoading(false);setEditor(null);setEditError('') }
   const saveEdit = async () => {
-    if (!editor || saving) return
+    if (!editor || saving || actionBusy || (mutation&&!mutation.begin())) return
     setSaving(true);setEditError('')
     try {
       const result=await api.edit(item.id,{name:editor.name,...(editor.text !== undefined ? {text:editor.text} : {}),expectedUpdatedAt:editor.version})
       onUpdated?.(result.item)
       setEditor(null);setBody(undefined);setCopied(false);notify('Saved.');refresh()
     } catch (error) { setEditError(error instanceof ApiError && error.status === 409 ? 'This entry changed or is no longer ready. Your draft is kept. Reload the latest entry to replace this draft, or keep it and copy your changes.' : `${errorMessage(error)} Your draft is kept. The save may have reached the server; reload to check before saving again.`) }
-    finally { setSaving(false) }
+    finally { setSaving(false);mutation?.end() }
   }
   const fullPreview = boundedPreview(body ?? item.preview ?? '',1200)
   const lines = fullPreview.text.replace(/\s+$/, '').split('\n'); const collapsed = lines.slice(0,6).join('\n')
@@ -90,14 +90,14 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
   const textual = item.kind==='text' || (item.size<=COPY_LIMIT && isTextFileCandidate(item))
   return <article className={`feed-card ${item.kind} ${item.pinned ? 'is-pinned' : ''}`} aria-label={`${item.kind === 'text' ? 'Text' : 'File'}: ${item.name}`}>
     {editor ? <form className="entry-editor" aria-label={`Edit ${item.name}`} onSubmit={event=>{event.preventDefault();void saveEdit()}} onKeyDown={event=>{if(event.key==='Escape'){event.preventDefault();event.stopPropagation();(document.activeElement as HTMLElement)?.blur()}}}>
-      <label>Entry name<input ref={nameInput} required maxLength={255} value={editor.name} disabled={saving||editLoading} onChange={event=>setEditor({...editor,name:event.target.value})}/></label>
-      {editor.text !== undefined ? <label>Entry text<textarea ref={textInput} value={editor.text} disabled={saving||editLoading} onChange={event=>{const value=event.target.value;setEditor({...editor,text:preserveTextareaEdit(editor.text!,value)})}} onPaste={event=>{
+      <label>Entry name<input ref={nameInput} required maxLength={255} value={editor.name} disabled={saving||editLoading||actionBusy} onChange={event=>setEditor({...editor,name:event.target.value})}/></label>
+      {editor.text !== undefined ? <label>Entry text<textarea ref={textInput} value={editor.text} disabled={saving||editLoading||actionBusy} onChange={event=>{const value=event.target.value;setEditor({...editor,text:preserveTextareaEdit(editor.text!,value)})}} onPaste={event=>{
         if(!event.clipboardData.types.includes('text/plain'))return
         event.preventDefault();const pasted=event.clipboardData.getData('text/plain');const start=event.currentTarget.selectionStart;const end=event.currentTarget.selectionEnd
         setEditor({...editor,text:insertPlainText(editor.text!,start,end,pasted)})
         requestAnimationFrame(()=>{const caret=start+textareaText(pasted).length;textInput.current?.setSelectionRange(caret,caret)})
       }}/></label> : item.kind==='text'&&<p className="field-note">Too large to edit here. Rename or download it.</p>}
-      <div className="editor-actions"><button className="button secondary" disabled={saving||editLoading}><Save size={16}/>{saving?'Saving…':'Save entry'}</button><button type="button" className="text-button" disabled={saving} onClick={cancelEdit}>Cancel editing</button><button type="button" className="text-button" onClick={()=>{(document.activeElement as HTMLElement)?.blur()}}>Done typing</button></div>
+      <div className="editor-actions"><button className="button secondary" disabled={saving||editLoading||actionBusy}><Save size={16}/>{saving?'Saving…':'Save entry'}</button><button type="button" className="text-button" disabled={saving} onClick={cancelEdit}>Cancel editing</button><button type="button" className="text-button" onClick={()=>{(document.activeElement as HTMLElement)?.blur()}}>Done typing</button></div>
     </form> : <div className={`feed-row ${expanded ? 'is-expanded' : ''}`}>
       <div className="row-content">
         {item.kind === 'text' ? <><pre ref={previewElement} tabIndex={expanded ? 0 : undefined} className={`text-preview ${expanded ? 'expanded' : ''}`}>{rendered ? rendered.text : collapsed || (item.status === 'ready' ? 'Empty text' : 'Text is being uploaded…')}</pre>{(canExpand||expanded)&&<button className="text-button expand-text" aria-expanded={expanded} onClick={()=>{if(!expanded&&body===undefined)void prepare();setExpanded(!expanded)}}>{expanded?<ChevronUp size={15}/>:<ChevronDown size={15}/>} {expanded?'Collapse text':'Expand text'}</button>}</> : <h3 className="file-name"><FileIcon size={17} aria-hidden="true" />{item.name}</h3>}
@@ -111,8 +111,8 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
         {item.kind==='text' && item.size>COPY_LIMIT && <button className="button action-button download-action" aria-label="Download" title="Download text" onClick={()=>void download()} disabled={item.status!=='ready'}><ArrowDownToLine size={16}/><span>Download</span></button>}
         <ItemMenu name={item.name}>{close=><>
           {item.kind==='text'&&item.size<=COPY_LIMIT&&<button role="menuitem" tabIndex={0} onClick={()=>{void download();close()}} disabled={item.status!=='ready'}><ArrowDownToLine size={17}/>Download</button>}
-          <button role="menuitem" tabIndex={0} disabled={item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
-          <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
+          <button role="menuitem" tabIndex={0} disabled={actionBusy||item.status!=='ready'||editLoading} onClick={()=>{void openEditor();close()}}><Pencil size={17}/>{item.kind==='text'&&item.size<=COPY_LIMIT?'Edit entry':'Rename entry'}</button>
+          <button role="menuitem" tabIndex={0} onClick={()=>{void pin();close()}} disabled={busy||actionBusy||item.status!=='ready'}><Pin size={17}/>{item.pinned?'Unpin item':'Pin item'}</button>
           {trashAvailable&&<button role="menuitem" tabIndex={0} className="menu-danger" disabled={busy||actionBusy||item.status==='uploading'} title={item.status==='uploading'?'Use Cancel in Transfers for active uploads':undefined} onClick={()=>{void remove();close()}}><Trash2 size={17}/>Delete</button>}
         </>}</ItemMenu>
       </div></div>
@@ -121,7 +121,7 @@ export function FeedCard({ item, api, platform, refresh, notify, onTrash, onUpda
     {(loading||editLoading)&&<button className="text-button" onClick={()=>{preparation.current?.abort();setLoading(false);editPreparation.current?.abort();setEditLoading(false)}}>Cancel preparation</button>}
     {expanded && rendered?.truncated && <p className="inline-note">Preview shortened. Copy or download the full text.</p>}
     {textual && item.size > COPY_LIMIT && <p className="inline-note">Too large to copy here. Download {item.kind==='text'?'.txt':'the file'} to open or copy the full text in another app.</p>}
-    {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
+    {editError && <div className="edit-recovery"><p className="inline-error" role="alert">{editError}</p><button className="text-button" disabled={saving||editLoading||actionBusy} onClick={()=>void openEditor(true)}>Reload latest entry (replace draft)</button></div>}
     {error && <p className="inline-error" role="alert">{error}</p>}
   </article>
 }

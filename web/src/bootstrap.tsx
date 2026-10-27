@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { App } from './App'
 import { detectNativeInvoke, nativePlatform } from './native-platform'
 import { errorMessage } from './types'
+import { QuickSharePanel } from './QuickSharePanel'
 
 export async function startApplication(element: HTMLElement) {
   document.documentElement.toggleAttribute('data-native-android', window.__HOUSEHOLD_NATIVE__?.platform === 'android')
@@ -10,7 +11,9 @@ export async function startApplication(element: HTMLElement) {
   try {
     const invoke = detectNativeInvoke()
     if (!window.householdPlatform && invoke) window.householdPlatform = await nativePlatform(invoke)
-    root.render(<StrictMode><App /></StrictMode>)
+    const platform=window.householdPlatform
+    const quick=new URLSearchParams(window.location.search).get('quick-share')==='1'&&platform?.kind==='native'&&platform.quickShare
+    root.render(<StrictMode>{quick?<QuickSharePanel platform={platform!} bridge={quick}/>:<App />}</StrictMode>)
     if (import.meta.env.PROD && 'serviceWorker' in navigator && !window.householdPlatform) {
       window.addEventListener('load', () => { void navigator.serviceWorker.register('/sw.js').catch(() => {}) })
     }

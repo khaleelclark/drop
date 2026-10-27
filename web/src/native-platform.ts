@@ -1,13 +1,14 @@
 import type { AppearanceChoice, AppearanceRequest, FileDrop, PlatformAdapter, ResolvedTheme } from './platform'
 import type { Transfer, TransferState, TransferStore } from './transfers'
 import { errorMessage, type ArrivalSettings, type DevicePlatform } from './types'
+import { nativeQuickShare } from './quick-share'
 export type NativeInvoke = (command: string, args?: Record<string, unknown>) => Promise<unknown>
 interface NativeWindowAppearance {
   setTheme(value:ResolvedTheme|null):Promise<void>;setBackgroundColor?(value:string):Promise<void>;
   listen?(event:string,receive:(event:{payload:{paths?:string[]}})=>void):Promise<()=>void|Promise<void>>;
 }
 interface NativeTransfer { id: string; direction: 'upload' | 'download'; name: string; size: number; offset: number; status: string; error?: string; itemId?: string }
-interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform; canRenameDevice?: boolean }
+interface NativeConfig { baseUrl?: string; sourceDevice?: string; connected?: boolean; deviceId?: string; platform?: DevicePlatform; canRenameDevice?: boolean; canOpenAtLogin?:boolean; canQuickShare?:boolean }
 declare global {
   interface Window {
     __TAURI__?: { core: { invoke: NativeInvoke }; window?:{getCurrentWindow():NativeWindowAppearance} };
@@ -110,6 +111,11 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
   }
   return {
     kind:'native',...(setAppearance?{setAppearance}:{}),get baseURL(){return config.baseUrl ? origin : undefined},get defaultDeviceName(){return config.sourceDevice},
+    ...(config.platform==='macos'&&config.canQuickShare===true?{quickShare:nativeQuickShare(invoke)}:{}),
+    ...(config.platform==='macos'&&config.canOpenAtLogin===true?{
+      async getOpenAtLogin(){return loginReceipt(await invoke('native_get_open_at_login'))},
+      async setOpenAtLogin(enabled:boolean){return loginReceipt(await invoke('native_set_open_at_login',{enabled}),enabled)},
+    }:{}),
     ...(!android&&nativeWindow?.listen?{
       async onFileDrop(receive:(event:FileDrop)=>void){
         const stops:(()=>void|Promise<void>)[]=[];let active=true
@@ -167,4 +173,9 @@ export async function nativePlatform(invoke: NativeInvoke): Promise<PlatformAdap
       config = {...config, connected:false}
     },
   }
+}
+function loginReceipt(value:unknown,expected?:boolean):{enabled:boolean}{
+  const enabled=(value as {enabled?:unknown}|null)?.enabled
+  if(typeof enabled!=='boolean'||(expected!==undefined&&enabled!==expected))throw new Error('The login setting could not be confirmed. Check it again before changing it.')
+  return{enabled}
 }

@@ -1,5 +1,6 @@
 import { BrowserTransfers, type TransferStore } from './transfers'
 import type { ArrivalSettings, DevicePlatform } from './types'
+import type { QuickShareAdapter } from './quick-share'
 export interface DownloadRequest { url: string; name: string; itemId: string }
 export type FileDrop = {type:'enter'|'over'|'leave'} | {type:'drop';paths:string[]}
 export type AppearanceChoice = 'light' | 'dark' | 'system'
@@ -11,6 +12,9 @@ export interface PlatformAdapter {
   setAppearance?(request:AppearanceRequest):Promise<{systemTheme:ResolvedTheme}|void>;
   defaultDeviceName?: string;
   renameDevice?(name: string): Promise<void>;
+  getOpenAtLogin?(): Promise<{enabled:boolean}>;
+  setOpenAtLogin?(enabled:boolean): Promise<{enabled:boolean}>;
+  quickShare?: QuickShareAdapter;
   deviceIdentity?: {id: string; platform: DevicePlatform};
   getArrivalSettings?(): Promise<ArrivalSettings>;
   setArrivalEnabled?(enabled: boolean): Promise<ArrivalSettings>;

@@ -31,6 +31,6 @@ function verify(root, manifestPath) {
 
 if (require.main === module) {
   const root = path.resolve(__dirname, '..');
-  console.log(`Verified ${verify(root, path.join(root, 'web/release-evidence/tab-switch-build/frozen-manifest.json'))} frozen frontend assets`);
+  console.log(`Verified ${verify(root, path.join(root, 'web/release-evidence/inbox-update-build/frozen-manifest.json'))} frozen frontend assets`);
 }
 module.exports = {verify};

@@ -2,7 +2,7 @@ import {useEffect,useRef,useState,type FormEvent} from 'react'
 import {ApiError,type ApiClient} from './api'
 import {errorMessage} from './types'
 
-export function TrashSettings({api}:{api:ApiClient}) {
+export function TrashSettings({api,onBusyChange}:{api:ApiClient;onBusyChange?:(busy:boolean)=>void}) {
   const [choice,setChoice]=useState(''),[custom,setCustom]=useState('')
   const [loaded,setLoaded]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[saved,setSaved]=useState('')
   const [unsupported,setUnsupported]=useState(false)
@@ -20,10 +20,10 @@ export function TrashSettings({api}:{api:ApiClient}) {
     event.preventDefault();if(lock.current||!loaded||unsupported)return
     const days=choice==='never'?null:choice==='custom'?Number(custom):Number(choice)
     if(days!==null&&(!/^\d+$/.test(choice==='custom'?custom:choice)||!Number.isInteger(days)||days<1||days>36500)){setError('Enter whole days from 1 through 36500.');return}
-    const current=generation.current;lock.current=true;setBusy(true);setError('');setSaved('')
+    const current=generation.current;lock.current=true;setBusy(true);onBusyChange?.(true);setError('');setSaved('')
     try{const settings=await api.trashSettings(days);if(current===generation.current){apply(settings.retentionDays);setSaved(settings.retentionDays===null?'Saved. Automatic expiration is off.':`Saved. Deleted items are kept for ${settings.retentionDays} days.`)}}
     catch(error){if(current===generation.current){if(error instanceof ApiError&&error.code==='update_required')setUnsupported(true);else setError(`${errorMessage(error)} Your choice is kept. Refresh the saved setting before saving again.`)}}
-    finally{if(current===generation.current){lock.current=false;setBusy(false)}}
+    finally{onBusyChange?.(false);if(current===generation.current){lock.current=false;setBusy(false)}}
   }
   return <form className="trash-settings" onSubmit={event=>void submit(event)} aria-labelledby="retention-title">
     <h3 id="retention-title">Recently Deleted</h3>

@@ -1,7 +1,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
-use household_native::{
-    ApiResponse, ArrivalSettings, ArrivalTarget, Config, ConnectionView, Queue, TransferView,
-};
+use household_native::{ApiResponse, ArrivalSettings, ArrivalTarget, Config, Queue, TransferView};
 use std::{path::PathBuf, sync::Arc};
 use tauri::{
     menu::{Menu, MenuItem},
@@ -14,6 +12,10 @@ use tauri_plugin_global_shortcut::{GlobalShortcutExt, ShortcutState};
 use zing_desktop_notifications::ArrivalNotifier;
 
 type NativeState = Arc<Queue>;
+#[cfg(target_os = "macos")]
+mod panel_position;
+mod quick_share;
+static LOGIN_WRITE: std::sync::Mutex<()> = std::sync::Mutex::new(());
 #[tauri::command(rename_all = "camelCase")]
 fn native_configure(
     state: State<NativeState>,
@@ -35,8 +37,42 @@ async fn native_disconnect(state: State<'_, NativeState>) -> Result<(), String> 
         .map_err(|e| e.to_string())?
 }
 #[tauri::command]
-fn native_get_config(state: State<NativeState>) -> Result<ConnectionView, String> {
-    state.connection()
+fn native_get_config(state: State<NativeState>) -> Result<serde_json::Value, String> {
+    let mut config = serde_json::to_value(state.connection()?).map_err(|e| e.to_string())?;
+    config["canOpenAtLogin"] = cfg!(target_os = "macos").into();
+    config["canQuickShare"] = cfg!(target_os = "macos").into();
+    Ok(config)
+}
+#[tauri::command]
+fn native_get_open_at_login(app: tauri::AppHandle) -> Result<serde_json::Value, String> {
+    let _lock = LOGIN_WRITE.lock().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    return household_native::login::enabled(&app.path().home_dir().map_err(|e| e.to_string())?)
+        .map(|enabled| serde_json::json!({"enabled":enabled}));
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = app;
+        Err("Open at login is available only in the Mac app".into())
+    }
+}
+#[tauri::command]
+fn native_set_open_at_login(
+    app: tauri::AppHandle,
+    enabled: bool,
+) -> Result<serde_json::Value, String> {
+    let _lock = LOGIN_WRITE.lock().map_err(|e| e.to_string())?;
+    #[cfg(target_os = "macos")]
+    return household_native::login::set_enabled(
+        &app.path().home_dir().map_err(|e| e.to_string())?,
+        &std::env::current_exe().map_err(|e| e.to_string())?,
+        enabled,
+    )
+    .map(|enabled| serde_json::json!({"enabled":enabled}));
+    #[cfg(not(target_os = "macos"))]
+    {
+        let _ = (app, enabled);
+        Err("Open at login is available only in the Mac app".into())
+    }
 }
 #[tauri::command(rename_all = "camelCase")]
 async fn native_rename_device(
@@ -239,9 +275,34 @@ fn main() {
             native_api,
             native_get_arrival_settings,
             native_set_arrival_enabled,
-            native_take_arrival_target
+            native_take_arrival_target,
+            native_get_open_at_login,
+            native_set_open_at_login,
+            quick_share::native_quick_context,
+            quick_share::native_quick_paste,
+            quick_share::native_quick_send_text,
+            quick_share::native_quick_pick,
+            quick_share::native_quick_drop,
+            quick_share::native_quick_hide,
+            quick_share::native_quick_open,
+            quick_share::native_quick_quit,
+            quick_share::native_quick_resize
         ])
         .setup(|app| {
+            #[cfg(target_os = "macos")]
+            if let Some(window) = app.get_webview_window("main") {
+                // setup runs on AppKit's main thread; retain the real system title and controls.
+                let styled =
+                    window
+                        .ns_window()
+                        .map_err(|e| e.to_string())
+                        .and_then(|pointer| unsafe {
+                            zing_desktop_notifications::style_titlebar(pointer)
+                        });
+                if let Err(error) = styled {
+                    eprintln!("{error}");
+                }
+            }
             let queue =
                 Queue::open(household_native::data_dir()?).map_err(std::io::Error::other)?;
             app.manage(queue.clone());
@@ -260,6 +321,8 @@ fn main() {
             );
             app.manage(notifier.clone());
             queue.start_arrivals(move |banner| notifier.post(banner));
+            #[cfg(target_os = "macos")]
+            quick_share::lifecycle::setup(app)?;
             let show_item = MenuItem::with_id(app, "show", "Open Drop", true, None::<&str>)?;
             let quit = MenuItem::with_id(
                 app,
@@ -279,6 +342,13 @@ fn main() {
                 .icon_as_template(cfg!(target_os = "macos"))
                 .tooltip("Drop")
                 .menu(&menu)
+                .show_menu_on_left_click(!cfg!(target_os = "macos"))
+                .on_tray_icon_event(|tray, event| {
+                    #[cfg(target_os = "macos")]
+                    quick_share::lifecycle::tray_event(tray.app_handle(), event);
+                    #[cfg(not(target_os = "macos"))]
+                    let _ = (tray, event);
+                })
                 .on_menu_event(|app, event| match event.id.as_ref() {
                     "show" => show(app),
                     "quit" => {
@@ -294,14 +364,18 @@ fn main() {
             if let Err(e) = app.global_shortcut().register("CommandOrControl+Shift+H") {
                 eprintln!("Shortcut unavailable: {e}");
             }
-            if std::env::args().any(|a| a == "--background") {
-                if let Some(w) = app.get_webview_window("main") {
-                    w.hide()?;
-                }
+            if !std::env::args().any(|a| a == "--background") {
+                show(app.handle());
             }
             Ok(())
         })
         .on_window_event(|window, event| {
+            #[cfg(target_os = "macos")]
+            if window.label() == "quick-share"
+                && matches!(event, tauri::WindowEvent::Focused(false))
+            {
+                quick_share::lifecycle::blur(window);
+            }
             if let tauri::WindowEvent::CloseRequested { api, .. } = event {
                 api.prevent_close();
                 let _ = window.hide();

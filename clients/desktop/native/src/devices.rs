@@ -110,6 +110,14 @@ pub(crate) fn prepare_send(
     }
     let id = identity(root, &config.base_url)?.id;
     let targets = targets.unwrap_or_default();
+    prepare_snapshot(root, config, id, targets)
+}
+pub(crate) fn prepare_snapshot(
+    root: &Path,
+    mut config: Config,
+    id: String,
+    targets: Vec<String>,
+) -> Result<SendContext> {
     let mut seen = HashSet::new();
     if targets.len() > 64
         || targets
@@ -314,7 +322,7 @@ impl Queue {
         config.source_device = source_device.into();
         atomic_json(&self.root.join("config.json"), &config)
     }
-    fn device_request(
+    pub(crate) fn device_request(
         &self,
         c: &Config,
         method: reqwest::Method,

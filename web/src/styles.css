@@ -597,3 +597,67 @@ main>.banner, main>.device-name-prompt { flex-shrink: 0; margin-bottom: 0; max-h
   .composer-bottom .recipient-trigger>svg:first-child { display: none; }
   .composer-bottom .send-button { padding-inline: 10px; }
 }
+
+/* Internal share gestures use pointer capture only on the handle. */
+.share-entry.is-draggable { display: flex; gap: 0; }
+.share-drag-handle { flex: 0 0 44px; width: 44px; min-height: 44px; height: 44px; margin-top: 10px; color: var(--secondary); cursor: grab; touch-action: none; user-select: none; }
+.share-drag-handle:active { cursor: grabbing; }
+[data-drop-active="true"], .sidebar .nav-item[data-drop-active="true"] { outline: 3px solid var(--focus); outline-offset: -3px; background: var(--blue-soft); color: var(--text); }
+.drop-count { display: inline-grid; place-items: center; min-width: 24px; height: 24px; padding-inline: 5px; border-radius: 12px; background: var(--surface); color: var(--text); font-size: 12px; font-weight: 650; }
+.share-drag-status { position: fixed; z-index: 140; left: 50%; top: max(12px, var(--safe-area-top)); transform: translateX(-50%); width: max-content; max-width: calc(100% - 24px); padding: 10px 16px; background: var(--inverse); color: var(--on-inverse); border-radius: 12px; pointer-events: none; font-size: 14px; }
+.connection-modal { padding-top: 0; scroll-padding-top: 76px; }
+.settings-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; position: sticky; top: 0; z-index: 2; margin-inline: -8px; padding: 16px 8px; background: var(--surface); border-bottom: 1px solid var(--line); }
+.settings-header .connection-heading { padding-right: 0; }
+.settings-header>.icon-button { flex-shrink: 0; }
+.settings-section { padding-block: 20px; border-bottom: 1px solid var(--line); }
+.settings-section>h3 { font-size: 15px; font-weight: 650; }
+.connection-modal .settings-section label { margin-top: 12px; }
+.connection-advanced { margin-top: 16px; }
+.connection-advanced summary { cursor: pointer; min-height: 44px; padding-block: 12px; font-size: 13px; font-weight: 600; }
+.connection-modal .appearance-control { margin: 0; padding-block: 20px; border-top: 0; }
+.connection-modal .device-settings { margin: 0; padding-block: 20px; border-top: 0; border-bottom: 1px solid var(--line); }
+.connection-modal .settings-storage { border: 0; margin: 0; padding: 12px 0 0; }
+.connection-modal .trash-settings { border: 0; margin: 0; padding-bottom: 0; }
+.settings-footer { display: flex; flex-wrap: wrap; gap: 8px; justify-content: space-between; padding-top: 16px; }
+.settings-footer .disconnect-button, .settings-footer .settings-help { margin: 0; }
+@media (max-width: 800px) {
+  .mobile-tab-list>button { position: relative; }
+  .mobile-tab-list .drop-count { position: absolute; top: 0; right: 2px; }
+  .share-drag-handle { flex-basis: 44px; }
+  .connection-modal { padding-top: 0; }
+}
+
+/* The retained Mac menu-bar window has its own bounded, scrollable surface. */
+.quick-share { height: 100dvh; display: flex; flex-direction: column; background: var(--surface); overflow: hidden; }
+.quick-header { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-bottom: 1px solid var(--line); flex-shrink: 0; }
+.quick-header>img { width: 30px; height: 30px; margin: 7px; }
+.quick-header h1 { font-size: 16px; margin: 0; flex: 1; }
+.quick-content { display: flex; flex-direction: column; gap: 12px; padding: 16px; min-height: 0; overflow-y: auto; flex: 1; }
+.quick-search { display: flex; align-items: center; gap: 8px; border: 1px solid var(--strong-line); border-radius: 10px; padding-inline: 12px; flex-shrink: 0; }
+.quick-search input { width: 100%; min-width: 0; min-height: 44px; border: 0; background: transparent; }
+.quick-devices { overflow-y: auto; min-height: 60px; flex: 1 1 160px; }
+.quick-device { display: flex; align-items: center; gap: 4px; }
+.quick-device-name { display: flex; align-items: center; gap: 12px; padding: 10px 8px; border-radius: 10px; min-height: 52px; flex: 1; min-width: 0; text-align: left; }
+.quick-device-name span { overflow-wrap: anywhere; }
+.quick-device-name:hover:not(:disabled) { background: var(--blue-soft); }
+.quick-recipient { display: flex; align-items: center; gap: 12px; }
+.quick-recipient>svg { width: 36px; height: 36px; flex-shrink: 0; color: var(--blue); }
+.quick-recipient h2 { margin: 0; font-size: 23px; overflow-wrap: anywhere; }
+.quick-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.quick-actions .button { flex: 1; padding-inline: 10px; }
+.quick-drop { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 76px; border: 1px dashed var(--strong-line); border-radius: 12px; padding: 12px; text-align: center; flex-shrink: 0; }
+.quick-drop .field-note { display: block; margin: 4px 0 0; overflow-wrap: anywhere; }
+.quick-drop.is-dragging { background: var(--blue-soft); border: 2px solid var(--blue); }
+.quick-draft { display: flex; flex-direction: column; gap: 8px; flex: 1 0 200px; min-height: 200px; }
+.quick-draft>label { font-size: 13px; font-weight: 600; }
+.quick-draft textarea { width: 100%; flex: 1; min-height: 110px; resize: vertical; white-space: pre-wrap; border: 1px solid var(--strong-line); border-radius: 10px; padding: 12px; background: var(--input-surface); }
+.quick-send { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.quick-send>.field-note { overflow-wrap: anywhere; margin: 0; }
+.quick-content .inline-error, .quick-status { margin: 0; overflow-wrap: anywhere; }
+.quick-status { color: var(--success); font-size: 13px; }
+.quick-refresh { align-self: flex-start; }
+.quick-footer { flex-shrink: 0; padding: 8px 16px; border-top: 1px solid var(--line); }
+.quick-footer>div { display: flex; justify-content: space-between; }
+.quick-footer small { display: block; color: var(--muted); font-size: 11px; margin-bottom: 4px; }
+.connection-modal .login-control { display: flex; align-items: center; gap: 10px; min-height: 44px; }
+.connection-modal .login-control input { width: 18px; min-height: 18px; height: 18px; margin: 0; accent-color: var(--blue); }

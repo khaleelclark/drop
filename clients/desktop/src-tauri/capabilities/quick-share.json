@@ -1,0 +1,6 @@
+{
+  "identifier": "quick-share",
+  "description": "Bundled Mac quick-share panel only; no remote pages receive native IPC.",
+  "windows": ["quick-share"],
+  "permissions": ["core:default", "core:window:allow-set-theme", "core:window:allow-set-background-color"]
+}

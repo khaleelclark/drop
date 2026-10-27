@@ -1,4 +1,5 @@
 #import <Foundation/Foundation.h>
+#import <AppKit/AppKit.h>
 #import <UserNotifications/UserNotifications.h>
 #import <dispatch/dispatch.h>
 #include <stdbool.h>
@@ -6,6 +7,33 @@
 
 typedef void (*ZingClick)(const char *, const char *);
 static ZingClick zingClick;
+
+@interface DropTitlebarBackground : NSView
+@end
+@implementation DropTitlebarBackground
+- (void)drawRect:(NSRect)dirtyRect {
+    [[NSColor colorWithSRGBRed:180.0/255 green:35.0/255 blue:54.0/255 alpha:1] setFill];
+    NSRectFill(dirtyRect);
+}
+// Leave native title dragging, double-click and traffic-light hit testing to AppKit.
+- (NSView *)hitTest:(NSPoint)point { return nil; }
+@end
+
+int drop_style_titlebar(void *pointer) {
+    @try {
+        if (![NSThread isMainThread] || !pointer) return 0;
+        NSWindow *window = (__bridge NSWindow *)pointer;
+        NSView *bar = [window standardWindowButton:NSWindowCloseButton].superview;
+        if (!bar) return 0;
+        window.titlebarAppearsTransparent = YES;
+        // Scope the light native title to the red strip; the WebView keeps its chosen theme.
+        bar.appearance = [NSAppearance appearanceNamed:NSAppearanceNameDarkAqua];
+        DropTitlebarBackground *background = [[DropTitlebarBackground alloc] initWithFrame:bar.bounds];
+        background.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+        [bar addSubview:background positioned:NSWindowBelow relativeTo:nil];
+        return 1;
+    } @catch (NSException *exception) { return 0; }
+}
 
 @interface ZingArrivalDelegate : NSObject <UNUserNotificationCenterDelegate>
 @end

@@ -1,0 +1,175 @@
+{
+  "version": 1,
+  "config": {
+    "baseUrl": "https://household.example",
+    "sourceDevice": "Kitchen Mac",
+    "connected": true,
+    "deviceId": "11111111111111111111111111111111",
+    "platform": "macos",
+    "canOpenAtLogin": true,
+    "canQuickShare": true
+  },
+  "unpairedConfig": {
+    "baseUrl": "https://household.example",
+    "sourceDevice": "My Android",
+    "connected": false
+  },
+  "apiRequest": {
+    "method": "GET",
+    "path": "/api/items/note/text",
+    "requestId": "example-request"
+  },
+  "apiResponse": {
+    "status": 200,
+    "body": "﻿  exact\r\n家 🏠\t\n  ",
+    "headers": {
+      "content-type": "text/plain; charset=utf-8"
+    }
+  },
+  "noContentResponse": {
+    "status": 204,
+    "body": "",
+    "headers": {}
+  },
+  "queue": [
+    {
+      "id": "large-upload",
+      "direction": "upload",
+      "name": "20GiB.bin",
+      "size": 21474836480,
+      "offset": 9000000000,
+      "status": "running",
+      "itemId": "item-upload"
+    },
+    {
+      "id": "needs-source",
+      "direction": "upload",
+      "name": "original.txt",
+      "size": 500,
+      "offset": 120,
+      "status": "needs_source",
+      "error": "Reselect the original source"
+    },
+    {
+      "id": "validating",
+      "direction": "upload",
+      "name": "text.txt",
+      "size": 128,
+      "offset": 128,
+      "status": "validating",
+      "itemId": "pending-item"
+    },
+    {
+      "id": "download",
+      "direction": "download",
+      "name": "saved.bin",
+      "size": 21474836480,
+      "offset": 21474836480,
+      "status": "completed"
+    }
+  ],
+  "states": {
+    "queued": "queued",
+    "checking": "checking",
+    "hashing": "checking",
+    "staging": "checking",
+    "validating": "checking",
+    "running": "uploading",
+    "exporting": "uploading",
+    "paused": "paused",
+    "retry_wait": "paused",
+    "needs_source": "needs-file",
+    "error": "failed",
+    "cancelling": "cancelling",
+    "complete": "complete",
+    "completed": "complete",
+    "cancelled": null
+  },
+  "device": {
+    "id": "11111111111111111111111111111111",
+    "label": "Kitchen Mac",
+    "platform": "macos",
+    "createdAt": "2026-10-23T14:00:00Z"
+  },
+  "sendRouting": {
+    "sourceDeviceId": "11111111111111111111111111111111",
+    "targetDeviceIds": [
+      "22222222222222222222222222222222"
+    ]
+  },
+  "backgroundRegistration": {
+    "id": "11111111111111111111111111111111",
+    "label": "Kitchen Mac",
+    "platform": "macos",
+    "preserveExisting": true
+  },
+  "arrivalSettings": {
+    "enabled": true,
+    "permission": "unknown",
+    "mode": "resident"
+  },
+  "arrivalPage": {
+    "notifications": [
+      {
+        "sequence": "124",
+        "itemId": "33333333333333333333333333333333",
+        "createdAt": "2026-10-23T14:00:00Z"
+      }
+    ],
+    "nextCursor": "124",
+    "ackCursor": "123",
+    "hasMore": false
+  },
+  "arrivalTarget": {
+    "baseUrl": "https://household.example",
+    "itemId": "33333333333333333333333333333333"
+  },
+  "folderPickerRequest": {
+    "kind": "folder",
+    "targetDeviceIds": [
+      "22222222222222222222222222222222"
+    ]
+  },
+  "folderPreparation": {
+    "id": "folder-preparation",
+    "direction": "upload",
+    "name": "家 folder.zip",
+    "size": 10485760,
+    "offset": 65536,
+    "status": "checking"
+  },
+  "folderUpload": {
+    "kind": "file",
+    "mimeType": "application/zip",
+    "name": "家 folder.zip"
+  },
+  "openAtLogin": {
+    "enabled": false
+  },
+  "quickContext": {
+    "baseUrl": "https://household.example",
+    "sourceDeviceId": "11111111111111111111111111111111",
+    "sourceDevice": "Kitchen Mac",
+    "devices": [
+      {"id":"11111111111111111111111111111111","label":"Kitchen Mac","platform":"macos"},
+      {"id":"22222222222222222222222222222222","label":"Phone","platform":"android"}
+    ]
+  },
+  "quickTextRequest": {
+    "baseUrl": "https://household.example",
+    "sourceDeviceId": "11111111111111111111111111111111",
+    "targetDeviceIds": ["22222222222222222222222222222222"],
+    "text": "\ufeff  exact\r\n家 🏠\t\n  "
+  },
+  "quickTextReceipt": {
+    "itemId": "33333333333333333333333333333333"
+  },
+  "quickQueueReceipt": {
+    "queued": 2,
+    "cancelled": false
+  },
+  "quickPickerCancellation": {
+    "queued": 0,
+    "cancelled": true
+  }
+}

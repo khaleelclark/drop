@@ -1,5 +1,32 @@
 # Installed desktop client
 
+## Mac menu bar and login (next source)
+
+Left-click the Mac menu-bar icon for a searchable device list and Everyone.
+Choose a destination to type text, explicitly Paste clipboard text for review,
+Send Files, Send Folder or drop existing files/folders. Send confirms text creation;
+file acceptance means queued, with preparation/upload progress in Open Drop →
+Transfers. The panel retains a draft when hidden or after a failure; Escape and
+clicking outside hide it. Clipboard reads happen only after Paste. Text uses the
+existing 8 MiB preparation budget; larger text can be sent as a file. A failed or
+ambiguous text send is never automatically repeated: check All shares before
+explicitly trying again. Right-click still offers Open Drop and Pause transfers
+and Quit Drop. Hiding either window leaves the same resident queue running.
+
+Settings → Open at login is Mac-only and defaults off. Install Drop in
+`/Applications` or `~/Applications` before enabling it. The explicit toggle writes
+only `~/Library/LaunchAgents/net.household.share.login.plist`, pointing at this
+installed app's executable with `--background` for the next login. Disable removes
+that app-owned entry without quitting Drop. There is no launchctl/KeepAlive action,
+account, administrator requirement or startup-setting change during build.
+Foreign/unsafe existing entries cause a visible error and remain untouched. If
+moving the app, disable first and enable again from its installed location.
+
+The main Mac title bar uses Drop red with a light native title while retaining
+the system window buttons. These are source features pending a new app build;
+Mac title-bar/appearance, tray/picker/focus/drag and actual login behavior still
+require macOS SDK compilation and installed-device checks.
+
 ## Folders and arbitrary files (0.2.4 source)
 
 Add files accepts every extension and files without an extension as opaque bytes.

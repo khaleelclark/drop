@@ -19,6 +19,9 @@ use std::{
 use url::Url;
 mod archive;
 mod devices;
+#[cfg(unix)]
+pub mod login;
+mod quick;
 pub use devices::{ArrivalBanner, ArrivalSettings, ArrivalTarget, SendContext};
 
 pub type Result<T> = std::result::Result<T, String>;

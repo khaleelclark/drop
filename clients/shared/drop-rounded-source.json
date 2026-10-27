@@ -1,0 +1,575 @@
+{
+  "status": "Native B assets source-ready; native handoff complete; web512 comparison remains root-owned",
+  "version": "0.2.2/code2002 unchanged from completed informative-arrival source handoff",
+  "notificationSourceHandoff": {
+    "path": "clients/validation/informative-arrivals/source.json",
+    "bytes": 18910,
+    "sha256": "1e39047483cbbd3e9afa8923814c03b9b8145e2aace5071fa5934e3daa94811c"
+  },
+  "canonicalMark": {
+    "path": "branding/drop-mark.svg",
+    "bytes": 376,
+    "sha256": "381ae3fb6d8d0e4c31ce32110b671c264652dd7efb533a39b94cf74e9225a82c"
+  },
+  "geometry": {
+    "path": "branding/drop-target/geometry.json",
+    "bytes": 2866,
+    "sha256": "16525745679c5411fbba49deff042c4edb4038ce96e5e35a39326ffdbcafd45d"
+  },
+  "placement": {
+    "geometry": "Six independent round-capped/joined polylines, stroke2.5/radius1.25, plus exact seven-point filled cursor. No implicit connecting segments. Full cursor tail retained.",
+    "launchers": "White on navy #244C6A; inner translate(3,3)scale(.75), Android adaptive outer translate(18,18)scale(3); backgrounds/masks unchanged; no red glyph.",
+    "monochrome": "Full 24-unit geometry, white transparent Android notification vector and black transparent 32px macOS template tray.",
+    "safeCircle": {
+      "radius": 33,
+      "actualStrokeCapsuleRadiusBound": 30.65482950922031,
+      "cursorVertexRadiusBound": 30.38833040823402,
+      "smallestAdaptiveHalfPixelAllowance": 0.5,
+      "upperBoundIncludingAA": 31.15482950922031,
+      "method": "Convex norm maximum at segment endpoints plus stroke radius; cursor maximum at polygon vertices. Bounding rectangle empty corner is not part of the glyph."
+    },
+    "rasterization": "Desktop matches established 4x4 web coverage, boundary tolerance1e-12 and PNG encoding. Android keeps existing analytic distance antialiasing, updated radius and polygon. No dependencies."
+  },
+  "changedExistingFiles": [
+    {
+      "path": "clients/android/generate-icons.py",
+      "bytes": 5971,
+      "sha256": "1e485e9cef793c505ab43d27232befcce1fcbabf82e043602fb497ffd9c6ccd5"
+    },
+    {
+      "path": "clients/desktop/src-tauri/icons/generate-tray.py",
+      "bytes": 4258,
+      "sha256": "5cf9bfb83899aa7c11377e4e6022c122d22318d89bd440b5a22c4f1cc0a7e7f9"
+    },
+    {
+      "path": "clients/desktop/src-tauri/icons/tray-template.png",
+      "bytes": 352,
+      "sha256": "1ae2f65c8cdcbf1ffa9a28ccbaa04f54b2ba862a4538e9da8e81f684e12dbb9b"
+    },
+    {
+      "path": "clients/desktop/src-tauri/icons/icon.png",
+      "bytes": 6026,
+      "sha256": "f44b68e08890a7d5653a76ee27a57f0e79d6ac35063ff085763d044955b500e4"
+    },
+    {
+      "path": "clients/android/app/src/main/res/drawable/ic_household.xml",
+      "bytes": 855,
+      "sha256": "7f3d1bd1f4eef14504b5ae05f412d437e24c2abc6b547f57a454fdd432fdad2a"
+    },
+    {
+      "path": "clients/android/app/src/main/res/drawable/ic_zing_notification.xml",
+      "bytes": 604,
+      "sha256": "7f502c524c59dac7b0fe94b1e768acf6840a80695d6d18a0dbb4e32955919435"
+    },
+    {
+      "path": "clients/android/src-tauri/icons/icon.png",
+      "bytes": 2761,
+      "sha256": "a1ee69aa11e6c149028e1764465672a0f23c9e0d5251288fe97e2a5c638b045f"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 2513,
+      "sha256": "2cfb93e3bf78c79e59820951e36d95aa91a1735602ec0be8ce8ab14a7264dbde"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 3081,
+      "sha256": "014443cf9ddc8f41da1210c18562533efc7b1ff71cc3b756e0c5b44d2298df36"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+      "bytes": 2939,
+      "sha256": "165929e6b3afb167e44f543951aa7c3355ac03663a774d9921249872a965fd6e"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1266,
+      "sha256": "756c055053e0ebc06363789a09421c57bfe23701ca925876a5f5ce5ff82fd78c"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 1446,
+      "sha256": "0f7493d2193fe6ba64e8ade7a35d20f1ae7dfd61fd7efc0b71330094d7013e96"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+      "bytes": 1350,
+      "sha256": "0e1bf29050253b6920d7631076beaee0f4a18a2e762deeb48b7213c6a678e39a"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1407,
+      "sha256": "de24e53c872811a7812ecf641a350709f4e1b9dfc4fc208b2a78d04cdb758af2"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 1688,
+      "sha256": "ae8185c7783b5c31d3cd5148ecea1fbba170598d4f688051e535f244072d4c1e"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+      "bytes": 1754,
+      "sha256": "ca481f30d93fd8e9921ee3d92758b97b8994d98052a95615d1b875a8a2c28a91"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+      "bytes": 834,
+      "sha256": "d1f6b9a4af78ea592b0f28f85158448793c06ad4865bc48305d2200daeacf0aa"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 815,
+      "sha256": "7eb8705c0d98163957e7f3e1c31785863a9ba8d9c043663ed863a7d0f5c7781e"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 952,
+      "sha256": "3c980271ab276ab237c2dab9017e3284f4ff50b7a23957411371a10e1e40a863"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+      "bytes": 866,
+      "sha256": "31c7106f6f13f9e55d19267181e804292e904c34c43ccd14a711c57425857dee"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 2761,
+      "sha256": "a1ee69aa11e6c149028e1764465672a0f23c9e0d5251288fe97e2a5c638b045f"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 3638,
+      "sha256": "8c6d5be5037aa1a8fc15bdba496006f961de5370f7b7a4e083517d03b81c4774"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+      "bytes": 3537,
+      "sha256": "a7f5edbebd85937c13accc3b0fe0516987ba1a8a712cfb77353896b7e5856ab8"
+    }
+  ],
+  "assets": [
+    {
+      "path": "clients/desktop/src-tauri/icons/icon.png",
+      "bytes": 6026,
+      "sha256": "f44b68e08890a7d5653a76ee27a57f0e79d6ac35063ff085763d044955b500e4",
+      "width": 512,
+      "height": 512,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        96,
+        96,
+        424,
+        432
+      ]
+    },
+    {
+      "path": "clients/desktop/src-tauri/icons/tray-template.png",
+      "bytes": 352,
+      "sha256": "1ae2f65c8cdcbf1ffa9a28ccbaa04f54b2ba862a4538e9da8e81f684e12dbb9b",
+      "width": 32,
+      "height": 32,
+      "role": "tray",
+      "glyphNonzeroCoverageBounds": [
+        2,
+        2,
+        30,
+        31
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/icons/icon.png",
+      "bytes": 2761,
+      "sha256": "a1ee69aa11e6c149028e1764465672a0f23c9e0d5251288fe97e2a5c638b045f",
+      "width": 192,
+      "height": 192,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        36,
+        36,
+        159,
+        162
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher.png",
+      "bytes": 2513,
+      "sha256": "2cfb93e3bf78c79e59820951e36d95aa91a1735602ec0be8ce8ab14a7264dbde",
+      "width": 144,
+      "height": 144,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        27,
+        27,
+        120,
+        122
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_round.png",
+      "bytes": 3081,
+      "sha256": "014443cf9ddc8f41da1210c18562533efc7b1ff71cc3b756e0c5b44d2298df36",
+      "width": 144,
+      "height": 144,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        27,
+        27,
+        120,
+        122
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxhdpi/ic_launcher_foreground.png",
+      "bytes": 2939,
+      "sha256": "165929e6b3afb167e44f543951aa7c3355ac03663a774d9921249872a965fd6e",
+      "width": 324,
+      "height": 324,
+      "role": "adaptive foreground",
+      "glyphNonzeroCoverageBounds": [
+        94,
+        94,
+        233,
+        237
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher.png",
+      "bytes": 1266,
+      "sha256": "756c055053e0ebc06363789a09421c57bfe23701ca925876a5f5ce5ff82fd78c",
+      "width": 72,
+      "height": 72,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        13,
+        13,
+        60,
+        61
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher_round.png",
+      "bytes": 1446,
+      "sha256": "0f7493d2193fe6ba64e8ade7a35d20f1ae7dfd61fd7efc0b71330094d7013e96",
+      "width": 72,
+      "height": 72,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        13,
+        13,
+        60,
+        61
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-hdpi/ic_launcher_foreground.png",
+      "bytes": 1350,
+      "sha256": "0e1bf29050253b6920d7631076beaee0f4a18a2e762deeb48b7213c6a678e39a",
+      "width": 162,
+      "height": 162,
+      "role": "adaptive foreground",
+      "glyphNonzeroCoverageBounds": [
+        47,
+        47,
+        117,
+        118
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher.png",
+      "bytes": 1407,
+      "sha256": "de24e53c872811a7812ecf641a350709f4e1b9dfc4fc208b2a78d04cdb758af2",
+      "width": 96,
+      "height": 96,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        18,
+        18,
+        80,
+        81
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher_round.png",
+      "bytes": 1688,
+      "sha256": "ae8185c7783b5c31d3cd5148ecea1fbba170598d4f688051e535f244072d4c1e",
+      "width": 96,
+      "height": 96,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        18,
+        18,
+        80,
+        81
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xhdpi/ic_launcher_foreground.png",
+      "bytes": 1754,
+      "sha256": "ca481f30d93fd8e9921ee3d92758b97b8994d98052a95615d1b875a8a2c28a91",
+      "width": 216,
+      "height": 216,
+      "role": "adaptive foreground",
+      "glyphNonzeroCoverageBounds": [
+        63,
+        63,
+        156,
+        158
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher.png",
+      "bytes": 815,
+      "sha256": "7eb8705c0d98163957e7f3e1c31785863a9ba8d9c043663ed863a7d0f5c7781e",
+      "width": 48,
+      "height": 48,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        9,
+        9,
+        40,
+        41
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher_round.png",
+      "bytes": 952,
+      "sha256": "3c980271ab276ab237c2dab9017e3284f4ff50b7a23957411371a10e1e40a863",
+      "width": 48,
+      "height": 48,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        9,
+        9,
+        40,
+        41
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-mdpi/ic_launcher_foreground.png",
+      "bytes": 866,
+      "sha256": "31c7106f6f13f9e55d19267181e804292e904c34c43ccd14a711c57425857dee",
+      "width": 108,
+      "height": 108,
+      "role": "adaptive foreground",
+      "glyphNonzeroCoverageBounds": [
+        31,
+        31,
+        78,
+        79
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher.png",
+      "bytes": 2761,
+      "sha256": "a1ee69aa11e6c149028e1764465672a0f23c9e0d5251288fe97e2a5c638b045f",
+      "width": 192,
+      "height": 192,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        36,
+        36,
+        159,
+        162
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_round.png",
+      "bytes": 3638,
+      "sha256": "8c6d5be5037aa1a8fc15bdba496006f961de5370f7b7a4e083517d03b81c4774",
+      "width": 192,
+      "height": 192,
+      "role": "launcher",
+      "glyphNonzeroCoverageBounds": [
+        36,
+        36,
+        159,
+        162
+      ]
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/mipmap-xxxhdpi/ic_launcher_foreground.png",
+      "bytes": 3537,
+      "sha256": "a7f5edbebd85937c13accc3b0fe0516987ba1a8a712cfb77353896b7e5856ab8",
+      "width": 432,
+      "height": 432,
+      "role": "adaptive foreground",
+      "glyphNonzeroCoverageBounds": [
+        126,
+        126,
+        311,
+        315
+      ]
+    },
+    {
+      "path": "clients/android/app/src/main/res/drawable/ic_household.xml",
+      "bytes": 855,
+      "sha256": "7f3d1bd1f4eef14504b5ae05f412d437e24c2abc6b547f57a454fdd432fdad2a"
+    },
+    {
+      "path": "clients/android/app/src/main/res/drawable/ic_zing_notification.xml",
+      "bytes": 604,
+      "sha256": "7f502c524c59dac7b0fe94b1e768acf6840a80695d6d18a0dbb4e32955919435"
+    },
+    {
+      "path": "clients/android/src-tauri/gen/android/app/src/main/res/drawable-v24/ic_launcher_foreground.xml",
+      "bytes": 834,
+      "sha256": "d1f6b9a4af78ea592b0f28f85158448793c06ad4865bc48305d2200daeacf0aa"
+    }
+  ],
+  "web512": {
+    "state": "root-owned pending web overlay; not a native handoff dependency",
+    "native": {
+      "path": "clients/desktop/src-tauri/icons/icon.png",
+      "bytes": 6026,
+      "sha256": "f44b68e08890a7d5653a76ee27a57f0e79d6ac35063ff085763d044955b500e4"
+    },
+    "observedCurrentWeb": {
+      "path": "web/public/icon-512.png",
+      "bytes": 5554,
+      "sha256": "6eccfd52b468341658effdebc3dbc267f14d15b14ce3abceec31f7af8198bfc3"
+    },
+    "observedCurrentDist": {
+      "path": "web/dist/icon-512.png",
+      "bytes": 5554,
+      "sha256": "6eccfd52b468341658effdebc3dbc267f14d15b14ce3abceec31f7af8198bfc3"
+    },
+    "matchesNativeAtFinalizationRead": false,
+    "claim": "Native generated B is ready. Both web public and dist512 still contain the prior glyph at the finalization read. Root owns the remaining web overlay/comparison and waived waiting for it in this native handoff. No frontend build or independent web edit ran."
+  },
+  "actualPreview": {
+    "path": "clients/android/build/drop-rounded-source/actual-assets-preview.png",
+    "bytes": 5516,
+    "sha256": "9bab3d38fd0ead4eead684f8bbccbf5ccf059036515e5f21d7af27c86fcb6d55"
+  },
+  "previewReview": "Viewed actual PNG contact sheet locally: desktop launcher, Android48px square/round,108px adaptive foreground and32px template tray. Independent dots/frame and cursor tail visible. This is source rendering, not installed presentation.",
+  "checks": {
+    "assets": "18 PNGs: CRC/RGBA8/filter0/dimensions, nonzero coverage bounds, glyph/frame/cursor/tail and empty dash-gap samples, navy/white blend or monochrome alpha, preserved colored-background masks. Three vectors: exact six-subpath d string,2.5 stroke, seven-point filled cursor, unchanged nested transforms.",
+    "standaloneResourceCommand": "ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 clients/android/gradlew -p clients/android --offline --console=plain :app:processDebugResources -x :app:bundleWeb",
+    "tauriResourceCommand": "ANDROID_HOME=/home/phoenix/Android/Sdk JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 clients/android/src-tauri/gen/android/gradlew -p clients/android/src-tauri/gen/android --offline --console=plain :app:processUniversalDebugResources -x :app:rustBuildUniversalDebug -x :tauri-plugin-household:bundleWeb",
+    "result": "Both resource-processing checks passed; no Kotlin/feature suite or frontend/package build repeated. Generator embedded geometry assertions and adapted focused asset checks passed."
+  },
+  "preservation": {
+    "manifest": {
+      "path": "clients/android/build/drop-rounded-source/before.json",
+      "bytes": 96591,
+      "sha256": "09c6c933bb01f23a7e8963fca6b31c2a62a36ac4963c7cfe3cd5582734c53831"
+    },
+    "snapshots": 234,
+    "bytes": 61723263,
+    "protectedEvidenceFilesUnchanged": 65,
+    "baselineSourceFiles": 169,
+    "baselineSourceUnchanged": 146,
+    "claim": "Old assets, generators, prior asset evidence, completed notification report/evidence and0.2.1 packages copied before editing. All snapshots and protected original records verified. Only two generators and21 assets changed; behavior/notification source, versions/IDs/queues/preference/channel/style unchanged."
+  },
+  "harnessNotes": [
+    "First inherited checker used all bounding-rectangle corners for safe-circle proof; B has an empty corner outside33. Replaced with a valid actual capsule/polygon bound; approved geometry/insets unchanged. Attempt1 script/log preserved.",
+    "Second inherited checker compared half-coverage pixel bounds against sharp cursor-tip extrema and failed on96px PNG by1.5px. Changed the bounds measurement to nonzero coverage to match vector support, retaining strict shape/gap/palette/mask checks. Attempt2 script/log preserved. No asset defect/fix or package failure.",
+    "Existing SDK XML/deprecation warnings remain. No lint claim.",
+    "Draft report inventory initially compared enriched PNG records with plain file receipts as whole objects; corrected to compare the path/bytes/hash subset. Asset bytes were correct and unchanged; no check/build repeated for this report correction."
+  ],
+  "evidenceFiles": [
+    {
+      "path": "clients/android/build/drop-rounded-source/actual-assets-preview.png",
+      "bytes": 5516,
+      "sha256": "9bab3d38fd0ead4eead684f8bbccbf5ccf059036515e5f21d7af27c86fcb6d55"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/android-generator.log",
+      "bytes": 65,
+      "sha256": "d1e3e6eb408f277dff418135d11c483cca87a857806133eab929f7f3d0c14db1"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/before.json",
+      "bytes": 96591,
+      "sha256": "09c6c933bb01f23a7e8963fca6b31c2a62a36ac4963c7cfe3cd5582734c53831"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check-attempt-1.log",
+      "bytes": 267,
+      "sha256": "9df7b0f2a771ee326e24d6a5edf55e95799f054ba1a21b0f093b7499dc18fd93"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check-attempt-1.py",
+      "bytes": 7560,
+      "sha256": "749761458d5137baed0459f94fb33b7b23a95c1f094111cd796eff50ab61cf3c"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check-attempt-2.log",
+      "bytes": 516,
+      "sha256": "27a6c8af9cae1f4af0f9bf8e255c15ba28cc7742fe9dc0b6d164ab3c1c122e2b"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check-attempt-2.py",
+      "bytes": 8010,
+      "sha256": "838f544c2a604ac115651c3da06cfb553d15b65190eceda911d3af29cb07bb8b"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check.log",
+      "bytes": 124,
+      "sha256": "3a8580240aafe26bab26b0b0331211656146cf29ae3fd9050ad8aac733441678"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/check.py",
+      "bytes": 8015,
+      "sha256": "04119c26b827900e69af2785c9c99d77af0e52da17bc40ae2b671c4757a921ca"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/checks.json",
+      "bytes": 13613,
+      "sha256": "a4f6c3e43425ae1502e43e81af20a5a909d5a4d738bc0186ed3391a9cba7163c"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/desktop-generator.log",
+      "bytes": 70,
+      "sha256": "7ae3354c0ca4e3793544ae78943f8bbed317d6a72a3fe0762c1d3657ffda10c4"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/preview-inputs.json",
+      "bytes": 681,
+      "sha256": "f37567fccb04761e782daad0ae9719cde151577f73b87825fc2817531edca854"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/preview.py",
+      "bytes": 2028,
+      "sha256": "a0bcdf8cdac1c095d208ae72039ac4988194a6dc6a75eeb1a96be70f7f2e05ad"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/standalone-resources.log",
+      "bytes": 976,
+      "sha256": "e66d1977dfe41f0d8ee0da320b45523c2d630d250db89301e750d8a6f0b05cfe"
+    },
+    {
+      "path": "clients/android/build/drop-rounded-source/tauri-resources.log",
+      "bytes": 2682,
+      "sha256": "2dc98c0b3fbc171c4f033cb5aafe547c42b7480b058d703c97ff0acb866cdbbb"
+    }
+  ],
+  "reportCompletion": {
+    "scope": "Existing report completion and individual report/preview publication only; no generator, build, SDK, feature or asset checks rerun.",
+    "currentReceiptInventory": {
+      "allMatch": true,
+      "changedExistingFiles": 23,
+      "assetRecords": 21,
+      "reportEvidenceFiles": 15,
+      "reportTopLevelReceipts": 5,
+      "notificationSourceFilesUnchanged": 20,
+      "notificationEvidenceFilesUnchanged": 19,
+      "protectedPriorReportsEvidenceAndPackagesUnchanged": 65,
+      "uniqueCurrentFilesHashedIncludingWebAndDraft": 127
+    },
+    "priorSnapshotVerificationReused": 234,
+    "actualExistingPreviewViewed": true,
+    "changedByReportCompletion": [
+      "clients/shared/drop-rounded-source.json"
+    ]
+  },
+  "notPerformed": [
+    "frontend/native APK/DEB/DMG build",
+    "feature/broad-suite rerun",
+    "device/ADB/emulator/install/OS launcher-mask/tray/notification acceptance",
+    "live household/server/configuration/deployment",
+    "new dependencies/toolchains/system installation/new Agents/CI/Git mutation",
+    "20GB/background/recovery/memory validation"
+  ],
+  "remaining": "Root owns the remaining Interface web overlay, exact512 comparison, combined freeze and matching0.2.2 packages. This native source asset handoff is complete without waiting for that work; immutable informative-arrival handoff remains unchanged."
+}

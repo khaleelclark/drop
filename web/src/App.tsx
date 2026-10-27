@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState, type FormEvent } from 'react'
-import { ArrowDown, ArrowUp, ArrowRight, Check, CircleHelp, Clipboard, FileText, HardDrive, Inbox, Link2, LoaderCircle, LogOut, Paperclip, Pin, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Smartphone, UploadCloud, WifiOff, X, Trash2, Undo2 } from 'lucide-react'
+import { ArrowDown, ArrowUp, ArrowRight, Check, CircleHelp, Clipboard, FileText, HardDrive, Inbox, Link2, LoaderCircle, LogOut, Paperclip, Pin, Plus, RefreshCw, Search, Send, Settings2, ShieldCheck, Smartphone, GripVertical, UploadCloud, WifiOff, X, Trash2, Undo2 } from 'lucide-react'
 import { ApiClient, ApiError } from './api'
 import { browserPlatform } from './platform'
 import { browserDeviceId, sendRouting, validDeviceId, validItemId } from './devices'
@@ -8,12 +8,14 @@ import { RecipientPicker } from './RecipientPicker'
 import { DeviceSettings } from './DeviceSettings'
 import { DeviceNamePrompt } from './DeviceNamePrompt'
 import { Appearance, useAppearance } from './Appearance'
+import { OpenAtLogin } from './OpenAtLogin'
 import { PurgeDialog } from './PurgeDialog'
 import { TrashSettings } from './TrashSettings'
 import { FeedCard } from './FeedCard'
 import { chronological, compareShares } from './feed-order'
 import { FeedCache, updateSnapshot, type FeedSnapshot } from './feed-cache'
 import { ItemMenu } from './ItemMenu'
+import { sharesUnchanged, useShareDrag } from './share-drag'
 import { ZingMark } from './ZingMark'
 import { insertPlainText, preserveTextareaEdit, textareaText } from './text-editing'
 import { TransferQueue } from './TransferQueue'
@@ -48,9 +50,9 @@ export function App() {
   const nativeNeedsConnection = platform.kind === 'native' && needsConnection
   const [connectionOpen, setConnectionOpen] = useState(false); const [token, setToken] = useState('')
   const connectionTrigger = useRef<HTMLElement | null>(null)
-  const openConnection = useCallback(() => { connectionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setConnectionOpen(true) }, [])
-  const [advancedToken,setAdvancedToken]=useState(false)
-  const [connecting, setConnecting] = useState(false); const [connectionError, setConnectionError] = useState('')
+  const openConnection = useCallback(() => { connectionTrigger.current = document.activeElement instanceof HTMLElement ? document.activeElement : null; setAdvancedConnection(false);setConnectionOpen(true) }, [])
+  const [advancedToken,setAdvancedToken]=useState(false);const [advancedConnection,setAdvancedConnection]=useState(false)
+  const [connecting, setConnecting] = useState(false);const [retentionBusy,setRetentionBusy]=useState(false),[notificationBusy,setNotificationBusy]=useState(false),[loginBusy,setLoginBusy]=useState(false);const settingsBusy=connecting||retentionBusy||notificationBusy||loginBusy; const [connectionError, setConnectionError] = useState('')
   const [device, setDevice] = useState(() => platform.kind==='native' ? platform.defaultDeviceName||'My device' : stored('household.device', (/Android/i.test(navigator.userAgent) ? 'My Android' : /Mac/i.test(navigator.userAgent) ? 'My Mac' : 'My computer')))
   const [draftDevice,setDraftDevice]=useState(device)
   const openedItem=useRef<Item|null>(null);const pendingArrivalFocus=useRef('')
@@ -326,15 +328,15 @@ export function App() {
       const target = event.target as HTMLElement
       if(target.closest('dialog[open]'))return
       if (event.key === '/' && !['INPUT', 'TEXTAREA'].includes(target.tagName) && !target.isContentEditable) { event.preventDefault(); document.getElementById('feed-search')?.focus() }
-      if (event.key === 'Escape') { setConnectionOpen(false); setHelpOpen(false); if (mobileEditing && target.closest('.workspace')) finishMobileEditing() }
+      if (event.key === 'Escape') { if(settingsBusy&&connectionOpen)return; setConnectionOpen(false); setHelpOpen(false); if (mobileEditing && target.closest('.workspace')) finishMobileEditing() }
     }
     window.addEventListener('keydown', handler); return () => window.removeEventListener('keydown', handler)
-  }, [mobileEditing, finishMobileEditing])
+  }, [mobileEditing, finishMobileEditing, settingsBusy, connectionOpen])
   useEffect(() => {
     if (!connectionOpen && !helpOpen) return
     const previous = connectionOpen ? connectionTrigger.current : document.activeElement as HTMLElement | null
     const dialog = document.querySelector<HTMLElement>('[role="dialog"]')
-    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), summary, a[href], [tabindex="0"]') || []).filter(node=>!node.closest('details:not([open])')||node.tagName==='SUMMARY')
+    const focusable = () => Array.from(dialog?.querySelectorAll<HTMLElement>('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled), summary, a[href], [tabindex="0"]') || []).filter(node=>!node.closest('details:not([open])')||node.tagName==='SUMMARY')
     const timer = setTimeout(() => { if (!dialog?.contains(document.activeElement)) focusable()[0]?.focus() }, 0)
     const trap = (event: KeyboardEvent) => {
       if (event.key !== 'Tab') return
@@ -347,7 +349,7 @@ export function App() {
     return () => { clearTimeout(timer); document.removeEventListener('keydown', trap); document.body.classList.remove('modal-open'); if(inputMode.current==='keyboard'&&previous?.isConnected)previous.focus({preventScroll:true}) }
   }, [connectionOpen, helpOpen])
   const connect = async (event: FormEvent) => {
-    event.preventDefault(); setConnecting(true); setConnectionError('')
+    event.preventDefault(); if(settingsBusy)return; setConnecting(true); setConnectionError('')
     try {
       const target = new ApiClient(draftOrigin, platform.request)
       if (platform.kind === 'browser' && target.baseURL !== window.location.origin) throw new Error('Open Drop at your server’s address to connect. Browser sessions use the server you opened.')
@@ -371,13 +373,16 @@ export function App() {
     }catch(error){throw new Error(`${errorMessage(error)}${localSaved?' Saved on this device, but the household name could not be updated. Your input is kept; retry to finish.':''}`)}
   }
   const saveDeviceName = async () => {
+    if(settingsBusy)return
     setConnecting(true);setConnectionError('')
     try { await renameDevice(draftDevice) }
     catch(error){setConnectionError(errorMessage(error))}finally{setConnecting(false)}
   }
   const logout = async () => {
+    if(settingsBusy)return
+    setConnecting(true);setConnectionError('')
     try { if (platform.disconnect) await platform.disconnect(); else { await Promise.all(platform.transfers.getSnapshot().filter(row => ['queued', 'checking', 'uploading'].includes(row.state)).map(row => platform.transfers.pause(row.id))); await api.logout() } clearFeed();setDeviceId('');setDevices([]);setTargets([]);openedItem.current=null;setHighlight('');setView('all'); setError(''); setNeedsConnection(true); setConnected(false); setStorage(undefined); setMobileEditing(false); setConnectionOpen(platform.kind === 'browser'); notify('Disconnected.') }
-    catch (error) { setConnectionError(errorMessage(error)) }
+    catch (error) { setConnectionError(errorMessage(error)) }finally{setConnecting(false)}
   }
   const sendText = async () => {
     if (!text.length || sending) return
@@ -513,30 +518,56 @@ export function App() {
     return()=>{stopped=true;if(unlisten)release(unlisten);window.removeEventListener('dragenter',enter);window.removeEventListener('dragover',over);window.removeEventListener('dragleave',leave);window.removeEventListener('drop',drop);window.removeEventListener('dragend',clear);window.removeEventListener('blur',clear)}
   },[platform])
   const nav = [{ id: 'all', label: 'All shares', icon: Inbox }, {id:'you',label:'For you',icon:Smartphone}, { id: 'pinned', label: 'Pinned', icon: Pin }, {id:'trash',label:'Recently Deleted',icon:Trash2}] as const
-  const actionScope=useRef('');actionScope.current=`${api.baseURL}:${view}:${search}:${contentKind}`
+  const actionScope=useRef('');actionScope.current=JSON.stringify([api.baseURL,deviceId,view,search,query,contentKind])
   const eligible=visible.filter(item=>item.status!=='uploading')
   const displayedSelected=selected.filter(id=>eligible.some(item=>item.id===id))
   const toggleSelection=(id:string)=>setSelected(previous=>previous.includes(id)?previous.filter(value=>value!==id):previous.length<100?[...previous,id]:previous)
-  const perform=async(action:ItemAction,ids:string[])=>{
-    if(actionLock.current||!ids.length||trashSupport!=='supported')return
+  const dragScope=JSON.stringify([api.baseURL,deviceId,view,search,query,contentKind,connected,offline,needsConnection])
+  const currentDragScope=useRef(dragScope);currentDragScope.current=dragScope
+  const currentDragRows=useRef(visible);currentDragRows.current=visible
+  const rejectDrag=()=>setActionErrors([{id:'drag',name:'Move shares',message:'These shares changed or are not ready. Refresh, then select ready shares again.'}])
+  const shareDrag=useShareDrag({scope:dragScope,rows:visible,selected,enabled:connected&&!offline&&!actionBusy&&!connectionOpen&&!helpOpen&&view!=='trash',onReject:rejectDrag,onDrop:(destination,items,scope)=>void perform(destination==='pinned'?'pin':'trash',items.map(item=>item.id),{items,scope})})
+  const mutation={begin:()=>{if(actionLock.current)return false;actionLock.current=true;setActionBusy(true);return true},end:()=>{actionLock.current=false;setActionBusy(false)}}
+  const dropProps=(id:string)=>({
+    'data-share-drop':id==='pinned'||id==='trash'&&trashSupport==='supported'?id:undefined,
+    'data-drop-active':shareDrag.drag?.target===id?'true':undefined,
+    onClick:()=>{if(!shareDrag.drag)setView(id as View)},
+  })
+  const perform=async(action:ItemAction|'pin',ids:string[],captured?:{items:Item[];scope:string})=>{
+    if(actionLock.current||!ids.length||ids.length>100||(action!=='pin'&&trashSupport!=='supported'))return
     actionLock.current=true;setActionBusy(true);setActionErrors([]);setFolderProgress(null)
     const scope=actionScope.current;const names=new Map(items.map(item=>[item.id,item.name]))
+    let writesStarted=false
     try{
-      let results:ItemActionResult[]
-      if(ids.length===1){await api.itemAction(action,ids[0]);results=[{id:ids[0],ok:true}]}
-      else results=await api.itemActions(action,ids)
+      const contextValid=()=>currentApi.current===api&&(!captured||captured.scope===currentDragScope.current)
+      if(captured){
+        // Verify the captured version before any write; a changed selection is never substituted.
+        const fresh:Item[]=[]
+        for(const item of captured.items){if(!contextValid())throw new ApiError('The view or connection changed. Move the shares again.',409);fresh.push((await api.item(item.id)).item)}
+        if(!contextValid()||!sharesUnchanged(captured.items,fresh)||!sharesUnchanged(captured.items,currentDragRows.current))throw new ApiError('These shares changed. Refresh, then move them again.',409)
+      }
+      let results:ItemActionResult[]=[]
+      if(action==='pin'){
+        for(const id of ids){
+          if(!contextValid()||captured&&!sharesUnchanged(captured.items.filter(item=>item.id===id),currentDragRows.current)){results.push({id,ok:false,error:{status:409,code:'scope_changed',message:'The share, view or connection changed. Move this share again.'}});continue}
+          try{writesStarted=true;const result=await api.pin(id,true);if(currentApi.current===api)updateCached(result.item);results.push({id,ok:true})}
+          catch(error){results.push({id,ok:false,error:{status:error instanceof ApiError?error.status:0,code:'pin_failed',message:`${errorMessage(error)}${!(error instanceof ApiError)||error.status>=500?' Outcome unconfirmed. Refresh before retrying.':''}`}})}
+        }
+      }
+      else if(ids.length===1){writesStarted=true;await api.itemAction(action,ids[0]);results=[{id:ids[0],ok:true}]}
+      else {writesStarted=true;results=await api.itemActions(action,ids)}
       const success=new Set(results.filter(result=>result.ok).map(result=>result.id))
       const failed=results.filter((result):result is Extract<ItemActionResult,{ok:false}>=>!result.ok)
       if(currentApi.current!==api)return
-      removeCached(success)
+      if(action!=='pin')removeCached(success)
       if(scope!==actionScope.current){refresh();return}
       setSelected(previous=>previous.filter(id=>!success.has(id)))
       setActionErrors(failed.map(result=>({id:result.id,name:names.get(result.id)||result.id,message:result.error.code==='upload_active'?'This upload is still active. Use Cancel in Transfers instead.':`${result.error.message}${action==='purge'&&result.error.status>=500?' It may already be permanently deleted. Refresh to check.':''}`})))
-      if(success.size)notify(`${success.size} ${success.size===1?'item':'items'} ${action==='trash'?'moved to Recently Deleted':action==='restore'?'restored':'permanently deleted'}.`)
+      if(success.size)notify(`${success.size} ${success.size===1?'item':'items'} ${action==='pin'?'pinned':action==='trash'?'moved to Recently Deleted':action==='restore'?'restored':'permanently deleted'}.`)
       refresh()
     }catch(error){if(scope===actionScope.current){
       if(error instanceof ApiError&&error.code==='update_required')setTrashSupport('unsupported')
-      else setActionErrors([{id:'action',name:ids.map(id=>names.get(id)||id).join(', '),message:error instanceof ApiError&&error.status<500?errorMessage(error):`${errorMessage(error)} Outcome unconfirmed. ${action==='purge'?'Items may already be permanently deleted. ':''}Refresh before retrying.`}])
+      else setActionErrors([{id:'action',name:ids.map(id=>names.get(id)||id).join(', '),message:captured&&!writesStarted?`${errorMessage(error)} No move was sent. Refresh and try again.`:error instanceof ApiError&&error.status<500?errorMessage(error):`${errorMessage(error)} Outcome unconfirmed. ${action==='purge'?'Items may already be permanently deleted. ':''}Refresh before retrying.`}])
     }}
     finally{setActionBusy(false);actionLock.current=false;setPurgeIds(null)}
   }
@@ -582,7 +613,7 @@ export function App() {
     <a className="skip-link" href="#feed">Skip to feed</a>
     <aside className="sidebar" inert={connectionOpen || helpOpen}>
       <a className="brand" href="/" aria-label="Drop home"><ZingMark className="brand-mark" /><span className="brand-wordmark">Drop<span className="brand-signal" aria-hidden="true" /></span></a>
-      <nav aria-label="Feed filters">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${view === id ? 'selected' : ''}`} disabled={actionBusy} onClick={() => setView(id)} aria-current={view === id ? 'page' : undefined}><Icon size={18} /><span>{label}</span></button>)}</nav>
+      <nav aria-label="Feed filters">{nav.map(({ id, label, icon: Icon }) => <button key={id} className={`nav-item ${view === id ? 'selected' : ''}`} disabled={actionBusy} {...dropProps(id)} aria-current={view === id ? 'page' : undefined}><Icon size={18} /><span>{label}</span>{shareDrag.drag&&(id==='pinned'||id==='trash'&&trashSupport==='supported')&&<small className="drop-count">{shareDrag.drag.count}</small>}</button>)}</nav>
       <div className="sidebar-bottom">
         <div className="storage-card"><div><HardDrive size={17} /><strong>Storage</strong></div>{storage ? <><p>{formatBytes(storage.usedBytes)} <span>stored</span></p><meter className="storage-bar" aria-label="Storage used" min={0} max={Math.max(1, storage.maxStorageBytes || storage.usedBytes + storage.freeBytes)} value={storage.usedBytes}>{formatBytes(storage.usedBytes)} stored</meter><small>{formatBytes(storage.freeBytes)} disk space free{storage.maxStorageBytes ? ` · ${formatBytes(storage.maxStorageBytes)} app budget` : ''}</small></> : <p className="storage-wait">{storageError ? 'Storage status unavailable' : connected ? 'Checking storage…' : 'Connect to view storage'}</p>}</div>
         <button className="sidebar-link" onClick={() => setHelpOpen(true)}><CircleHelp size={17} /> Help & tips</button>
@@ -597,19 +628,20 @@ export function App() {
         {(nativeNeedsConnection || (checked && !connected && !connectionOpen && !configuredNative)) && <div className="banner"><Link2 size={17} /><span>{nativeNeedsConnection ? 'Choose a server in Settings.' : 'Connect to share items.'}</span><button className="text-button" disabled={actionBusy} onClick={() => openConnection()}>{nativeNeedsConnection ? 'Configure connection' : 'Connect'} <ArrowRight size={14} /></button></div>}
         {deviceError&&<div className="banner error-banner" role="alert"><span>{deviceError}</span><button className="text-button" onClick={()=>setIdentityTick(value=>value+1)}>Retry registration</button></div>}
         {targetError&&<div className="banner error-banner" role="alert"><span>{targetError}</span><button className="text-button" onClick={refresh}>Retry opening share</button><button className="icon-button" aria-label="Dismiss opening error" onClick={()=>{setTargetError('');setArrivalTarget('')}}><X size={15}/></button></div>}
-        <nav className="mobile-tabs" hidden={mobileEditing} aria-label="Mobile feed filters"><div className="mobile-tab-list">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} disabled={actionBusy} onClick={()=>setView(id)}><Icon size={21} aria-hidden="true"/><span>{label}</span></button>)}</div></nav>
+        <nav className="mobile-tabs" hidden={mobileEditing} aria-label="Mobile feed filters"><div className="mobile-tab-list">{nav.map(({id,label,icon:Icon})=><button key={id} aria-current={view===id?'page':undefined} disabled={actionBusy} {...dropProps(id)}><Icon size={21} aria-hidden="true"/><span>{label}</span>{shareDrag.drag&&(id==='pinned'||id==='trash'&&trashSupport==='supported')&&<small className="drop-count">{shareDrag.drag.count}</small>}</button>)}</div></nav>
         <section id="feed" tabIndex={-1} className="feed" aria-labelledby="feed-title"><div className="feed-toolbar" hidden={selecting}><div className="feed-title"><h2 id="feed-title">{view==='trash'?'Recently Deleted':search?'Search results':view==='you'?'Sent to this device':view==='pinned'?'Pinned shares':'Recent shares'}</h2></div><label className="kind-filter"><span className="sr-only">Content type</span><select disabled={actionBusy} value={contentKind} onChange={event=>setContentKind(event.target.value as ContentKind)}><option value="all">All types</option><option value="text">Text</option><option value="file">Files</option></select></label><button className="text-button select-toggle" aria-label="Select items" disabled={actionBusy||!eligible.length||trashSupport!=='supported'} onClick={()=>{setSelecting(true);setSelected([]);setActionErrors([])}}>Select</button><div className="feed-controls"><label className="search-field"><Search size={16} /><input id="feed-search" type="search" placeholder={view==='trash'?'Search Recently Deleted':'Search shares'} disabled={actionBusy} value={query} onChange={event => setQuery(event.target.value)} /><span className="search-shortcut">/</span><span className="sr-only">Search names and text previews</span></label>{mobileEditing?<button className="text-button finish-editing" onClick={finishMobileEditing}><Check size={16} aria-hidden="true"/>Done editing</button>:<button className="icon-button refresh-button" onClick={refresh} disabled={loading} aria-label="Refresh feed"><RefreshCw className={loading ? 'spin' : ''} size={17} /></button>}</div></div>
           {view==='trash'&&trashSupport==='supported'&&!folderUnsupported&&<div className="trash-folder-tools"><button className="button quiet text-danger" disabled={actionBusy||!connected} onClick={()=>void previewFolder()}>Delete all</button></div>}
           {folderProgress&&view==='trash'&&<p className="folder-progress" role="status">{folderProgress.running?'Deleting whole folder… ':''}{folderProgress.deleted} confirmed deleted · {folderProgress.failed} failed{folderProgress.failed>20?' (first 20 listed below)':''}{folderProgress.uncertain?' · One batch is unconfirmed. Refresh before choosing a new action.':''}</p>}
-          {selecting&&<div className="selection-bar" role="region" aria-label="Selected items"><div><strong>{displayedSelected.length} selected</strong><span id="selection-scope">Of {eligible.length} displayed eligible items · limit 100</span></div><button className="text-button" disabled={actionBusy} aria-describedby="selection-scope" onClick={()=>setSelected(eligible.slice(0,100).map(item=>item.id))}>Select all</button><button className="text-button" disabled={actionBusy} onClick={()=>{setSelecting(false);setSelected([]);setActionErrors([])}}>Cancel selection</button><div className="selection-actions">{view==='trash'?<><button className="button quiet" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('restore',displayedSelected)}><Undo2 size={16}/>Restore</button><button className="button text-danger" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>setPurgeIds(displayedSelected)}><Trash2 size={16}/>Delete</button></>:<button className="button primary" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('trash',displayedSelected)}><Trash2 size={16}/>Delete</button>}</div></div>}
+          {selecting&&<div className="selection-bar" role="region" aria-label="Selected items"><div><strong>{displayedSelected.length} selected</strong><span id="selection-scope">Of {eligible.length} displayed eligible items · limit 100</span></div><button className="text-button" disabled={actionBusy} aria-describedby="selection-scope" onClick={()=>setSelected(eligible.slice(0,100).map(item=>item.id))}>Select all</button><button className="text-button" disabled={actionBusy} onClick={()=>{setSelecting(false);setSelected([]);setActionErrors([])}}>Cancel selection</button><div className="selection-actions">{view==='trash'?<><button className="button quiet" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('restore',displayedSelected)}><Undo2 size={16}/>Restore</button><button className="button text-danger" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>setPurgeIds(displayedSelected)}><Trash2 size={16}/>Delete</button></>:<><button className="button secondary" disabled={actionBusy||!displayedSelected.length||displayedSelected.some(id=>!visible.some(item=>item.id===id&&item.status==='ready'))} onClick={()=>void perform('pin',displayedSelected)}><Pin size={16}/>Pin</button><button className="button primary" disabled={actionBusy||!displayedSelected.length||trashSupport!=='supported'} onClick={()=>void perform('trash',displayedSelected)}><Trash2 size={16}/>Delete</button></>}</div></div>}
           {actionErrors.length>0&&<div className="banner error-banner action-errors" role="alert" ref={actionErrorArea}><div><ul>{actionErrors.map(entry=><li key={entry.id}><strong>{entry.name}:</strong> {entry.message}</li>)}</ul></div><button className="text-button" disabled={actionBusy} onClick={refresh}>Refresh view</button></div>}
           {trashSupport==='unsupported'&&<div className="banner error-banner" role="alert">Update the household server to delete items.</div>}{trashSupport==='unavailable'&&view!=='trash'&&<div className="banner error-banner" role="alert"><span>Couldn’t check deletion support.</span><button className="text-button" onClick={refresh}>Retry</button></div>}{folderUnsupported&&view==='trash'&&trashSupport!=='unsupported'&&<div className="banner error-banner" role="alert">Update the household server to delete all items.</div>}
           {error && <div className="banner error-banner" role="alert"><span>{error}</span><button className="text-button" onClick={refresh}>Retry</button>{configuredNative && <button className="text-button" disabled={actionBusy} onClick={() => openConnection()}>Settings</button>}<button className="icon-button" aria-label="Dismiss error" onClick={() => setError('')}><X size={15} /></button></div>}
           <div className="feed-scroll" ref={feedScroll} onScroll={rememberPosition} tabIndex={0} role="region" aria-label="Shares">
           {cursor && view!=='trash' && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowUp size={15} />} Load older items</button>}
-          {loading && !snapshot ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Loading…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={`share-entry ${highlight===item.id?'arrival-highlight':''} ${selecting?'is-selectable':''} ${selected.includes(item.id)?'is-selected':''}`}>
+          {loading && !snapshot ? <div className="empty-state" role="status"><LoaderCircle className="spin" size={25} /><h3>Loading…</h3></div> : visible.length ? <div className="feed-list">{visible.map(item => <div key={item.id} id={`share-${item.id}`} tabIndex={-1} className={`share-entry ${view!=='trash'?'is-draggable':''} ${highlight===item.id?'arrival-highlight':''} ${selecting?'is-selectable':''} ${selected.includes(item.id)?'is-selected':''}`}>
+            {view!=='trash'&&<button className="share-drag-handle icon-button" aria-label={`Move ${item.name}`} title="Drag to Pinned or Recently Deleted; press Enter to choose actions" disabled={actionBusy||item.status!=='ready'||Boolean(item.deletedAt)} onPointerDown={event=>shareDrag.start(event,item.id)} onLostPointerCapture={shareDrag.cancel} onClick={event=>{if(event.detail===0){setSelecting(true);setSelected(previous=>previous.includes(item.id)?previous:[item.id]);requestAnimationFrame(()=>document.querySelector<HTMLButtonElement>('.selection-actions button')?.focus())}}}><GripVertical size={18} aria-hidden="true"/></button>}
             {selecting&&<label className="item-selection"><input type="checkbox" aria-label={`Select ${item.name}`} checked={selected.includes(item.id)} disabled={actionBusy||item.status==='uploading'||(!selected.includes(item.id)&&selected.length>=100)} onChange={()=>toggleSelection(item.id)}/></label>}
-            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onUpdated={item=>{if(currentApi.current===api)updateCached(item)}} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='you'&&deviceError)||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={openComposer}><Plus size={16} /> Share something</button>}</div>}
+            <div className="entry-body">{view==='trash'?<article className="feed-card trash-card" aria-label={`Deleted: ${item.name}`}><div><h3>{item.name}</h3><p>{formatBytes(item.size)} · {item.kind==='text'?'Text':'File'} · Moved {new Date(item.deletedAt!).toLocaleDateString()}</p>{item.kind==='text'&&<pre className="trash-preview">{item.preview}</pre>}</div><div className="trash-actions"><button className="button quiet" disabled={actionBusy||trashSupport!=='supported'} onClick={()=>void perform('restore',[item.id])}><Undo2 size={16}/>Restore</button><button className="button text-danger" tabIndex={0} disabled={actionBusy||trashSupport!=='supported'} onClick={()=>setPurgeIds([item.id])}><Trash2 size={17}/>Delete</button></div></article>:<FeedCard item={item} api={api} platform={platform} refresh={refresh} notify={notify} mutation={mutation} actionBusy={actionBusy} trashAvailable={trashSupport==='supported'} onUpdated={item=>{if(currentApi.current===api)updateCached(item)}} onTrash={()=>perform('trash',[item.id])}/>}</div></div>)}</div> : error||(view==='you'&&deviceError)||(view==='trash'&&trashSupport==='unsupported')?null:<div className="empty-state"><div className="empty-illustration"><Inbox size={35} strokeWidth={1.3} /></div><h3>{!connected ? nativeNeedsConnection ? 'No household connection yet' : configuredNative ? 'Your household is unavailable' : 'Connect your household' : view==='trash'?'Recently Deleted is empty':search ? 'No matching shares' : contentKind !== 'all' ? `No ${contentKind === 'text' ? 'text shares' : 'files'} in this view` : view === 'pinned' ? 'No pinned items' : view==='you'?'Nothing sent to you yet':'A fresh start'}</h3>{connected&&view!=='trash'&&<p>{search?'Try another search.':view==='pinned'?'Pin items to find them here.':view==='you'?'Shares sent to this device appear here.':'Paste text or add a file.'}</p>}{!connected ? platform.kind === 'browser' && <button className="button primary" disabled={actionBusy} onClick={() => openConnection()}><Link2 size={16} /> Connect household</button> : !search && contentKind === 'all' && view !== 'pinned' && view!=='trash' && <button className="button secondary" onClick={openComposer}><Plus size={16} /> Share something</button>}</div>}
           {cursor && view==='trash' && <button className="load-more button secondary" onClick={() => void loadMore()} disabled={loadingMore || loading}>{loadingMore ? <LoaderCircle className="spin" size={15} /> : <ArrowDown size={15} />} Load older items</button>}
           </div>
           {newShares&&view!=='trash'&&<button className="new-shares button secondary" onClick={jumpToNewest}><ArrowDown size={16}/>New shares</button>}
@@ -627,17 +659,30 @@ export function App() {
         </div>
       </main>
     </div>
+    {shareDrag.drag&&<p className="share-drag-status" role="status">{shareDrag.drag.count} {shareDrag.drag.count===1?'share':'shares'} · {shareDrag.drag.target==='pinned'?'Release to pin':shareDrag.drag.target==='trash'?'Release to move to Recently Deleted':'Drag to Pinned or Recently Deleted'}</p>}
     {folderSummary&&<PurgeDialog wholeFolder names={folderSummary.names} count={folderSummary.count} busy={actionBusy} progress={folderProgress?.running?`${folderProgress.deleted} confirmed deleted · ${folderProgress.failed} failed. Continuing…`:undefined} onCancel={()=>setFolderSummary(null)} onConfirm={()=>void purgeFolder()}/>}
     {purgeIds&&<PurgeDialog names={purgeIds.map(id=>items.find(item=>item.id===id)?.name||id)} count={purgeIds.length} busy={actionBusy} onCancel={()=>setPurgeIds(null)} onConfirm={()=>void perform('purge',purgeIds)}/>}
     {dragging && <div className="drop-overlay"><div><UploadCloud size={52} strokeWidth={1.3} /><h2>Drop files to share</h2></div></div>}
     {toast && <div className="toast" role="status"><Check size={17} />{toast}<button className="icon-button" aria-label="Dismiss notification" onClick={() => setToast('')}><X size={14} /></button></div>}
-    {connectionOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget && connected) setConnectionOpen(false) }}><section className="modal connection-modal" role="dialog" aria-modal="true" aria-labelledby="connection-title"><button className="icon-button modal-close" aria-label="Close connection settings" onClick={() => setConnectionOpen(false)}><X size={20} /></button><div className="connection-heading"><ZingMark className="modal-icon" /><h2 id="connection-title">{connected || platform.kind === 'native' ? 'Connection settings' : 'Connect to Drop'}</h2></div>{connected && storage && <div className="settings-storage"><span><HardDrive size={16}/>Storage</span><p><strong>{formatBytes(storage.usedBytes)}</strong> stored · <strong>{formatBytes(storage.freeBytes)}</strong> free</p><small>Up to {formatBytes(storage.maxFileBytes)} per file</small></div>}<form onSubmit={event => void connect(event)}><label>Household server<input autoFocus type="url" required value={draftOrigin} onChange={event => setDraftOrigin(event.target.value)} spellCheck={false} autoCapitalize="none" /></label>{platform.kind === 'browser' && <p className="field-note">Use your private Tailscale HTTPS address.</p>}<button type="button" className="text-button advanced-token" aria-expanded={advancedToken} onClick={()=>setAdvancedToken(!advancedToken)}>Advanced · Use app token</button>{advancedToken&&<label>App token (optional)<input type="password" value={token} onChange={event => setToken(event.target.value)} autoComplete="off" placeholder="For token servers or local development" /></label>}<label>This device’s name<input required maxLength={80} value={draftDevice} onChange={event => setDraftDevice(event.target.value)} autoComplete="off" /></label>{connectionError && <p className="inline-error" role="alert">{connectionError}</p>}<button className="button primary connect-button" disabled={connecting}>{connecting ? <LoaderCircle className="spin" size={16} /> : <Link2 size={16} />}{connecting ? 'Connecting…' : 'Connect household'}</button></form>{connected&&<button className="button secondary save-device-name" disabled={draftDevice===device||connecting} onClick={()=>void saveDeviceName()}>Save device name</button>}
+    {connectionOpen && <div className="modal-backdrop" onClick={event => { if (event.target === event.currentTarget && connected&&!settingsBusy) setConnectionOpen(false) }}><section className="modal connection-modal" role="dialog" aria-modal="true" aria-labelledby="connection-title">
+      <div className="settings-header"><div className="connection-heading"><ZingMark className="modal-icon" /><h2 id="connection-title">{connected || platform.kind === 'native' ? 'Connection settings' : 'Connect to Drop'}</h2></div><button className="icon-button" disabled={settingsBusy} aria-label="Close connection settings" onClick={() => setConnectionOpen(false)}><X size={20} /></button></div>
+      <section className="settings-section" aria-labelledby="device-connection-title"><h3 id="device-connection-title">Device & connection</h3><p className="field-note">{connected?'Give this device a name you’ll recognize when sharing.':'Choose your household server to start sharing.'}</p>
+      <form onSubmit={event=>{if(connected&&!advancedConnection){event.preventDefault();void saveDeviceName()}else void connect(event)}}>
+        <label>This device’s name<input required maxLength={80} disabled={settingsBusy} value={draftDevice} onChange={event => setDraftDevice(event.target.value)} autoComplete="off" /></label>
+        {connected&&<button type="button" className="button secondary save-device-name" disabled={draftDevice===device||settingsBusy} onClick={()=>void saveDeviceName()}>{connecting?'Saving…':'Save device name'}</button>}
+        <details className="connection-advanced" open={!connected||advancedConnection} onToggle={event=>setAdvancedConnection(event.currentTarget.open)}><summary>Server & advanced connection</summary>
+          <label>Household server<input type="url" required disabled={settingsBusy} value={draftOrigin} onChange={event => setDraftOrigin(event.target.value)} spellCheck={false} autoCapitalize="none" /></label><p className="field-note">Your private Tailscale HTTPS address.</p>
+          <button type="button" disabled={settingsBusy} className="text-button advanced-token" aria-expanded={advancedToken} onClick={()=>setAdvancedToken(!advancedToken)}>Advanced · Use app token</button>{advancedToken&&<label>App token (optional)<input type="password" disabled={settingsBusy} value={token} onChange={event => setToken(event.target.value)} autoComplete="off" placeholder="Only if your server requires one" /></label>}
+          <button className="button primary connect-button" disabled={settingsBusy}>{connecting ? <LoaderCircle className="spin" size={16} /> : <Link2 size={16} />}{connecting ? 'Connecting…' : connected?'Save connection':'Connect household'}</button>
+        </details>
+        {connectionError && <p className="inline-error" role="alert">{connectionError}</p>}
+      </form>{connected&&deviceError&&<p className="inline-error" role="alert">{deviceError}</p>}</section>
       <Appearance {...appearance}/>
-      {connected&&<TrashSettings key={api.baseURL} api={api}/>}
-      <button className="text-button settings-help" onClick={()=>{setConnectionOpen(false);setHelpOpen(true)}}><CircleHelp size={17}/>Help & tips</button>
-      {connected&&deviceError&&<p className="inline-error" role="alert">{deviceError}</p>}
-      {connected&&<DeviceSettings api={api} platform={platform} deviceId={deviceId} devices={devices} refresh={refresh} onArrivalChange={()=>setArrivalTick(value=>value+1)} arrivalError={arrivalError}/>}
-      {(connected || configuredNative) && <button className="text-button disconnect-button" onClick={() => void logout()}><LogOut size={14} /> {platform.kind === 'native' ? 'Disconnect this app' : 'Disconnect this browser'}</button>}<p className="field-note">Disconnect does not revoke Tailscale access.</p></section></div>}
+      <OpenAtLogin platform={platform} disabled={settingsBusy} onBusyChange={setLoginBusy}/>
+      {connected&&<DeviceSettings api={api} platform={platform} deviceId={deviceId} devices={devices} refresh={refresh} onArrivalChange={()=>setArrivalTick(value=>value+1)} onBusyChange={setNotificationBusy} arrivalError={arrivalError}/>}
+      {connected&&<section className="settings-section" aria-labelledby="storage-settings-title"><h3 id="storage-settings-title">Storage</h3>{storage?<div className="settings-storage"><p><strong>{formatBytes(storage.usedBytes)}</strong> stored · <strong>{formatBytes(storage.freeBytes)}</strong> free</p><small>Up to {formatBytes(storage.maxFileBytes)} per file</small></div>:<p className="field-note">{storageError||'Checking storage…'}</p>}<TrashSettings key={api.baseURL} api={api} onBusyChange={setRetentionBusy}/></section>}
+      <div className="settings-footer"><button className="text-button settings-help" disabled={settingsBusy} onClick={()=>{setConnectionOpen(false);setHelpOpen(true)}}><CircleHelp size={17}/>Help & tips</button>{(connected || configuredNative) && <button className="text-button disconnect-button" disabled={settingsBusy} onClick={() => void logout()}><LogOut size={14} /> {platform.kind === 'native' ? 'Disconnect this app' : 'Disconnect this browser'}</button>}</div>
+    </section></div>}
     {helpOpen && <div className="modal-backdrop"><section className="modal help-modal" role="dialog" aria-modal="true" aria-labelledby="help-title"><button className="icon-button modal-close" aria-label="Close help" onClick={() => setHelpOpen(false)} autoFocus><X size={20} /></button><span className="modal-icon"><CircleHelp size={27} /></span><h2 id="help-title">Using Drop</h2><div className="help-entry"><UploadCloud size={20} /><div><h3>{platform.kind === 'native' ? 'Transfers' : 'Keep this browser open while sending.'}</h3><p>{platform.kind === 'native' ? 'Closing the window keeps transfers running. Quit, sleep or OS restrictions can pause them. Reopen Drop to resume.' : 'Keep the tab open. After closing it or sleeping, reselect the original file to resume.'}</p></div></div><div className="help-entry"><Clipboard size={20} /><div><h3>Copy text</h3><p>Copy uses the full text. If it’s too large for the clipboard, download .txt instead.</p></div></div><div className="help-entry"><HardDrive size={20} /><div><h3>Recently Deleted</h3><p>Restore items before they expire or are permanently deleted. Change automatic deletion in Settings. Cancel active uploads in Transfers.</p></div></div><div className="help-entry"><ShieldCheck size={20} /><div><h3>Connection</h3><p>Keep Tailscale connected and the server online.{platform.deviceIdentity?.platform==='android'&&' Reopen Drop after reboot or force-stop to resume arrival checks; Android may delay background checks.'}{platform.kind === 'browser' && ' Install this page from your browser’s app menu where available.'}</p></div></div><button className="button primary connect-button" onClick={() => setHelpOpen(false)}>Got it</button></section></div>}
   </div>
 }

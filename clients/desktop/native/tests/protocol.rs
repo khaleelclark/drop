@@ -111,6 +111,10 @@ struct State {
     drop_creation: bool,
     creation_status: Option<u16>,
     creations: u32,
+    quick_devices: Vec<serde_json::Value>,
+    quick_texts: Vec<serde_json::Value>,
+    drop_quick_text: bool,
+    invalid_quick_receipt: bool,
 }
 struct Server {
     url: String,
@@ -144,6 +148,36 @@ impl Server {
                 );
                 let mut s = shared.lock().unwrap();
                 match (req.method.as_str(), req.path.as_str()) {
+                    ("GET", "/api/devices") => {
+                        let mut devices = s.quick_devices.clone();
+                        devices.extend(s.registration.clone());
+                        reply(
+                            &mut stream,
+                            "200 OK",
+                            &[],
+                            &serde_json::to_vec(&serde_json::json!({"devices":devices})).unwrap(),
+                            false,
+                        );
+                    }
+                    ("POST", "/api/text") => {
+                        s.quick_texts
+                            .push(serde_json::from_slice(&req.body).unwrap());
+                        if s.drop_quick_text {
+                            continue;
+                        }
+                        let receipt = if s.invalid_quick_receipt {
+                            serde_json::json!({"item":{"id":"b".repeat(32),"kind":"text","status":"uploading"}})
+                        } else {
+                            serde_json::json!({"item":{"id":"b".repeat(32),"kind":"text","status":"ready"}})
+                        };
+                        reply(
+                            &mut stream,
+                            "201 Created",
+                            &[],
+                            &serde_json::to_vec(&receipt).unwrap(),
+                            false,
+                        );
+                    }
                     ("POST", "/api/devices/register") => {
                         let device: serde_json::Value = serde_json::from_slice(&req.body).unwrap();
                         s.registration_requests.push(device.clone());
@@ -460,6 +494,112 @@ fn server_worker_panic_fails_without_double_panic_during_cleanup() {
             })
         );
     }
+}
+#[test]
+fn quick_text_exact_routing_confirmation_and_no_automatic_retry() {
+    let server = Server::new();
+    let temp = tempfile::tempdir().unwrap();
+    let q = Queue::open(temp.path().join("queue")).unwrap();
+    q.configure(server.config()).unwrap();
+    let id = q.connection().unwrap().device_id.unwrap();
+    let receiver = "c".repeat(32);
+    server
+        .state
+        .lock()
+        .unwrap()
+        .quick_devices
+        .push(serde_json::json!({"id":receiver,"label":"Phone","platform":"android"}));
+    let context = q.quick_context().unwrap();
+    assert_eq!(context["baseUrl"], server.url);
+    assert_eq!(context["sourceDeviceId"], id);
+    let text = " \r\n <script>inert</script>\t🦊\n\n";
+    assert_eq!(
+        q.quick_send_text(&server.url, &id, vec![receiver.clone()], text.into())
+            .unwrap(),
+        "b".repeat(32)
+    );
+    assert_eq!(
+        server.state.lock().unwrap().quick_texts[0],
+        serde_json::json!({"text":text,"sourceDeviceId":id,"targetDeviceIds":[receiver]})
+    );
+    q.quick_send_text(&server.url, &id, vec![], "   ".into())
+        .unwrap();
+    assert_eq!(
+        server.state.lock().unwrap().quick_texts[1]["targetDeviceIds"],
+        serde_json::json!([])
+    );
+    for lost in [false, true] {
+        let before = server.state.lock().unwrap().quick_texts.len();
+        {
+            let mut s = server.state.lock().unwrap();
+            s.invalid_quick_receipt = !lost;
+            s.drop_quick_text = lost;
+        }
+        let error = q
+            .quick_send_text(&server.url, &id, vec![], text.into())
+            .unwrap_err();
+        assert!(error.contains("may already have been shared"));
+        assert_eq!(server.state.lock().unwrap().quick_texts.len(), before + 1);
+    }
+    assert!(q.list().unwrap().is_empty());
+    assert_eq!(
+        fs::read_dir(temp.path().join("queue/intake"))
+            .unwrap()
+            .count(),
+        0
+    );
+}
+#[test]
+fn quick_stale_destinations_fail_and_file_snapshot_survives_reconfiguration() {
+    let server = Server::new();
+    let temp = tempfile::tempdir().unwrap();
+    let root = temp.path().join("queue");
+    let q = Queue::open(root.clone()).unwrap();
+    q.configure(server.config()).unwrap();
+    let id = q.connection().unwrap().device_id.unwrap();
+    let receiver = "c".repeat(32);
+    let device = serde_json::json!({"id":receiver,"label":"Phone","platform":"android"});
+    server
+        .state
+        .lock()
+        .unwrap()
+        .quick_devices
+        .push(device.clone());
+    let source = temp.path().join("file.bin");
+    fs::write(&source, b"unchanged").unwrap();
+    let context = q
+        .quick_prepare(&server.url, &id, vec![receiver.clone()])
+        .unwrap();
+    server.state.lock().unwrap().quick_devices.clear();
+    assert!(q
+        .quick_prepare(&server.url, &id, vec![receiver.clone()])
+        .is_err());
+    assert!(q
+        .quick_send_text(&server.url, &id, vec![receiver.clone()], "unsent".into())
+        .is_err());
+    assert!(server.state.lock().unwrap().quick_texts.is_empty());
+    q.configure(Config {
+        base_url: "https://different.example".into(),
+        token: "next-token".into(),
+        source_device: "New name".into(),
+    })
+    .unwrap();
+    q.enqueue_prepared(&source, "file", &context).unwrap();
+    let disk: serde_json::Value =
+        serde_json::from_slice(&fs::read(root.join("queue.json")).unwrap()).unwrap();
+    let transfer = &disk["transfers"][0];
+    assert_eq!(transfer["config"]["baseUrl"], server.url);
+    assert_eq!(transfer["routing"]["sourceDeviceId"], id);
+    assert_eq!(
+        transfer["routing"]["targetDeviceIds"],
+        serde_json::json!([receiver])
+    );
+    assert!(q.quick_prepare(&server.url, &id, vec![]).is_err());
+    drop(context);
+    drop(q);
+    let reopened = Queue::open(root).unwrap();
+    assert_eq!(reopened.list().unwrap().len(), 1);
+    assert_eq!(reopened.list().unwrap()[0].status, "paused");
 }
 fn data() -> Vec<u8> {
     (0..CHUNK + 7321).map(|i| (i % 251) as u8).collect()

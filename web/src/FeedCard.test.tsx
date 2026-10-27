@@ -35,7 +35,7 @@ describe('full text copy', () => {
     expect(notify).not.toHaveBeenCalled()
     await act(async () => resolve())
     expect(await screen.findByRole('button', { name: 'Copied' })).toBeInTheDocument()
-    expect(notify).toHaveBeenCalledWith('Full text copied.')
+    expect(notify).not.toHaveBeenCalled()
   })
   it('keeps failed writes visibly failed and never announces success', async () => {
     const write = vi.fn().mockRejectedValue(new Error('Clipboard permission denied'))
